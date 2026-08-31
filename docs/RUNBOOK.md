@@ -63,7 +63,7 @@ python -m oslab.cli doctor --json
 ```
 
 `selftest` runs `uv lock --check`, frozen/offline `pnpm install`, pytest, format check, lint, strict typing, target inspection, training export, cleanup dry-run, live Ollama smoke, Qwen Code MCP smoke, and artifact/database integrity. The QEMU and live tests require Docker Desktop/WSL2, Ollama, and the local Qwen model to be available.
-`acceptance audit` checks the final proof files, gate summary, required artifact contents, key evidence CAS artifacts, artifact snapshot, referenced selftest proof blobs, live smoke stdout, recorded audit artifact, clean Git state, and proof-only post-verification changes. The recorded audit artifact must include the semantic-content and live-output checks, and decisive evidence blobs must exist with valid nested serial/stderr artifact references.
+`acceptance audit` checks the final proof files, gate summary, required artifact contents, key evidence CAS artifacts, artifact snapshot, referenced selftest proof blobs, live smoke stdout, recorded audit artifact, clean Git state, and proof-only post-verification changes. The recorded audit artifact must include the semantic-content and live-output checks, match the final gate summary and Gate L blocker, and decisive evidence blobs must exist with valid nested serial/stderr artifact references.
 
 ## Real OS Target
 

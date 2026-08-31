@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-31T23:38:31Z",
+  "generated_at": "2026-08-31T23:44:15Z",
   "entries": [
     {
       "bytes": 1873,
@@ -7,14 +7,14 @@
       "sha256": "0bb8125147f7cb17954aacfec12025579598fed9e4855760aba3e1f46364ee77"
     },
     {
-      "bytes": 5501,
+      "bytes": 5517,
       "path": "FINAL_REPORT.md",
-      "sha256": "df3e52674851f9f9405a11eee0678d7e4cfa39095aa26d1d8c16365fb2b6e492"
+      "sha256": "014aaeb91df0f76f38c79782c948e4bae79097b54c11f68a423b2b154c684fc8"
     },
     {
       "bytes": 5847,
       "path": "PROOF.json",
-      "sha256": "b8697d61b56435ccb9f6194851a02db0a0e60f59d3c3e64360a9c80cf1327084"
+      "sha256": "4d6e67ff8dd39c893575fb881d855168b91edac1faafd2de59710cbf316adb0d"
     },
     {
       "bytes": 4013,
@@ -27,9 +27,9 @@
       "sha256": "8cb31af83c374c2fbd0d4e0ee7868418c7ec58e96a1cf4fa9a9b5ca429c94c22"
     },
     {
-      "bytes": 3782,
+      "bytes": 3831,
       "path": "docs/RUNBOOK.md",
-      "sha256": "b2709835c7271c1d5961590ffaa10a240523095d996d5f237660b96345a9365b"
+      "sha256": "060ec50056517057ab0a9f1db5367b4de3ad335f93fcd5cd22fafc13c21c8b94"
     },
     {
       "bytes": 4171,
@@ -62,19 +62,19 @@
       "sha256": "2ee52828e3c997202a8e8139d8a473f62d0b2d4ebe0783a489f04627bf63ba59"
     },
     {
-      "bytes": 3738,
+      "bytes": 3743,
       "path": "docs/OSLAB_EXECPLAN.md",
-      "sha256": "08d0072618ef4a9e99a80a6346a7581cca0c4508b0eb26fed1eda5e4b2e457a3"
+      "sha256": "617aaa98a6cc016e9e1ee3fff36f33e4668d6f039032a48296842f78805e6a59"
     },
     {
-      "bytes": 8482,
+      "bytes": 8745,
       "path": "docs/OSLAB_PROGRESS.md",
-      "sha256": "cc41f360f60346f25c33cc77f6e82103896d5794b5650c9883f1dc2d67cb2136"
+      "sha256": "cbf6c65cd251d3fdf8e13496366b5c89dd2819cd5b797a819e4fbb1a35016168"
     },
     {
-      "bytes": 11396,
+      "bytes": 11922,
       "path": "docs/OSLAB_DECISIONS.md",
-      "sha256": "f910c1641348fee332163c66e37782c77b1b0fea6593eb45ea0ef5db6e31bf73"
+      "sha256": "92e5a6fa81f019fabca08fbc916458ef4f8929e1b77d9a3be76925f58ebbb32d"
     },
     {
       "bytes": 7888,

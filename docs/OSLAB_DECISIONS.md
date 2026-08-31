@@ -141,3 +141,11 @@
 - Context: the final proof named the major evidence streams, but acceptance needed to prove that the decisive fixture/QEMU/recovery/agentic artifacts were real CAS blobs with the expected structured contents.
 - Decision: require `PROOF.json` to record key evidence hashes for the agentic fix loop, supervisor recovery, fixture fuzz campaign, bounded autonomous campaign, seeded evaluation CAS, crash reproduction, and crash verification. The audit opens each blob, verifies its SHA-256 path, validates the expected PASS/FAIL/CRASH/HANG/INFRA outcomes and live-model metadata, and verifies nested serial/stderr artifact references.
 - Consequence: final acceptance fails if a decisive evidence artifact is missing, corrupt, stale, semantically empty, or no longer matches the recorded model/proof claims.
+
+## D-019 — Bind saved audit artifacts to the final proof summary
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: a saved acceptance-audit blob can contain all required PASS checks while still embedding an obsolete or inconsistent gate summary.
+- Decision: require the recorded audit artifact's gate summary and Gate L blocker to exactly match `PROOF.json`.
+- Consequence: final acceptance fails if the machine proof and saved audit artifact disagree about any gate status or the minimal external input needed for Gate L.
