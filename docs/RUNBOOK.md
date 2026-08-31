@@ -27,6 +27,7 @@ python -m oslab.cli doctor --json
 .\.venv\Scripts\python.exe -m oslab.cli model benchmark --json
 .\.venv\Scripts\python.exe -m oslab.cli model qwen-code-smoke --json
 .\.venv\Scripts\python.exe -m oslab.cli target inspect --json
+.\.venv\Scripts\python.exe -m oslab.cli target manifest-template --json
 .\.venv\Scripts\python.exe -m oslab.cli build --target fixture --profile debug --json
 .\.venv\Scripts\python.exe -m oslab.cli boot --target fixture --seed 1 --json
 .\.venv\Scripts\python.exe -m oslab.cli test --target fixture --test pass --seed 1 --json
@@ -58,9 +59,11 @@ python -m oslab.cli doctor --json
 
 ```powershell
 .\.venv\Scripts\python.exe -m oslab.cli selftest --live --json
+.\.venv\Scripts\python.exe -m oslab.cli acceptance audit --save --json
 ```
 
 `selftest` runs pytest, format check, lint, strict typing, target inspection, training export, cleanup dry-run, live Ollama smoke, Qwen Code MCP smoke, and artifact/database integrity. The QEMU and live tests require Docker Desktop/WSL2, Ollama, and the local Qwen model to be available.
+`acceptance audit` checks the final proof files, gate summary, artifact snapshot, clean Git state, and proof-only post-verification changes.
 
 ## Real OS Target
 
@@ -68,6 +71,8 @@ When the authorized OS source is available locally:
 
 ```powershell
 .\.venv\Scripts\python.exe -m oslab.cli target inspect --repo C:\path\to\authorized-os --json
+.\.venv\Scripts\python.exe -m oslab.cli target manifest-template --json
+.\.venv\Scripts\python.exe -m oslab.cli target validate-manifest --repo C:\path\to\authorized-os --json
 ```
 
-If the target has a build marker and OS-source markers, add an `oslab-target.toml` manifest using `docs/REAL_OS_INTEGRATION.md`, then rerun target inspection and the build/boot/test smoke path. Do not guess build commands.
+If the target has a build marker and OS-source markers, add an `oslab-target.toml` manifest using `docs/REAL_OS_INTEGRATION.md` or `config/oslab-target.example.toml`, then rerun target inspection and validation. The validator rejects path traversal and non-isolated QEMU networking. Do not guess build commands.

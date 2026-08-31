@@ -24,7 +24,7 @@ from oslab.fuzz import replay_fixture_input, run_fixture_fuzz
 from oslab.model import OllamaProvider, QwenCodeWorker
 from oslab.qemu import DockerQemuBackend
 from oslab.schemas import Outcome, TrajectoryEvent
-from oslab.targets import inspect_targets
+from oslab.targets import inspect_target_manifest, inspect_targets, manifest_template_json
 from oslab.training import export_trajectories
 
 app = typer.Typer(no_args_is_help=True, help="Qwen OS Lab safety-bounded reliability supervisor")
@@ -303,6 +303,25 @@ def target_inspect(
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
     _emit(inspect_targets(load_config(), repo), json_output)
+
+
+@target_app.command("manifest-template")
+def target_manifest_template(
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    template = manifest_template_json()
+    _emit(template if json_output else template["content"], json_output)
+
+
+@target_app.command("validate-manifest")
+def target_validate_manifest(
+    repo: Annotated[Path, typer.Option(help="Authorized OS source path")],
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    result = inspect_target_manifest(repo.resolve())
+    _emit(result, json_output)
+    if result["status"] != "ready":
+        raise typer.Exit(1)
 
 
 @campaign_app.command("recovery-proof")

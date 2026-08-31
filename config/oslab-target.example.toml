@@ -1,0 +1,54 @@
+schema_version = 1
+name = "authorized-os"
+
+[source]
+root = "."
+base_commit = "<immutable git commit sha>"
+authorization = "owned_or_authorized"
+
+[build.profiles.debug]
+description = "Existing debug build profile; replace argv with the target's normal build entry point."
+env_allowlist = ["PATH", "SYSTEMROOT", "WINDIR", "TEMP", "TMP"]
+
+[[build.profiles.debug.commands]]
+argv = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/build.ps1", "-Configuration", "Debug"]
+cwd = "."
+
+[[build.profiles.debug.artifacts]]
+path = "build/kernel.bin"
+kind = "kernel"
+
+[boot]
+method = "qemu"
+readiness_patterns = ["OSLAB_READY"]
+serial_log = true
+
+[boot.qemu]
+machine = "q35"
+cpu = "max"
+memory_mb = 1024
+accelerator = "auto"
+network = "none"
+devices = []
+
+[[boot.artifacts]]
+path = "build/kernel.bin"
+kind = "kernel"
+
+[[tests]]
+id = "smoke"
+kind = "smoke"
+transport = "serial"
+input = "smoke"
+expected_outcome = "PASS"
+
+[debug]
+symbols = "build/kernel.elf"
+symbolizer = ["llvm-symbolizer"]
+
+[instrumentation]
+sanitizers = []
+coverage = []
+
+[cleanup]
+paths = ["build/tmp", ".oslab-target"]

@@ -10,20 +10,27 @@ Smallest input needed:
 
 The path must point to the OS source the user owns or is authorized to test, and it must expose an existing build entry point. The lab must not invent or weaken the normal build.
 
+The lab now includes a machine-validated manifest front door:
+
+```powershell
+.\.venv\Scripts\python.exe -m oslab.cli target manifest-template --json
+.\.venv\Scripts\python.exe -m oslab.cli target validate-manifest --repo C:\path\to\authorized-os --json
+```
+
+The tracked starter file is `config/oslab-target.example.toml`.
+
 ## Required Target Manifest
 
-Create `oslab-target.toml` in the real OS root once the source is present. The manifest should describe:
+Create `oslab-target.toml` in the real OS root once the source is present. The validator requires:
 
-- source root and immutable base commit
-- debug/release/sanitizer/coverage build profiles that already exist
-- allowed build commands and whitelisted environment
-- boot artifact paths: kernel, disk image, ISO, initrd, firmware as applicable
-- QEMU machine, CPU, RAM, devices, accelerator, and network policy
-- readiness patterns and serial logging protocol
-- smoke tests, regression tests, and replay commands
-- debugger symbols and symbolization command
-- sanitizer and coverage output locations
-- expected shutdown behavior and cleanup
+- `source.root`, `source.base_commit`, and `source.authorization = "owned_or_authorized"`
+- at least one named build profile with argv-vector commands, cwd, environment allowlist, and artifacts
+- QEMU boot metadata with `network = "none"`
+- at least one boot artifact and one readiness pattern
+- at least one smoke test
+- optional debugger symbols, sanitizer/coverage labels, and cleanup paths
+
+The validator rejects path traversal, paths escaping the target source root, malformed profile/test identifiers, missing smoke tests, and public/NAT/bridged QEMU networking.
 
 Unsupported profiles must be reported as unsupported. They must not be silently mapped to a weaker profile.
 
