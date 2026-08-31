@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 import shutil
@@ -86,6 +87,9 @@ SELFTEST_EXPECTED_ARGV_TAILS = (
 )
 MODEL_PROBE_ARGV_TAIL = ("-m", "oslab.cli", "model", "probe", "--live", "--json")
 QWEN_CODE_SMOKE_ARGV_TAIL = ("-m", "oslab.cli", "model", "qwen-code-smoke", "--json")
+EXPECTED_EVALUATION_VARIANTS = ("A", "B", "C", "D", "E")
+EXPECTED_EVALUATION_SEEDS = (1, 2, 3)
+EXPECTED_TRAINING_RECORDS = 16
 
 ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
     "required_documents_exist",
@@ -145,6 +149,7 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
 
     proof = _load_json(project_root / "PROOF.json")
     _check_required_files(project_root, checks)
+    _check_required_artifact_contents(project_root, proof, checks)
     _check_gate_summary(proof, checks)
     _check_proof_commands(proof, checks)
     _check_selftest_proof_artifacts(project_root, proof, checks)
@@ -179,6 +184,49 @@ def _load_json(path: Path) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _load_json_any(path: Path) -> Any:
+    if not path.is_file():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+
+
+def _read_text(path: Path) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except OSError:
+        return ""
+
+
+def _positive_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _positive_number(value: object) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool) and value > 0
+
+
+def _model_identity_mismatches(identity: dict[str, Any], expected_model: object) -> list[str]:
+    if not isinstance(expected_model, dict):
+        return ["proof_model_missing"]
+    mismatches: list[str] = []
+    for key in (
+        "model_id",
+        "architecture",
+        "parameters",
+        "format",
+        "quantization",
+        "runtime_version",
+    ):
+        if identity.get(key) != expected_model.get(key):
+            mismatches.append(key)
+    if "runtime" in identity and identity.get("runtime") != expected_model.get("runtime"):
+        mismatches.append("runtime")
+    return mismatches
+
+
 def _check_required_files(project_root: Path, checks: list[dict[str, Any]]) -> None:
     missing_docs = _missing(project_root, REQUIRED_DOCS)
     missing_artifacts = _missing(project_root, REQUIRED_ARTIFACTS)
@@ -205,6 +253,311 @@ def _check_required_files(project_root: Path, checks: list[dict[str, Any]]) -> N
 
 def _missing(project_root: Path, paths: Iterable[str]) -> list[str]:
     return [path for path in paths if not (project_root / path).is_file()]
+
+
+def _check_required_artifact_contents(
+    project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
+) -> None:
+    failures: list[dict[str, Any]] = []
+    _validate_hardware_report(project_root, failures)
+    _validate_model_benchmark(project_root, proof, failures)
+    _validate_runtime_assessment(project_root, proof, failures)
+    _validate_evaluation_outputs(project_root, failures)
+    _validate_training_outputs(project_root, failures)
+    _validate_latest_report(project_root, failures)
+    _record(
+        checks,
+        "required_artifact_contents_are_valid",
+        not failures,
+        {"failures": failures},
+    )
+
+
+def _validate_hardware_report(project_root: Path, failures: list[dict[str, Any]]) -> None:
+    report = _load_json_any(project_root / "artifacts" / "discovery" / "hardware-report.json")
+    path = "artifacts/discovery/hardware-report.json"
+    if not isinstance(report, dict):
+        failures.append({"path": path, "reason": "not_json_object"})
+        return
+    required_sections = (
+        "host",
+        "cpu",
+        "memory",
+        "gpu",
+        "disks",
+        "virtualization",
+        "tooling",
+        "model_endpoint",
+        "qwen_code",
+        "target",
+    )
+    missing = [section for section in required_sections if section not in report]
+    if missing:
+        failures.append({"path": path, "reason": "missing_sections", "sections": missing})
+    host = report.get("host")
+    cpu = report.get("cpu")
+    memory = report.get("memory")
+    gpu = report.get("gpu")
+    disks = report.get("disks")
+    virtualization = report.get("virtualization")
+    model_endpoint = report.get("model_endpoint")
+    target = report.get("target")
+    if not isinstance(host, dict) or not all(host.get(key) for key in ("os", "version", "python")):
+        failures.append({"path": path, "reason": "host_identity_incomplete"})
+    if not isinstance(cpu, dict) or not _positive_int(cpu.get("logical_threads")):
+        failures.append({"path": path, "reason": "cpu_threads_missing"})
+    if not isinstance(memory, dict) or not _positive_int(memory.get("total_bytes")):
+        failures.append({"path": path, "reason": "memory_total_missing"})
+    if not isinstance(gpu, dict) or not isinstance(gpu.get("present"), bool):
+        failures.append({"path": path, "reason": "gpu_presence_missing"})
+    if not isinstance(disks, list) or not disks:
+        failures.append({"path": path, "reason": "disk_inventory_missing"})
+    if not isinstance(virtualization, dict) or not isinstance(
+        virtualization.get("accelerators"), list
+    ):
+        failures.append({"path": path, "reason": "virtualization_accelerators_missing"})
+    if not isinstance(model_endpoint, dict) or model_endpoint.get("loopback_only") is not True:
+        failures.append({"path": path, "reason": "model_endpoint_not_loopback_only"})
+    if not isinstance(target, dict) or target.get("real_os_present") is not False:
+        failures.append({"path": path, "reason": "target_gate_l_status_not_recorded"})
+
+
+def _validate_model_benchmark(
+    project_root: Path, proof: dict[str, Any], failures: list[dict[str, Any]]
+) -> None:
+    benchmark = _load_json_any(project_root / "artifacts" / "discovery" / "model-benchmark.json")
+    path = "artifacts/discovery/model-benchmark.json"
+    if not isinstance(benchmark, dict):
+        failures.append({"path": path, "reason": "not_json_object"})
+        return
+    identity = benchmark.get("identity")
+    samples = benchmark.get("samples")
+    average = benchmark.get("average_output_tokens_per_second")
+    if not isinstance(identity, dict):
+        failures.append({"path": path, "reason": "identity_missing"})
+    else:
+        mismatches = _model_identity_mismatches(identity, proof.get("model", {}))
+        if mismatches:
+            failures.append({"path": path, "reason": "identity_mismatch", "mismatches": mismatches})
+    if not isinstance(average, int | float) or average <= 0:
+        failures.append({"path": path, "reason": "average_throughput_missing"})
+    if not isinstance(samples, list) or len(samples) < 3:
+        failures.append({"path": path, "reason": "benchmark_samples_incomplete"})
+        return
+    bad_samples = [
+        index
+        for index, sample in enumerate(samples)
+        if not isinstance(sample, dict)
+        or not _positive_number(sample.get("output_tokens_per_second"))
+        or not _positive_int(sample.get("completion_tokens"))
+    ]
+    if bad_samples:
+        failures.append({"path": path, "reason": "invalid_samples", "samples": bad_samples})
+
+
+def _validate_runtime_assessment(
+    project_root: Path, proof: dict[str, Any], failures: list[dict[str, Any]]
+) -> None:
+    assessment = _load_json_any(
+        project_root / "artifacts" / "discovery" / "runtime-assessment.json"
+    )
+    path = "artifacts/discovery/runtime-assessment.json"
+    if not isinstance(assessment, dict):
+        failures.append({"path": path, "reason": "not_json_object"})
+        return
+    selected_model = assessment.get("selected_model")
+    measured = assessment.get("measured")
+    profiles = assessment.get("profiles")
+    if assessment.get("selected_runtime") != "ollama":
+        failures.append({"path": path, "reason": "selected_runtime_not_ollama"})
+    if not isinstance(selected_model, dict):
+        failures.append({"path": path, "reason": "selected_model_missing"})
+    else:
+        mismatches = _model_identity_mismatches(selected_model, proof.get("model", {}))
+        if mismatches:
+            failures.append(
+                {"path": path, "reason": "selected_model_mismatch", "mismatches": mismatches}
+            )
+    if not isinstance(measured, dict) or measured.get("structured_json_smoke") != "PASS":
+        failures.append({"path": path, "reason": "structured_json_smoke_not_pass"})
+    if not isinstance(measured, dict) or measured.get("qwen_code_mcp_smoke") != "PASS":
+        failures.append({"path": path, "reason": "qwen_code_smoke_not_pass"})
+    if not isinstance(profiles, dict) or not all(
+        profile in profiles for profile in ("fast", "deep", "long", "oracle")
+    ):
+        failures.append({"path": path, "reason": "runtime_profiles_incomplete"})
+
+
+def _validate_evaluation_outputs(project_root: Path, failures: list[dict[str, Any]]) -> None:
+    rows = _load_json_any(project_root / "artifacts" / "evaluation" / "seeded-results.json")
+    path = "artifacts/evaluation/seeded-results.json"
+    if not isinstance(rows, list):
+        failures.append({"path": path, "reason": "not_json_array"})
+        return
+    _validate_evaluation_rows(rows, path, failures)
+    csv_path = project_root / "artifacts" / "evaluation" / "seeded-results.csv"
+    try:
+        with csv_path.open("r", encoding="utf-8", newline="") as handle:
+            csv_rows = list(csv.DictReader(handle))
+    except OSError as exc:
+        failures.append({"path": "artifacts/evaluation/seeded-results.csv", "reason": str(exc)})
+        return
+    if len(csv_rows) != len(rows):
+        failures.append(
+            {
+                "path": "artifacts/evaluation/seeded-results.csv",
+                "reason": "csv_json_row_count_mismatch",
+                "csv": len(csv_rows),
+                "json": len(rows),
+            }
+        )
+    if {str(row.get("variant")) for row in csv_rows} != set(EXPECTED_EVALUATION_VARIANTS) or {
+        int(row.get("seed", 0)) for row in csv_rows if str(row.get("seed", "")).isdigit()
+    } != set(EXPECTED_EVALUATION_SEEDS):
+        failures.append(
+            {"path": "artifacts/evaluation/seeded-results.csv", "reason": "matrix_incomplete"}
+        )
+    report_text = _read_text(project_root / "artifacts" / "evaluation" / "EVALUATION_REPORT.md")
+    if "Sample size: 15" not in report_text or not all(
+        f"| {variant} " in report_text for variant in EXPECTED_EVALUATION_VARIANTS
+    ):
+        failures.append(
+            {
+                "path": "artifacts/evaluation/EVALUATION_REPORT.md",
+                "reason": "summary_missing_matrix",
+            }
+        )
+
+
+def _validate_evaluation_rows(rows: list[Any], path: str, failures: list[dict[str, Any]]) -> None:
+    if len(rows) != len(EXPECTED_EVALUATION_VARIANTS) * len(EXPECTED_EVALUATION_SEEDS):
+        failures.append({"path": path, "reason": "matrix_row_count_wrong", "rows": len(rows)})
+    variants = {row.get("variant") for row in rows if isinstance(row, dict)}
+    seeds = {row.get("seed") for row in rows if isinstance(row, dict)}
+    if variants != set(EXPECTED_EVALUATION_VARIANTS) or seeds != set(EXPECTED_EVALUATION_SEEDS):
+        failures.append({"path": path, "reason": "matrix_variants_or_seeds_incomplete"})
+    bad_rows: list[int] = []
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            bad_rows.append(index)
+            continue
+        if (
+            row.get("patch_accepted") != 1
+            or row.get("reproduced") != 1
+            or row.get("stable_fingerprint") != 1
+            or row.get("regression_survived") != 1
+            or row.get("false_positive") != 0
+            or row.get("infra_failure") != 0
+            or row.get("evaluator_exploit") != 0
+            or row.get("targeted_outcome") != "PASS"
+            or row.get("regression_outcome") != "PASS"
+            or not _is_sha256(row.get("candidate_artifact"))
+            or not _is_sha256(row.get("patch_receipt"))
+        ):
+            bad_rows.append(index)
+    if bad_rows:
+        failures.append({"path": path, "reason": "invalid_evaluation_rows", "rows": bad_rows})
+
+
+def _validate_training_outputs(project_root: Path, failures: list[dict[str, Any]]) -> None:
+    jsonl_path = project_root / "artifacts" / "training" / "dry-run" / "trajectories.jsonl"
+    path = "artifacts/training/dry-run/trajectories.jsonl"
+    rows: list[dict[str, Any]] = []
+    for index, line in enumerate(_read_text(jsonl_path).splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            failures.append({"path": path, "reason": "jsonl_decode_error", "line": index})
+            continue
+        if isinstance(value, dict):
+            rows.append(value)
+        else:
+            failures.append({"path": path, "reason": "jsonl_row_not_object", "line": index})
+    if len(rows) != EXPECTED_TRAINING_RECORDS:
+        failures.append({"path": path, "reason": "record_count_wrong", "rows": len(rows)})
+    if len({row.get("trajectory_id") for row in rows}) != len(rows):
+        failures.append({"path": path, "reason": "trajectory_ids_not_unique"})
+    labels = {row.get("label") for row in rows}
+    if labels != {"PASS", "INVALID_SOLUTION"}:
+        failures.append(
+            {"path": path, "reason": "labels_incomplete", "labels": sorted(map(str, labels))}
+        )
+    bad_rows = [
+        index
+        for index, row in enumerate(rows)
+        if row.get("schema_version") != 1
+        or row.get("verified") is not True
+        or not isinstance(row.get("content_json"), str)
+        or not all(_is_sha256(value) for value in row.get("evidence_hashes", []))
+    ]
+    if bad_rows:
+        failures.append({"path": path, "reason": "invalid_training_rows", "rows": bad_rows})
+    parquet_path = project_root / "artifacts" / "training" / "dry-run" / "trajectories.parquet"
+    try:
+        import pyarrow.parquet as pq
+
+        parquet = pq.ParquetFile(parquet_path)
+    except Exception as exc:
+        failures.append(
+            {"path": "artifacts/training/dry-run/trajectories.parquet", "reason": str(exc)}
+        )
+    else:
+        required_columns = {"schema_version", "trajectory_id", "label", "verified", "content_json"}
+        if parquet.metadata.num_rows != len(rows) or not required_columns.issubset(
+            set(parquet.schema.names)
+        ):
+            failures.append(
+                {
+                    "path": "artifacts/training/dry-run/trajectories.parquet",
+                    "reason": "parquet_schema_or_row_count_wrong",
+                }
+            )
+    card_text = _read_text(project_root / "artifacts" / "training" / "dry-run" / "DATASET_CARD.md")
+    card_lower = card_text.lower()
+    if (
+        "records: 16" not in card_lower
+        or "license" not in card_lower
+        or "evidence-linked" not in card_lower
+    ):
+        failures.append(
+            {
+                "path": "artifacts/training/dry-run/DATASET_CARD.md",
+                "reason": "card_missing_record_or_provenance_summary",
+            }
+        )
+
+
+def _validate_latest_report(project_root: Path, failures: list[dict[str, Any]]) -> None:
+    report = _load_json_any(project_root / "artifacts" / "reports" / "latest-report.json")
+    path = "artifacts/reports/latest-report.json"
+    if not isinstance(report, dict):
+        failures.append({"path": path, "reason": "not_json_object"})
+        return
+    evaluation = report.get("evaluation")
+    target = report.get("target")
+    integrity = report.get("integrity")
+    if (
+        not isinstance(evaluation, dict)
+        or evaluation.get("rows") != 15
+        or evaluation.get("accepted") != 15
+    ):
+        failures.append({"path": path, "reason": "evaluation_summary_invalid"})
+    if not isinstance(evaluation, dict) or evaluation.get("variants") != list(
+        EXPECTED_EVALUATION_VARIANTS
+    ):
+        failures.append({"path": path, "reason": "evaluation_variants_invalid"})
+    if not isinstance(target, dict) or target.get("gate_l") != "blocked_missing_external_input":
+        failures.append({"path": path, "reason": "target_gate_l_summary_invalid"})
+    if (
+        not isinstance(integrity, dict)
+        or not isinstance(integrity.get("database"), dict)
+        or integrity["database"].get("ok") is not True
+        or not isinstance(integrity.get("artifacts"), dict)
+        or integrity["artifacts"].get("ok") is not True
+    ):
+        failures.append({"path": path, "reason": "integrity_summary_invalid"})
 
 
 def _check_gate_summary(proof: dict[str, Any], checks: list[dict[str, Any]]) -> None:

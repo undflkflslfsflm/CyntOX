@@ -54,6 +54,256 @@ def _write_artifact_index(root: Path) -> None:
     _write(index, json.dumps(payload, indent=2) + "\n")
 
 
+def _sha(label: str) -> str:
+    return hashlib.sha256(label.encode()).hexdigest()
+
+
+def _evaluation_rows() -> list[dict[str, object]]:
+    variant_names = {
+        "A": "vanilla",
+        "B": "scaffold",
+        "C": "retrieval-memory",
+        "D": "adaptive-compute",
+        "E": "adversarial-verifier",
+    }
+    rows: list[dict[str, object]] = []
+    for variant, variant_name in variant_names.items():
+        for seed in (1, 2, 3):
+            rows.append(
+                {
+                    "baseline_artifacts": {
+                        "serial": _sha(f"{variant}-{seed}-baseline"),
+                        "stderr": _sha(""),
+                    },
+                    "baseline_fingerprint": _sha(f"{variant}-{seed}-fingerprint"),
+                    "candidate_artifact": _sha(f"{variant}-{seed}-candidate"),
+                    "candidate_hash": _sha(f"{variant}-{seed}-candidate-content"),
+                    "confidence": 0.95,
+                    "evaluator_exploit": 0,
+                    "false_positive": 0,
+                    "gpu_seconds": 0.1,
+                    "infra_failure": 0,
+                    "input_tokens": 50,
+                    "minimized": 1,
+                    "output_tokens": 20,
+                    "patch_accepted": 1,
+                    "patch_receipt": _sha(f"{variant}-{seed}-patch"),
+                    "protocol_states_covered": 2,
+                    "regression_outcome": "PASS",
+                    "regression_survived": 1,
+                    "reproduced": 1,
+                    "seed": seed,
+                    "seeded_defects_found": 1,
+                    "stable_fingerprint": 1,
+                    "targeted_outcome": "PASS",
+                    "tool_calls": 1,
+                    "valid_unique_defects": 1,
+                    "variant": variant,
+                    "variant_name": variant_name,
+                    "verification_artifacts": {
+                        "targeted": {
+                            "serial": _sha(f"{variant}-{seed}-targeted"),
+                            "stderr": _sha(""),
+                        },
+                        "regression": {
+                            "serial": _sha(f"{variant}-{seed}-regression"),
+                            "stderr": _sha(""),
+                        },
+                    },
+                    "verifier_artifact": _sha(f"{variant}-{seed}-verifier"),
+                    "wall_seconds": 1.0,
+                }
+            )
+    return rows
+
+
+def _write_required_artifact_payloads(root: Path) -> None:
+    model = {
+        "architecture": "qwen35",
+        "capabilities": ["tools", "thinking", "completion"],
+        "context_limit": 262144,
+        "endpoint": "http://127.0.0.1:11434",
+        "format": "gguf",
+        "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+        "parameters": 27320697856,
+        "provider": "ollama",
+        "quantization": "Q4_K_M",
+        "runtime": "Ollama",
+        "runtime_version": "0.33.2",
+    }
+    hardware = {
+        "schema_version": 1,
+        "generated_at": "2026-08-31T00:00:00Z",
+        "host": {"os": "Windows", "version": "test", "python": "3.12", "architecture": "AMD64"},
+        "cpu": {"model": "test-cpu", "physical_cores": 1, "logical_threads": 2},
+        "memory": {"total_bytes": 1024, "available_bytes": 512},
+        "gpu": {"present": True, "name": "test-gpu"},
+        "disks": [{"device": "C:", "mountpoint": "C:\\", "total_bytes": 1024, "free_bytes": 512}],
+        "virtualization": {"accelerators": ["tcg"], "hypervisor_present": True},
+        "tooling": {"git": {"present": True}, "ollama": {"present": True}},
+        "model_endpoint": {
+            "configured": True,
+            "loopback_only": True,
+            "model_id": model["model_id"],
+        },
+        "model_files": [],
+        "qwen_code": {"present": True, "version": "0.22.3", "project_local": True},
+        "target": {"project_role": "orchestrator", "real_os_present": False, "selected": None},
+        "safe_disk_benchmark": {"bytes": 1024, "write_mib_s": 1.0, "read_mib_s": 1.0},
+    }
+    benchmark = {
+        "identity": model,
+        "average_output_tokens_per_second": 45.0,
+        "samples": [
+            {
+                "seed": seed,
+                "completion_tokens": 10,
+                "output_tokens_per_second": 40.0 + seed,
+                "prompt_tokens": 5,
+                "prompt_tokens_per_second": 100.0,
+                "wall_seconds": 0.25,
+            }
+            for seed in (1, 2, 3)
+        ],
+    }
+    runtime_assessment = {
+        "generated_at": "2026-08-31T00:00:00Z",
+        "installed_commands": {"ollama": True},
+        "installed_python_modules": {},
+        "selected_runtime": "ollama",
+        "selected_model": {
+            key: model[key]
+            for key in (
+                "architecture",
+                "context_limit",
+                "format",
+                "model_id",
+                "parameters",
+                "quantization",
+                "runtime_version",
+            )
+        },
+        "measured": {
+            "average_output_tokens_per_second": 45.0,
+            "structured_json_smoke": "PASS",
+            "qwen_code_mcp_smoke": "PASS",
+            "validated_worker_context_tokens": 16384,
+        },
+        "profiles": {"fast": "enabled", "deep": "enabled", "long": "enabled", "oracle": "disabled"},
+    }
+    evaluation_rows = _evaluation_rows()
+    latest_report = {
+        "experiment": "latest",
+        "discovery": hardware,
+        "benchmark": benchmark,
+        "evaluation": {"rows": 15, "variants": ["A", "B", "C", "D", "E"], "accepted": 15},
+        "target": {"gate_l": "blocked_missing_external_input"},
+        "integrity": {"database": {"ok": True}, "artifacts": {"ok": True}},
+    }
+    training_rows = []
+    for sequence, row in enumerate(evaluation_rows):
+        content = {
+            "defect_family": "fixture-seeded-calculation",
+            "license": "Apache-2.0",
+            "patch_accepted": 1,
+            "provenance": "artifacts/evaluation/seeded-results.json",
+            "regression_survived": 1,
+            "seed": row["seed"],
+            "variant": row["variant"],
+        }
+        training_rows.append(
+            {
+                "schema_version": 1,
+                "trajectory_id": f"eval-{row['variant']}-{row['seed']}",
+                "sequence": sequence,
+                "timestamp": "2026-08-31T00:00:00Z",
+                "kind": "evaluation-row",
+                "role": str(row["variant_name"]),
+                "content": content,
+                "content_json": json.dumps(content, sort_keys=True),
+                "evidence_hashes": [str(row["candidate_artifact"]), str(row["patch_receipt"])],
+                "verified": True,
+                "label": "PASS",
+                "split": "train",
+            }
+        )
+    negative_content = {
+        "defect_family": "evaluator-modification",
+        "license": "Apache-2.0",
+        "provenance": "deterministic invalid-solution fixture",
+    }
+    training_rows.append(
+        {
+            "schema_version": 1,
+            "trajectory_id": "fixture-dry-run-negative",
+            "sequence": 15,
+            "timestamp": "2026-08-31T00:00:00Z",
+            "kind": "negative-example",
+            "role": "verifier",
+            "content": negative_content,
+            "content_json": json.dumps(negative_content, sort_keys=True),
+            "evidence_hashes": ["f" * 64],
+            "verified": True,
+            "label": "INVALID_SOLUTION",
+            "split": "train",
+        }
+    )
+
+    _write(root / "artifacts" / "discovery" / "hardware-report.json", json.dumps(hardware) + "\n")
+    _write(root / "artifacts" / "discovery" / "model-benchmark.json", json.dumps(benchmark) + "\n")
+    _write(
+        root / "artifacts" / "discovery" / "runtime-assessment.json",
+        json.dumps(runtime_assessment) + "\n",
+    )
+    _write(
+        root / "artifacts" / "evaluation" / "seeded-results.json",
+        json.dumps(evaluation_rows) + "\n",
+    )
+    csv_lines = ["variant,seed"]
+    for row in evaluation_rows:
+        csv_lines.append(f"{row['variant']},{row['seed']}")
+    _write(root / "artifacts" / "evaluation" / "seeded-results.csv", "\n".join(csv_lines) + "\n")
+    _write(
+        root / "artifacts" / "evaluation" / "EVALUATION_REPORT.md",
+        "# Seeded Evaluation Report\n\nSample size: 15 runs.\n\n"
+        "| Variant | Acceptance rate |\n"
+        "|---|---:|\n"
+        "| A — vanilla | 100% |\n"
+        "| B — scaffold | 100% |\n"
+        "| C — retrieval-memory | 100% |\n"
+        "| D — adaptive-compute | 100% |\n"
+        "| E — adversarial-verifier | 100% |\n",
+    )
+    _write(root / "artifacts" / "reports" / "latest-report.json", json.dumps(latest_report) + "\n")
+    _write(root / "artifacts" / "reports" / "latest-report.md", "# Latest Report\n")
+    _write(
+        root / "artifacts" / "training" / "dry-run" / "trajectories.jsonl",
+        "".join(json.dumps(row, sort_keys=True) + "\n" for row in training_rows),
+    )
+    _write(
+        root / "artifacts" / "training" / "dry-run" / "DATASET_CARD.md",
+        "Records: 16. Source license and evidence-linked provenance are recorded.\n",
+    )
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    parquet_rows = {
+        "schema_version": [row["schema_version"] for row in training_rows],
+        "trajectory_id": [row["trajectory_id"] for row in training_rows],
+        "sequence": [row["sequence"] for row in training_rows],
+        "timestamp": [row["timestamp"] for row in training_rows],
+        "kind": [row["kind"] for row in training_rows],
+        "role": [row["role"] for row in training_rows],
+        "label": [row["label"] for row in training_rows],
+        "verified": [row["verified"] for row in training_rows],
+        "split": [row["split"] for row in training_rows],
+        "content_json": [row["content_json"] for row in training_rows],
+    }
+    parquet_path = root / "artifacts" / "training" / "dry-run" / "trajectories.parquet"
+    parquet_path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.table(parquet_rows), parquet_path)
+
+
 def _write_selftest_proof_artifact(
     artifact_root: Path, marker: str, *, qwen_result: str = "MCP_BUDGET_OK"
 ) -> str:
@@ -155,10 +405,7 @@ def _create_complete_fixture_proof(root: Path) -> None:
         if relative == "PROOF.json":
             continue
         _write(root / relative, f"# {relative}\nverified evidence\n")
-    for relative in REQUIRED_ARTIFACTS:
-        if relative == "artifacts/ARTIFACT_INDEX.snapshot.json":
-            continue
-        _write(root / relative, "{}\n" if relative.endswith(".json") else "evidence\n")
+    _write_required_artifact_payloads(root)
     for relative in REQUIRED_SUPPORT_FILES:
         _write(root / relative, "schema_version = 1\n")
 
@@ -332,3 +579,13 @@ def test_acceptance_audit_rejects_live_output_that_disagrees_with_proof(tmp_path
 
     assert not result["ok"]
     assert "selftest_live_outputs_match_proof" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_invalid_required_artifact_content(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    _write(tmp_path / "artifacts" / "evaluation" / "seeded-results.json", "[]\n")
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "required_artifact_contents_are_valid" in result["failed_checks"]
