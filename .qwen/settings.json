@@ -1,0 +1,79 @@
+{
+  "env": {
+    "OSLAB_OLLAMA_API_KEY": "ollama-local-no-auth"
+  },
+  "modelProviders": {
+    "openai": [
+      {
+        "id": "qwen-os-lab-worker:latest",
+        "name": "Local Qwen3.8 27B Q4_K_M (Ollama)",
+        "description": "Loopback-only resident worker selected by qwen-os-lab discovery",
+        "envKey": "OSLAB_OLLAMA_API_KEY",
+        "baseUrl": "http://127.0.0.1:11434/v1",
+        "generationConfig": {
+          "timeout": 180000,
+          "streamIdleTimeoutMs": 120000,
+          "maxRetries": 1,
+          "contextWindowSize": 16384,
+          "splitToolMedia": true,
+          "extra_body": {
+            "options": {
+              "num_ctx": 16384
+            }
+          },
+          "samplingParams": {
+            "temperature": 0,
+            "max_tokens": 2048
+          }
+        }
+      }
+    ]
+  },
+  "security": {
+    "auth": {
+      "selectedType": "openai"
+    },
+    "folderTrust": {
+      "enabled": false
+    }
+  },
+  "model": {
+    "name": "qwen-os-lab-worker:latest",
+    "maxSessionTurns": 6,
+    "maxWallTimeSeconds": 120,
+    "maxToolCalls": 0,
+    "maxSubagentDepth": 1
+  },
+  "tools": {
+    "approvalMode": "plan",
+    "disabled": [
+      "agent",
+      "edit",
+      "google_web_search",
+      "list_directory",
+      "read_file",
+      "read_many_files",
+      "replace",
+      "run_shell_command",
+      "save_memory",
+      "task",
+      "web_fetch",
+      "write_file"
+    ]
+  },
+  "general": {
+    "enableAutoUpdate": false,
+    "chatRecording": false,
+    "gitCoAuthor": {
+      "commit": false,
+      "pr": false
+    }
+  },
+  "privacy": {
+    "usageStatisticsEnabled": false
+  },
+  "output": {
+    "format": "json"
+  },
+  "$version": 4
+}

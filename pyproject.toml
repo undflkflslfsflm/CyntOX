@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qwen-os-lab"
+version = "0.1.0"
+description = "Safety-bounded local Qwen operating-system reliability laboratory"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+license = { text = "Apache-2.0" }
+dependencies = [
+  "httpx==0.28.1",
+  "jsonschema==4.25.1",
+  "psutil==7.0.0",
+  "pyarrow==21.0.0",
+  "pydantic==2.11.7",
+  "typer==0.16.1",
+]
+
+[dependency-groups]
+dev = [
+  "hypothesis==6.138.13",
+  "mypy==1.17.1",
+  "pytest==8.4.1",
+  "pytest-asyncio==1.1.0",
+  "ruff==0.12.11",
+  "types-psutil==7.0.0.20250822",
+]
+
+[project.scripts]
+oslab = "oslab.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["oslab"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-config --strict-markers --basetemp=.oslab/pytest"
+testpaths = ["tests"]
+markers = [
+  "live: requires the local Ollama Qwen endpoint",
+  "qemu: requires Docker and the qemu fixture image",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "ASYNC", "S"]
+ignore = ["ASYNC109", "E501", "S101", "S105"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "jsonschema.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["pyarrow", "pyarrow.*"]
+ignore_missing_imports = true

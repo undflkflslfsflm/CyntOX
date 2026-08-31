@@ -1,0 +1,173 @@
+{
+  "cpu": {
+    "logical_threads": 32,
+    "model": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
+    "physical_cores": 24
+  },
+  "disks": [
+    {
+      "device": "C:\\",
+      "filesystem": "NTFS",
+      "free_bytes": 1069697523712,
+      "mountpoint": "C:\\",
+      "total_bytes": 2046642089984
+    },
+    {
+      "device": "D:\\",
+      "filesystem": "NTFS",
+      "free_bytes": 15112003518464,
+      "mountpoint": "D:\\",
+      "total_bytes": 16000898560000
+    }
+  ],
+  "generated_at": "2026-08-31T13:11:34.601004+00:00",
+  "gpu": {
+    "compute_capability": "8.9",
+    "driver": "581.80",
+    "memory_total_mib": "24564",
+    "memory_used_mib": "851",
+    "name": "NVIDIA GeForce RTX 4090",
+    "nvidia_smi": "C:\\WINDOWS\\system32\\nvidia-smi.EXE",
+    "power_limit_w": "450.00",
+    "present": true,
+    "utilization_percent": "5"
+  },
+  "host": {
+    "architecture": "AMD64",
+    "os": "Windows",
+    "python": "3.12.13",
+    "release": "11",
+    "shell": "C:\\WINDOWS\\system32\\cmd.exe",
+    "version": "10.0.26200"
+  },
+  "memory": {
+    "available_bytes": 52350672896,
+    "total_bytes": 68488650752
+  },
+  "model_endpoint": {
+    "configured": "http://127.0.0.1:11434",
+    "loopback_only": true,
+    "model_id": "huihui-qwen3.8-27b-abliterated:latest"
+  },
+  "model_files": [
+    {
+      "layers": [
+        {
+          "digest": "sha256:0351f044d3580a997c93eaeb773b677a6f56bca365d26586827cca628f5fda66",
+          "mediaType": "application/vnd.ollama.image.model",
+          "size": 17378626464
+        },
+        {
+          "digest": "sha256:c8cd2a698b39a7ca7d90a538c5b1bf85ae43ca74e542f3ea5b44ba80bc4a02e2",
+          "mediaType": "application/vnd.ollama.image.params",
+          "size": 58
+        }
+      ],
+      "manifest": "C:\\Users\\vikto\\.ollama\\models\\manifests\\registry.ollama.ai\\library\\huihui-qwen3.8-27b-abliterated\\latest",
+      "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+      "runtime": "ollama"
+    }
+  ],
+  "qwen_code": {
+    "global_settings_inspected": false,
+    "present": false,
+    "project_settings": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.qwen\\settings.json",
+    "reason": "global configuration is not read to avoid exposing credentials"
+  },
+  "safe_disk_benchmark": {
+    "bytes": 16777216,
+    "read_mib_s": 1452.12,
+    "scope": "small temporary sequential safety probe",
+    "write_mib_s": 2040.66
+  },
+  "schema_version": 1,
+  "target": {
+    "bounded_candidates": [],
+    "project_role": "dedicated-orchestrator",
+    "real_os_present": false,
+    "selected": null
+  },
+  "tooling": {
+    "clang": {
+      "present": false
+    },
+    "cmake": {
+      "present": false
+    },
+    "docker": {
+      "path": "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.EXE",
+      "present": true,
+      "version": "Docker version 29.7.2, build a7dcaa6"
+    },
+    "gcc": {
+      "present": false
+    },
+    "gdb": {
+      "present": false
+    },
+    "git": {
+      "path": "C:\\Users\\vikto\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\git\\cmd\\git.EXE",
+      "present": true,
+      "version": "git version 2.53.0.windows.3"
+    },
+    "ninja": {
+      "present": false
+    },
+    "node": {
+      "present": false
+    },
+    "ollama": {
+      "path": "C:\\Users\\vikto\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
+      "present": true,
+      "version": "ollama version is 0.33.2"
+    },
+    "podman": {
+      "present": false
+    },
+    "python": {
+      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.venv\\Scripts\\python.EXE",
+      "present": true,
+      "version": "Python 3.12.13"
+    },
+    "qemu-img": {
+      "present": false
+    },
+    "qemu-system-x86_64": {
+      "present": false
+    },
+    "qwen": {
+      "present": false
+    },
+    "qwen-code": {
+      "present": false
+    },
+    "uv": {
+      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.venv\\Scripts\\uv.EXE",
+      "present": true,
+      "version": "uv 0.8.14 (af856fb88 2025-08-28)"
+    },
+    "wsl": {
+      "path": "C:\\WINDOWS\\system32\\wsl.EXE",
+      "present": true,
+      "version": "W\u0000S\u0000L\u0000 \u0000v\u0000e\u0000r\u0000s\u0000i\u0000o\u0000n\u0000:\u0000 \u00002\u0000.\u00007\u0000.\u00001\u00002\u0000.\u00000\u0000"
+    }
+  },
+  "virtualization": {
+    "accelerators": [
+      "tcg-via-pinned-linux-container"
+    ],
+    "container_runtime": {
+      "argv": [
+        "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.EXE",
+        "info",
+        "--format",
+        "{{.OSType}}/{{.Architecture}}"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "linux/x86_64"
+    },
+    "hypervisor_present": true,
+    "whpx": false
+  }
+}

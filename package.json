@@ -1,0 +1,13 @@
+{
+  "name": "qwen-os-lab-local-tools",
+  "private": true,
+  "packageManager": "pnpm@10.15.1",
+  "devDependencies": {
+    "@qwen-code/qwen-code": "0.22.3"
+  },
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "@qwen-code/audio-capture"
+    ]
+  }
+}

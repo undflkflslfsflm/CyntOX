@@ -1,0 +1,5 @@
+FROM huihui-qwen3.8-27b-abliterated:latest
+PARAMETER num_ctx 16384
+PARAMETER temperature 0
+PARAMETER top_k 20
+PARAMETER top_p 0.8

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "fixture": "boot-sector",
+  "defect_family": "wrong-literal",
+  "command": "B",
+  "baseline_value": 5,
+  "expected_value": 4,
+  "forbidden_paths": [
+    "tests/hidden",
+    ".oslab/evaluator",
+    "oslab/eval/verifier.py"
+  ]
+}
+

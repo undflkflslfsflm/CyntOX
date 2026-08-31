@@ -1,0 +1,46 @@
+{
+  "identity": {
+    "provider": "ollama",
+    "runtime": "Ollama",
+    "runtime_version": "0.33.2",
+    "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+    "architecture": "qwen35",
+    "parameters": 27320697856,
+    "quantization": "Q4_K_M",
+    "format": "gguf",
+    "context_limit": 262144,
+    "endpoint": "http://127.0.0.1:11434",
+    "capabilities": [
+      "tools",
+      "thinking",
+      "completion"
+    ]
+  },
+  "samples": [
+    {
+      "seed": 1,
+      "prompt_tokens": 66,
+      "completion_tokens": 132,
+      "prompt_tokens_per_second": 149.6859995963014,
+      "output_tokens_per_second": 45.47211422595094,
+      "wall_seconds": 3.488941
+    },
+    {
+      "seed": 2,
+      "prompt_tokens": 66,
+      "completion_tokens": 132,
+      "prompt_tokens_per_second": 730.3308620117296,
+      "output_tokens_per_second": 45.36021682183641,
+      "wall_seconds": 3.101489
+    },
+    {
+      "seed": 3,
+      "prompt_tokens": 66,
+      "completion_tokens": 132,
+      "prompt_tokens_per_second": 761.3949678714397,
+      "output_tokens_per_second": 45.28070434821685,
+      "wall_seconds": 3.016453
+    }
+  ],
+  "average_output_tokens_per_second": 45.371011798668064
+}
