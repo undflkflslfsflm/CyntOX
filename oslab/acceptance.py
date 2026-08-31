@@ -436,7 +436,15 @@ def _scan_file_for_placeholders(project_root: Path, path: Path, hits: list[dict[
         text = path.read_text(encoding="utf-8")
     except UnicodeDecodeError:
         return
+    in_own_pattern_declaration = False
     for line_number, line in enumerate(text.splitlines(), start=1):
+        if path.name == "acceptance.py" and line.startswith("PLACEHOLDER_PATTERNS = ("):
+            in_own_pattern_declaration = True
+            continue
+        if in_own_pattern_declaration:
+            if line == ")":
+                in_own_pattern_declaration = False
+            continue
         for pattern in PLACEHOLDER_PATTERNS:
             if pattern in line:
                 hits.append(
