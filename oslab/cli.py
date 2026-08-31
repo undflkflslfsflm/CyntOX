@@ -524,19 +524,54 @@ def training_dry_run(
 @app.command("reproduce")
 def reproduce(
     mode: Annotated[str, typer.Option(help="crash or seeded")] = "crash",
+    finding: Annotated[
+        str | None,
+        typer.Option(
+            "--finding",
+            help="Finding id/fingerprint or fixture mode; supports crash, seeded, latest-crash",
+        ),
+    ] = None,
+    campaign_id: Annotated[
+        str | None,
+        typer.Option("--campaign-id", help="Optional fuzz campaign id for finding lookup"),
+    ] = None,
     cold_boots: Annotated[int, typer.Option(min=2, max=5)] = 2,
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
-    if mode not in {"crash", "seeded"}:
-        typer.echo("mode must be crash or seeded", err=True)
-        raise typer.Exit(2)
     config = load_config()
+    selected_finding = finding or mode
 
     async def run() -> dict[str, Any]:
+        if selected_finding not in {"crash", "seeded"}:
+            stored = _find_fuzz_finding(config, campaign_id, selected_finding)
+            replay_mode = str(stored["finding"].get("mode", "crash"))
+            corpus_path = Path(stored["corpus_dir"]) / f"{stored['finding']['input_sha256']}.bin"
+            replays = [
+                await replay_fixture_input(config, replay_mode, corpus_path)
+                for _ in range(cold_boots)
+            ]
+            expected = str(stored["fingerprint"])
+            stable = all(row["fingerprint"] == expected for row in replays)
+            proof = {
+                "finding": selected_finding,
+                "campaign_id": stored["campaign_id"],
+                "mode": replay_mode,
+                "cold_boots": cold_boots,
+                "expected_fingerprint": expected,
+                "outcomes": [row["outcome"] for row in replays],
+                "fingerprints": [row["fingerprint"] for row in replays],
+                "stable": stable,
+                "artifacts": [row["artifacts"] for row in replays],
+            }
+            record = ArtifactStore(config.artifacts_root).put_json(
+                proof, f"reproduce-{expected}.json"
+            )
+            return {**proof, "artifact_sha256": record.sha256}
+
         results = [
             await DockerQemuBackend(
                 config.project_root, ArtifactStore(config.artifacts_root)
-            ).exercise(mode, seed=index + 1)
+            ).exercise(selected_finding, seed=index + 1)
             for index in range(cold_boots)
         ]
         fingerprints = [
@@ -549,17 +584,24 @@ def reproduce(
         ]
         stable = len(set(fingerprints)) == 1
         proof = {
-            "mode": mode,
+            "finding": selected_finding,
+            "mode": selected_finding,
             "cold_boots": cold_boots,
             "outcomes": [result.outcome for result in results],
             "fingerprints": fingerprints,
             "stable": stable,
             "artifacts": [result.artifacts for result in results],
         }
-        record = ArtifactStore(config.artifacts_root).put_json(proof, f"reproduce-{mode}.json")
+        record = ArtifactStore(config.artifacts_root).put_json(
+            proof, f"reproduce-{selected_finding}.json"
+        )
         return {**proof, "artifact_sha256": record.sha256}
 
-    result = asyncio.run(run())
+    try:
+        result = asyncio.run(run())
+    except Exception as exc:
+        typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
+        raise typer.Exit(2) from exc
     _emit(result, json_output)
     if not result["stable"]:
         raise typer.Exit(1)
