@@ -938,7 +938,9 @@ class CapabilityBroker:
         ).read_bytes()
         minimized = original[:1]
         digest = hashlib.sha256(minimized).hexdigest()
-        minimized_path = self.policy.authorize(corpus_dir / f"broker-min-{digest}.bin", write=True)
+        minimized_path = self.policy.authorize(
+            corpus_dir / f"broker-min-{digest[:16]}.bin", write=True
+        )
         minimized_path.write_bytes(minimized)
         replay = await replay_fixture_input(self.context.config, "crash", minimized_path)
         return {

@@ -578,7 +578,7 @@ def minimize(
         original = corpus_path.read_bytes()
         minimized = original[:1]
         digest = hashlib.sha256(minimized).hexdigest()
-        minimized_path = Path(selected["corpus_dir"]) / f"cli-min-{digest}.bin"
+        minimized_path = Path(selected["corpus_dir"]) / f"cli-min-{digest[:16]}.bin"
         minimized_path.write_bytes(minimized)
         replay = asyncio.run(replay_fixture_input(config, "crash", minimized_path))
         result = {

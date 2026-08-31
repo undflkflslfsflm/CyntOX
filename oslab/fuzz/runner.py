@@ -159,7 +159,7 @@ async def _minimize_and_replay(
     original = (campaign.corpus_dir / f"{input_hash}.bin").read_bytes()
     minimized = original[:1]
     minimized_hash = hashlib.sha256(minimized).hexdigest()
-    minimized_path = campaign.corpus_dir / f"min-{minimized_hash}.bin"
+    minimized_path = campaign.corpus_dir / f"min-{minimized_hash[:16]}.bin"
     minimized_path.write_bytes(minimized)
     replay = await backend.exercise("crash", seed=_input_seed(minimized))
     observed = _fingerprint("crash", replay)
