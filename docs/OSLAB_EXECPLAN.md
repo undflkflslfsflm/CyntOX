@@ -32,7 +32,7 @@ Build and verify a local, safety-bounded OS reliability lab driven by the instal
 | 12. Runtime routing | Complete | `docs/MODEL_RUNTIME_REPORT.md`, `artifacts/discovery/runtime-assessment.json`, `ModelRouter`, and `ResourceScheduler` added. |
 | 13. Training readiness | Complete | `oslab training dry-run --json` exported and reloaded 16 JSONL/Parquet records. |
 | 14. Documentation/security | Complete | Architecture, threat model, runbook, real-target, runtime, training, limitations, next experiments, README, and demo scripts added. |
-| 15. Acceptance | Complete except Gate L | Main checkout and clean checkout live selftests passed at verified code commit `88b122d`; artifact index, `PROOF.json`, `FINAL_REPORT.md`, and runnable acceptance audit are produced. Overall goal remains blocked until an authorized real OS source path and build entry point are supplied. |
+| 15. Acceptance | Complete except Gate L | Main checkout and clean checkout live selftests passed at verified code commit `5ebb43c`; artifact index, `PROOF.json`, `FINAL_REPORT.md`, and runnable acceptance audit are produced. Overall goal remains blocked until an authorized real OS source path and build entry point are supplied. |
 
 ## Resume
 
