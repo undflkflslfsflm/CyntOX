@@ -78,7 +78,7 @@ def _write_selftest_proof_artifact(artifact_root: Path, marker: str) -> str:
 
 def _create_complete_fixture_proof(root: Path) -> None:
     _git(root, "init")
-    _write(root / ".gitignore", ".oslab/\nartifacts/blobs/\nartifacts/artifact-index.jsonl\n")
+    _write(root / ".gitignore", ".clean/\nartifacts/blobs/\nartifacts/artifact-index.jsonl\n")
     _write(root / "fixtures" / "boot" / "boot.asm", "bits 16\n")
     _write(root / "oslab" / "__init__.py", "__version__ = '0.1.0'\n")
     _git(root, "add", ".")
@@ -105,7 +105,7 @@ def _create_complete_fixture_proof(root: Path) -> None:
     for relative in REQUIRED_SUPPORT_FILES:
         _write(root / relative, "schema_version = 1\n")
 
-    clean_worktree = ".oslab\\clean-checkouts\\fixture"
+    clean_worktree = ".clean"
     main_proof_sha = _write_selftest_proof_artifact(root / "artifacts", "main")
     clean_proof_sha = _write_selftest_proof_artifact(root / clean_worktree / "artifacts", "clean")
 
