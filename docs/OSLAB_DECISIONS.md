@@ -109,3 +109,11 @@
 - Context: a successful live selftest command is stronger evidence when its embedded stdout is machine-checked against the final proof metadata.
 - Decision: have `acceptance audit` parse live Ollama probe output and Qwen Code smoke output from both recorded selftest artifacts. The audit checks model identity, structured response, constrained visible tools, single allowed MCP call, wrapper model, runtime version, and smoke result against `PROOF.json`.
 - Consequence: the final proof fails if the recorded live runs disagree with the model/Qwen Code claims, even when the commands exited zero.
+
+## D-015 — Validate required artifact contents, not only hashes
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: existence and SHA-256 matching prove artifact immutability but not that required artifacts contain the expected discovery, benchmark, evaluation, report, and training evidence.
+- Decision: have `acceptance audit` parse required JSON/CSV/JSONL/Parquet/Markdown artifacts and validate the expected content shape: hardware sections, loopback model endpoint, model benchmark samples, runtime profiles, A-E seeded evaluation matrix, training record count/labels/evidence hashes, dataset card summary, latest report integrity, and Gate L target status.
+- Consequence: the final audit fails if a required artifact is present and indexed but semantically empty, malformed, or missing the required proof payload.
