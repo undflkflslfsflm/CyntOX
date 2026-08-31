@@ -19,7 +19,7 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
 - `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `5ebb43c`, including `ruff format --check .`.
-- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, artifact-index hashes, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. Saved audit artifact: `4ca896222faa606fd60c8b501ae17a19a3efad01f064131fe4a538ca2c38f9bc`.
+- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, artifact-index hashes, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. Saved audit artifact: `7425075adb824953a45dd01b0d493709c1cf9c1be051dfeb8a175c2031356b0d`.
 - Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, and a `target validate-manifest` command. The validator rejects path traversal and non-isolated QEMU networking before any real target build is attempted.
 
 ## Tested but Limited
@@ -55,7 +55,7 @@ The path must point to the authorized OS source and its existing build entry poi
 - Main checkout selftest at `5ebb43c`: PASS, proof artifact `fdf37f6a84f4fd355877bafeb9b51836fc5efbf3b89e5d8b1d2fb3d72c3c113b`; checkout remained clean afterward.
 - Clean checkout bootstrap at `5ebb43c`: PASS
 - Clean checkout selftest: PASS, proof artifact `6308c33d17a525048c003330472a26c94d17d4912b87502b858478fa5a435e6a`; checkout remained clean afterward.
-- Acceptance audit: PASS, artifact `4ca896222faa606fd60c8b501ae17a19a3efad01f064131fe4a538ca2c38f9bc`.
+- Acceptance audit: PASS, artifact `7425075adb824953a45dd01b0d493709c1cf9c1be051dfeb8a175c2031356b0d`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Machine proof: `PROOF.json`
 

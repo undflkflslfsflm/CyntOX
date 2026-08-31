@@ -68,8 +68,8 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
       "exit_code": 0,
-      "artifact_sha256": "4ca896222faa606fd60c8b501ae17a19a3efad01f064131fe4a538ca2c38f9bc",
-      "stdout_summary": "Acceptance audit passed: gate summary, required docs/artifacts, artifact-index hashes, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
+      "artifact_sha256": "7425075adb824953a45dd01b0d493709c1cf9c1be051dfeb8a175c2031356b0d",
+      "stdout_summary": "Acceptance audit passed: gate summary, required docs/artifacts/support files, artifact-index hashes, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
     }
   ],
   "gate_summary": {
