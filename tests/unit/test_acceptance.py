@@ -9,6 +9,7 @@ from pathlib import Path
 from oslab.acceptance import (
     ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS,
     EXPECTED_GATE_SUMMARY,
+    EXPECTED_QWEN_CODE_TOOLS,
     REQUIRED_ARTIFACTS,
     REQUIRED_DOCS,
     REQUIRED_SUPPORT_FILES,
@@ -53,7 +54,9 @@ def _write_artifact_index(root: Path) -> None:
     _write(index, json.dumps(payload, indent=2) + "\n")
 
 
-def _write_selftest_proof_artifact(artifact_root: Path, marker: str) -> str:
+def _write_selftest_proof_artifact(
+    artifact_root: Path, marker: str, *, qwen_result: str = "MCP_BUDGET_OK"
+) -> str:
     commands = [
         ["python", "-m", "pytest", "-q"],
         ["python", "-m", "ruff", "format", "--check", "."],
@@ -67,12 +70,44 @@ def _write_selftest_proof_artifact(artifact_root: Path, marker: str) -> str:
         ["python", "-m", "oslab.cli", "model", "qwen-code-smoke", "--json"],
         ["python", "-m", "oslab.cli", "integrity", "check", "--json"],
     ]
+    rows = []
+    for argv in commands:
+        stdout = ""
+        if argv[-4:] == ["model", "probe", "--live", "--json"]:
+            stdout = json.dumps(
+                {
+                    "identity": {
+                        "architecture": "qwen35",
+                        "format": "gguf",
+                        "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+                        "parameters": 27320697856,
+                        "quantization": "Q4_K_M",
+                        "runtime": "Ollama",
+                        "runtime_version": "0.33.2",
+                    },
+                    "response": {"structured": {"status": "ok", "sum": 4}},
+                }
+            )
+        elif argv[-3:] == ["model", "qwen-code-smoke", "--json"]:
+            stdout = json.dumps(
+                {
+                    "declared_tools": EXPECTED_QWEN_CODE_TOOLS,
+                    "tool_calls": ["mcp__oslab__policy_remaining_budget"],
+                    "response": {
+                        "content": qwen_result,
+                        "model": {
+                            "model_id": "qwen-os-lab-worker:latest",
+                            "runtime": "Qwen Code",
+                            "runtime_version": "0.22.3",
+                        },
+                    },
+                }
+            )
+        rows.append({"argv": argv, "exit_code": 0, "stdout": stdout, "stderr": ""})
     payload = {
         "marker": marker,
         "status": "PASS",
-        "commands": [
-            {"argv": argv, "exit_code": 0, "stdout": "", "stderr": ""} for argv in commands
-        ],
+        "commands": rows,
     }
     return ArtifactStore(artifact_root).put_json(payload, "selftest-proof.json").sha256
 
@@ -191,17 +226,19 @@ def _create_complete_fixture_proof(root: Path) -> None:
         ],
         "gate_summary": EXPECTED_GATE_SUMMARY,
         "model": {
+            "architecture": "qwen35",
+            "format": "gguf",
             "runtime": "Ollama",
+            "runtime_version": "0.33.2",
             "model_id": "huihui-qwen3.8-27b-abliterated:latest",
             "parameters": 27320697856,
             "quantization": "Q4_K_M",
         },
         "qwen_code": {
+            "version": "0.22.3",
+            "wrapper_model": "qwen-os-lab-worker:latest",
             "smoke_result": "MCP_BUDGET_OK",
-            "visible_tools": [
-                "mcp__oslab__policy_remaining_budget",
-                "mcp__oslab__fixture_explain",
-            ],
+            "visible_tools": EXPECTED_QWEN_CODE_TOOLS,
         },
     }
     _write(root / "PROOF.json", json.dumps(proof, indent=2) + "\n")
@@ -274,3 +311,24 @@ def test_acceptance_audit_rejects_missing_acceptance_audit_artifact(tmp_path: Pa
 
     assert not result["ok"]
     assert "acceptance_audit_artifact_is_verifiable" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_live_output_that_disagrees_with_proof(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    proof_path = tmp_path / "PROOF.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    bad_sha = _write_selftest_proof_artifact(
+        tmp_path / "artifacts", "main-mismatch", qwen_result="WRONG_RESULT"
+    )
+    for row in proof["verified_commands"]:
+        if row.get("scope") == "main checkout" and row.get("command", "").endswith(
+            "selftest --live --json"
+        ):
+            row["proof_sha256"] = bad_sha
+            break
+    _write(proof_path, json.dumps(proof, indent=2) + "\n")
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "selftest_live_outputs_match_proof" in result["failed_checks"]

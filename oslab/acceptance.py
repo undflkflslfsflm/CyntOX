@@ -66,6 +66,10 @@ REQUIRED_SUPPORT_FILES = ("config/oslab-target.example.toml",)
 
 SELFTEST_COMMAND = ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json"
 ACCEPTANCE_AUDIT_COMMAND = ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json"
+EXPECTED_QWEN_CODE_TOOLS = [
+    "mcp__oslab__policy_remaining_budget",
+    "mcp__oslab__fixture_explain",
+]
 
 SELFTEST_EXPECTED_ARGV_TAILS = (
     ("-m", "pytest", "-q"),
@@ -80,6 +84,8 @@ SELFTEST_EXPECTED_ARGV_TAILS = (
     ("-m", "oslab.cli", "model", "qwen-code-smoke", "--json"),
     ("-m", "oslab.cli", "integrity", "check", "--json"),
 )
+MODEL_PROBE_ARGV_TAIL = ("-m", "oslab.cli", "model", "probe", "--live", "--json")
+QWEN_CODE_SMOKE_ARGV_TAIL = ("-m", "oslab.cli", "model", "qwen-code-smoke", "--json")
 
 ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
     "required_documents_exist",
@@ -90,6 +96,7 @@ ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
     "proof_records_required_commands",
     "proof_records_main_and_clean_selftest_hashes",
     "selftest_proof_artifacts_are_verifiable",
+    "selftest_live_outputs_match_proof",
     "proof_records_live_model_identity",
     "proof_records_constrained_qwen_code_smoke",
     "artifact_index_matches_disk",
@@ -142,6 +149,7 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
     _check_gate_summary(proof, checks)
     _check_proof_commands(proof, checks)
     _check_selftest_proof_artifacts(project_root, proof, checks)
+    _check_selftest_live_outputs_match_proof(project_root, proof, checks)
     _check_acceptance_audit_artifact(project_root, proof, checks)
     _check_model_and_qwen_code(proof, checks)
     _check_artifact_index(project_root, checks)
@@ -403,6 +411,74 @@ def _check_acceptance_audit_artifact(
     )
 
 
+def _check_selftest_live_outputs_match_proof(
+    project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
+) -> None:
+    model = proof.get("model", {})
+    qwen_code = proof.get("qwen_code", {})
+    command_rows = [row for row in proof.get("verified_commands", []) if isinstance(row, dict)]
+    clean_worktree = _clean_worktree_path(project_root, command_rows)
+    selftest_rows = [
+        row
+        for row in command_rows
+        if row.get("command") == SELFTEST_COMMAND and row.get("exit_code") == 0
+    ]
+    failures: list[dict[str, Any]] = []
+    for row in selftest_rows:
+        scope = str(row.get("scope", "<unknown>"))
+        digest = row.get("proof_sha256")
+        if not _is_sha256(digest):
+            failures.append({"scope": scope, "reason": "invalid_or_missing_proof_sha256"})
+            continue
+        assert isinstance(digest, str)
+        artifact_root = project_root / "artifacts"
+        if scope == "clean checkout":
+            if clean_worktree is None:
+                failures.append({"scope": scope, "reason": "missing_worktree"})
+                continue
+            artifact_root = clean_worktree / "artifacts"
+        payload = _load_artifact_payload(artifact_root, digest)
+        if not payload["ok"]:
+            failures.append({"scope": scope, "reason": str(payload["reason"])})
+            continue
+        commands = payload["json"].get("commands", []) if isinstance(payload["json"], dict) else []
+        if not isinstance(commands, list):
+            failures.append({"scope": scope, "reason": "missing_commands"})
+            continue
+        model_probe = _command_by_tail(commands, MODEL_PROBE_ARGV_TAIL)
+        qwen_smoke = _command_by_tail(commands, QWEN_CODE_SMOKE_ARGV_TAIL)
+        if model_probe is None:
+            failures.append({"scope": scope, "reason": "missing_model_probe_output"})
+        else:
+            model_failures = _model_probe_mismatches(model_probe, model)
+            if model_failures:
+                failures.append(
+                    {
+                        "scope": scope,
+                        "reason": "model_probe_output_mismatch",
+                        "mismatches": model_failures,
+                    }
+                )
+        if qwen_smoke is None:
+            failures.append({"scope": scope, "reason": "missing_qwen_code_smoke_output"})
+        else:
+            qwen_failures = _qwen_code_smoke_mismatches(qwen_smoke, qwen_code)
+            if qwen_failures:
+                failures.append(
+                    {
+                        "scope": scope,
+                        "reason": "qwen_code_smoke_output_mismatch",
+                        "mismatches": qwen_failures,
+                    }
+                )
+    _record(
+        checks,
+        "selftest_live_outputs_match_proof",
+        len(selftest_rows) >= 2 and not failures,
+        {"checked": len(selftest_rows), "failures": failures},
+    )
+
+
 def _clean_worktree_path(project_root: Path, command_rows: list[dict[str, Any]]) -> Path | None:
     for row in command_rows:
         worktree = row.get("worktree")
@@ -448,6 +524,85 @@ def _argv_for_details(command: object) -> str:
     return " ".join(str(part) for part in argv)
 
 
+def _command_by_tail(commands: list[Any], tail: tuple[str, ...]) -> dict[str, Any] | None:
+    for command in commands:
+        if isinstance(command, dict) and _argv_endswith(command.get("argv"), tail):
+            return command
+    return None
+
+
+def _json_stdout(command: dict[str, Any]) -> dict[str, Any]:
+    stdout = command.get("stdout")
+    if not isinstance(stdout, str) or not stdout.strip():
+        return {}
+    try:
+        parsed = json.loads(stdout)
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _model_probe_mismatches(command: dict[str, Any], model: object) -> list[str]:
+    if not isinstance(model, dict):
+        return ["proof_model_missing"]
+    payload = _json_stdout(command)
+    if not payload:
+        return ["model_probe_stdout_not_json"]
+    identity = payload.get("identity")
+    response = payload.get("response")
+    if not isinstance(identity, dict) or not isinstance(response, dict):
+        return ["model_probe_missing_identity_or_response"]
+    mismatches: list[str] = []
+    for key in (
+        "runtime",
+        "runtime_version",
+        "model_id",
+        "architecture",
+        "parameters",
+        "format",
+        "quantization",
+    ):
+        if model.get(key) != identity.get(key):
+            mismatches.append(f"identity.{key}")
+    structured = response.get("structured")
+    if (
+        not isinstance(structured, dict)
+        or structured.get("status") != "ok"
+        or structured.get("sum") != 4
+    ):
+        mismatches.append("response.structured")
+    return mismatches
+
+
+def _qwen_code_smoke_mismatches(command: dict[str, Any], qwen_code: object) -> list[str]:
+    if not isinstance(qwen_code, dict):
+        return ["proof_qwen_code_missing"]
+    payload = _json_stdout(command)
+    if not payload:
+        return ["qwen_code_stdout_not_json"]
+    response = payload.get("response")
+    response_model = response.get("model") if isinstance(response, dict) else None
+    mismatches: list[str] = []
+    if payload.get("declared_tools") != EXPECTED_QWEN_CODE_TOOLS:
+        mismatches.append("declared_tools")
+    if payload.get("tool_calls") != ["mcp__oslab__policy_remaining_budget"]:
+        mismatches.append("tool_calls")
+    if not isinstance(response, dict) or response.get("content") != qwen_code.get("smoke_result"):
+        mismatches.append("response.content")
+    if not isinstance(response_model, dict):
+        mismatches.append("response.model")
+    else:
+        if response_model.get("runtime") != "Qwen Code":
+            mismatches.append("response.model.runtime")
+        if response_model.get("runtime_version") != qwen_code.get("version"):
+            mismatches.append("response.model.runtime_version")
+        if response_model.get("model_id") != qwen_code.get("wrapper_model"):
+            mismatches.append("response.model.model_id")
+    if qwen_code.get("visible_tools") != EXPECTED_QWEN_CODE_TOOLS:
+        mismatches.append("proof.visible_tools")
+    return mismatches
+
+
 def _check_model_and_qwen_code(proof: dict[str, Any], checks: list[dict[str, Any]]) -> None:
     model = proof.get("model", {})
     qwen_code = proof.get("qwen_code", {})
@@ -463,8 +618,7 @@ def _check_model_and_qwen_code(proof: dict[str, Any], checks: list[dict[str, Any
     qwen_code_ok = (
         isinstance(qwen_code, dict)
         and qwen_code.get("smoke_result") == "MCP_BUDGET_OK"
-        and qwen_code.get("visible_tools")
-        == ["mcp__oslab__policy_remaining_budget", "mcp__oslab__fixture_explain"]
+        and qwen_code.get("visible_tools") == EXPECTED_QWEN_CODE_TOOLS
     )
     _record(
         checks,
