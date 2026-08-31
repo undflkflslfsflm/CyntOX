@@ -846,7 +846,35 @@ def _validate_crash_verification_artifact(
         return
     if payload.get("accepted") is not True or payload.get("expected") != "CRASH":
         failures.append({"key": key, "reason": "crash_verification_not_accepted"})
-    _validate_crash_reproduction_artifact(project_root, payload, key, failures)
+    cold_boots = payload.get("cold_boots")
+    if (
+        not (isinstance(cold_boots, int) and not isinstance(cold_boots, bool) and cold_boots >= 2)
+        or payload.get("stable") is not True
+        or payload.get("mode") != "crash"
+    ):
+        failures.append({"key": key, "reason": "crash_verification_summary_invalid"})
+    outcomes = payload.get("outcomes")
+    fingerprints = payload.get("fingerprints")
+    fingerprint_values = (
+        [fingerprint for fingerprint in fingerprints if isinstance(fingerprint, str)]
+        if isinstance(fingerprints, list)
+        else []
+    )
+    if (
+        not isinstance(outcomes, list)
+        or len(outcomes) < 2
+        or any(outcome != "CRASH" for outcome in outcomes)
+    ):
+        failures.append({"key": key, "reason": "crash_verification_outcomes_invalid"})
+    if (
+        not isinstance(fingerprints, list)
+        or len(fingerprint_values) != len(fingerprints)
+        or len(fingerprint_values) < 2
+        or len(set(fingerprint_values)) != 1
+        or not _is_sha256(fingerprint_values[0])
+    ):
+        failures.append({"key": key, "reason": "crash_verification_fingerprint_not_stable"})
+    _validate_artifact_reference_list(project_root, payload.get("artifacts"), key, failures)
 
 
 def _validate_artifact_reference_list(

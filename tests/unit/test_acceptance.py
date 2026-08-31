@@ -212,6 +212,7 @@ def _write_key_evidence_artifacts(root: Path) -> dict[str, str]:
         "accepted": True,
         "expected": "CRASH",
     }
+    crash_verification.pop("expected_fingerprint")
     payloads: dict[str, object] = {
         "agentic_fix_loop": {
             "run_id": "agentic-fix-loop-test",
