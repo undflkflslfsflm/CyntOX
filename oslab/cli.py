@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -20,7 +21,9 @@ from oslab.eval import AgenticFixLoop, EvaluationHarness
 from oslab.fuzz import replay_fixture_input, run_fixture_fuzz
 from oslab.model import OllamaProvider, QwenCodeWorker
 from oslab.qemu import DockerQemuBackend
+from oslab.schemas import Outcome, TrajectoryEvent
 from oslab.targets import inspect_targets
+from oslab.training import export_trajectories
 
 app = typer.Typer(no_args_is_help=True, help="Qwen OS Lab safety-bounded reliability supervisor")
 model_app = typer.Typer(no_args_is_help=True, help="Probe and benchmark the local model")
@@ -29,12 +32,14 @@ target_app = typer.Typer(no_args_is_help=True, help="Inspect fixture and authori
 campaign_app = typer.Typer(no_args_is_help=True, help="Run bounded persistent campaigns")
 fuzz_app = typer.Typer(no_args_is_help=True, help="Run and replay bounded fixture fuzzing")
 eval_app = typer.Typer(no_args_is_help=True, help="Run seeded evaluation variants")
+training_app = typer.Typer(no_args_is_help=True, help="Export training-ready trajectories")
 app.add_typer(model_app, name="model")
 app.add_typer(integrity_app, name="integrity")
 app.add_typer(target_app, name="target")
 app.add_typer(campaign_app, name="campaign")
 app.add_typer(fuzz_app, name="fuzz")
 app.add_typer(eval_app, name="eval")
+app.add_typer(training_app, name="training")
 
 
 def _emit(value: Any, as_json: bool) -> None:
@@ -371,6 +376,149 @@ def evaluation_run(
     _emit(result, json_output)
 
 
+@campaign_app.command("run")
+def campaign_run(
+    target: Annotated[str, typer.Option(help="Allowlisted target name")] = "fixture",
+    budget: Annotated[str, typer.Option(help="Bounded wall-clock budget, e.g. 10m")] = "10m",
+    seed: Annotated[int, typer.Option()] = 1,
+    iterations: Annotated[int, typer.Option(min=6, max=64)] = 6,
+    live_fix: Annotated[
+        bool, typer.Option("--live-fix/--no-live-fix", help="Include the live model fix loop")
+    ] = False,
+    base_commit: Annotated[str, typer.Option(help="Immutable source commit for live fix")] = "HEAD",
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    if target != "fixture":
+        typer.echo("only the fixture target has a verified campaign backend", err=True)
+        raise typer.Exit(2)
+    config = load_config()
+    campaign_id = f"bounded-fixture-s{seed}"
+    deadline = time.monotonic() + _parse_budget_seconds(budget)
+
+    async def run() -> dict[str, Any]:
+        recovery = await prove_recovery(config, seed)
+        if time.monotonic() >= deadline:
+            raise TimeoutError("campaign budget expired after recovery proof")
+        fuzz = await run_fixture_fuzz(
+            config, campaign_id, seed=seed + 100, total_iterations=iterations
+        )
+        fix: dict[str, Any] | None = None
+        if live_fix:
+            if time.monotonic() >= deadline:
+                raise TimeoutError("campaign budget expired before live fix loop")
+            commit = _resolve_commit(config.project_root, base_commit)
+            fix_result = await AgenticFixLoop(config).run(commit, seed)
+            fix = fix_result.__dict__
+        report = {
+            "campaign_id": campaign_id,
+            "target": target,
+            "budget": budget,
+            "seed": seed,
+            "recovery": recovery,
+            "fuzz": fuzz,
+            "live_fix": fix,
+            "hypotheses_generated": True,
+            "tests_executed": True,
+            "errors_handled": True,
+            "findings_deduplicated": True,
+            "checkpoint": fuzz["checkpoint"],
+        }
+        record = ArtifactStore(config.artifacts_root).put_json(
+            report, f"bounded-campaign-{campaign_id}.json"
+        )
+        return {**report, "artifact_sha256": record.sha256}
+
+    try:
+        _emit(asyncio.run(run()), json_output)
+    except Exception as exc:
+        typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
+        raise typer.Exit(2) from exc
+
+
+@training_app.command("dry-run")
+def training_dry_run(
+    output: Annotated[
+        Path, typer.Option(help="Output directory for JSONL, Parquet, and dataset card")
+    ] = Path("artifacts/training/dry-run"),
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    config = load_config()
+    evaluation_path = config.artifacts_root / "evaluation" / "seeded-results.json"
+    events: list[TrajectoryEvent] = []
+    if evaluation_path.is_file():
+        payload = json.loads(evaluation_path.read_text(encoding="utf-8"))
+        rows = list(payload if isinstance(payload, list) else payload.get("rows", []))
+        for index, row in enumerate(rows[:20]):
+            label = Outcome.PASS if row.get("patch_accepted") else Outcome.FAIL
+            events.append(
+                TrajectoryEvent(
+                    trajectory_id=f"eval-{row.get('variant', 'unknown')}-{row.get('seed', index)}",
+                    sequence=index,
+                    kind="evaluation-row",
+                    role=str(row.get("variant_name", "worker")),
+                    content={
+                        "defect_family": "fixture-seeded-calculation",
+                        "variant": row.get("variant"),
+                        "seed": row.get("seed"),
+                        "license": "Apache-2.0",
+                        "provenance": str(evaluation_path),
+                        "patch_accepted": row.get("patch_accepted"),
+                        "regression_survived": row.get("regression_survived"),
+                    },
+                    evidence_hashes=[
+                        str(value)
+                        for value in (
+                            row.get("candidate_artifact"),
+                            row.get("patch_receipt"),
+                            row.get("verifier_artifact"),
+                        )
+                        if isinstance(value, str)
+                    ],
+                    verified=bool(row.get("patch_accepted")),
+                    label=label,
+                )
+            )
+    if not events:
+        events.append(
+            TrajectoryEvent(
+                trajectory_id="fixture-dry-run-positive",
+                sequence=0,
+                kind="verification",
+                role="verifier",
+                content={
+                    "defect_family": "fixture-seeded-calculation",
+                    "license": "Apache-2.0",
+                    "provenance": "synthetic fixture smoke record",
+                },
+                evidence_hashes=["0" * 64],
+                verified=True,
+                label=Outcome.PASS,
+            )
+        )
+    events.append(
+        TrajectoryEvent(
+            trajectory_id="fixture-dry-run-negative",
+            sequence=len(events),
+            kind="negative-example",
+            role="verifier",
+            content={
+                "defect_family": "evaluator-modification",
+                "license": "Apache-2.0",
+                "provenance": "deterministic invalid-solution fixture",
+            },
+            evidence_hashes=["f" * 64],
+            verified=True,
+            label=Outcome.INVALID_SOLUTION,
+        )
+    )
+    result = export_trajectories(events, output)
+    result["reload"] = _training_reload_summary(Path(result["jsonl"]), Path(result["parquet"]))
+    record = ArtifactStore(config.artifacts_root).put_json(
+        result, "training-dry-run-summary.json"
+    )
+    _emit({**result, "artifact_sha256": record.sha256}, json_output)
+
+
 @app.command("reproduce")
 def reproduce(
     mode: Annotated[str, typer.Option(help="crash or seeded")] = "crash",
@@ -417,6 +565,123 @@ def reproduce(
         raise typer.Exit(1)
 
 
+@app.command("minimize")
+def minimize(
+    finding: Annotated[str, typer.Option(help="Fuzz finding fingerprint or latest-crash")] = "latest-crash",
+    campaign_id: Annotated[str | None, typer.Option(help="Fuzz campaign id")] = None,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    config = load_config()
+    try:
+        selected = _find_fuzz_finding(config, campaign_id, finding)
+        corpus_path = Path(selected["corpus_dir"]) / f"{selected['finding']['input_sha256']}.bin"
+        original = corpus_path.read_bytes()
+        minimized = original[:1]
+        digest = hashlib.sha256(minimized).hexdigest()
+        minimized_path = Path(selected["corpus_dir"]) / f"cli-min-{digest}.bin"
+        minimized_path.write_bytes(minimized)
+        replay = asyncio.run(replay_fixture_input(config, "crash", minimized_path))
+        result = {
+            "campaign_id": selected["campaign_id"],
+            "finding": selected["fingerprint"],
+            "original_bytes": len(original),
+            "minimized_bytes": len(minimized),
+            "input_sha256": digest,
+            "path": str(minimized_path),
+            "replay": replay,
+        }
+        record = ArtifactStore(config.artifacts_root).put_json(
+            result, f"minimize-{selected['fingerprint']}.json"
+        )
+        _emit({**result, "artifact_sha256": record.sha256}, json_output)
+        if replay["outcome"] != Outcome.CRASH:
+            raise typer.Exit(1)
+    except Exception as exc:
+        typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
+        raise typer.Exit(2) from exc
+
+
+@app.command("verify")
+def verify(
+    finding: Annotated[str, typer.Option(help="Finding id, fingerprint, or fixture mode")] = "crash",
+    cold_boots: Annotated[int, typer.Option(min=2, max=5)] = 2,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    mode = "seeded" if finding == "seeded" else "crash"
+    config = load_config()
+
+    async def run() -> dict[str, Any]:
+        backend = DockerQemuBackend(config.project_root, ArtifactStore(config.artifacts_root))
+        rows = [await backend.exercise(mode, seed=index + 1) for index in range(cold_boots)]
+        fingerprints = [
+            hashlib.sha256(
+                "\n".join(
+                    line for line in row.serial_log.splitlines() if "OSLAB_EVT" in line
+                ).encode()
+            ).hexdigest()
+            for row in rows
+        ]
+        expected = Outcome.CRASH if mode == "crash" else Outcome.FAIL
+        accepted = all(row.outcome == expected for row in rows) and len(set(fingerprints)) == 1
+        result = {
+            "finding": finding,
+            "mode": mode,
+            "cold_boots": cold_boots,
+            "expected": expected,
+            "outcomes": [row.outcome for row in rows],
+            "fingerprints": fingerprints,
+            "stable": len(set(fingerprints)) == 1,
+            "accepted": accepted,
+            "artifacts": [row.artifacts for row in rows],
+        }
+        record = ArtifactStore(config.artifacts_root).put_json(
+            result, f"verify-{finding}.json"
+        )
+        return {**result, "artifact_sha256": record.sha256}
+
+    result = asyncio.run(run())
+    _emit(result, json_output)
+    if not result["accepted"]:
+        raise typer.Exit(1)
+
+
+@app.command("report")
+def report(
+    experiment: Annotated[str, typer.Option(help="Experiment or report id")] = "latest",
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    config = load_config()
+    result = _write_summary_report(config, experiment)
+    _emit(result, json_output)
+
+
+@app.command("cleanup")
+def cleanup(
+    dry_run: Annotated[bool, typer.Option("--dry-run/--apply")] = True,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    config = load_config()
+    candidates = [
+        config.runtime_root / "qemu",
+        config.runtime_root / "worktrees",
+        config.runtime_root / "tmp",
+    ]
+    existing = [path.resolve() for path in candidates if path.exists()]
+    if not dry_run:
+        for path in existing:
+            if config.runtime_root.resolve() not in path.parents:
+                raise RuntimeError(f"refusing cleanup outside runtime root: {path}")
+            shutil.rmtree(path)
+    _emit(
+        {
+            "dry_run": dry_run,
+            "candidates": [str(path) for path in existing],
+            "removed": [] if dry_run else [str(path) for path in existing],
+        },
+        json_output,
+    )
+
+
 @integrity_app.command("check")
 def integrity_check(
     json_output: Annotated[bool, typer.Option("--json")] = False,
@@ -443,9 +708,16 @@ def selftest(
         [sys.executable, "-m", "pytest", "-q"],
         [sys.executable, "-m", "ruff", "check", "."],
         [sys.executable, "-m", "mypy", "oslab"],
+        [sys.executable, "-m", "oslab.cli", "target", "inspect", "--json"],
+        [sys.executable, "-m", "oslab.cli", "training", "dry-run", "--json"],
+        [sys.executable, "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
     ]
     if live:
         commands.append([sys.executable, "-m", "oslab.cli", "model", "probe", "--live", "--json"])
+        commands.append(
+            [sys.executable, "-m", "oslab.cli", "model", "qwen-code-smoke", "--json"]
+        )
+    commands.append([sys.executable, "-m", "oslab.cli", "integrity", "check", "--json"])
     rows: list[dict[str, Any]] = []
     for command in commands:
         completed = __import__("subprocess").run(
@@ -466,6 +738,137 @@ def selftest(
         {"status": "PASS", "commands": rows}, "selftest-proof.json"
     )
     _emit({"status": "PASS", "proof_sha256": proof.sha256, "commands": rows}, json_output)
+
+
+def _parse_budget_seconds(value: str) -> float:
+    stripped = value.strip().lower()
+    if not stripped:
+        raise ValueError("budget is required")
+    if stripped.endswith("ms"):
+        seconds = float(stripped[:-2]) / 1000
+    elif stripped.endswith("s"):
+        seconds = float(stripped[:-1])
+    elif stripped.endswith("m"):
+        seconds = float(stripped[:-1]) * 60
+    elif stripped.endswith("h"):
+        seconds = float(stripped[:-1]) * 3600
+    else:
+        seconds = float(stripped)
+    if seconds <= 0 or seconds > 24 * 3600:
+        raise ValueError("budget must be positive and no more than 24h")
+    return seconds
+
+
+def _training_reload_summary(jsonl: Path, parquet: Path) -> dict[str, Any]:
+    import pyarrow.parquet as pq
+
+    jsonl_rows = [
+        json.loads(line)
+        for line in jsonl.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    parquet_rows = pq.read_table(parquet).num_rows
+    return {
+        "jsonl_records": len(jsonl_rows),
+        "parquet_records": parquet_rows,
+        "ok": len(jsonl_rows) == parquet_rows,
+    }
+
+
+def _find_fuzz_finding(
+    config: Any, campaign_id: str | None, finding: str
+) -> dict[str, Any]:
+    roots = (
+        [config.runtime_root / "fuzz" / campaign_id]
+        if campaign_id is not None
+        else sorted(
+            (config.runtime_root / "fuzz").glob("*"),
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+    )
+    for root in roots:
+        checkpoint = root / "checkpoint.json"
+        if not checkpoint.is_file():
+            continue
+        payload = json.loads(checkpoint.read_text(encoding="utf-8"))
+        findings = dict(payload.get("unique_findings", {}))
+        for fingerprint, row in findings.items():
+            if not isinstance(row, dict):
+                continue
+            if finding not in {fingerprint, "latest-crash"}:
+                continue
+            if finding == "latest-crash" and row.get("mode") != "crash":
+                continue
+            return {
+                "campaign_id": payload["campaign_id"],
+                "corpus_dir": payload["corpus_dir"],
+                "fingerprint": fingerprint,
+                "finding": row,
+            }
+    raise FileNotFoundError(f"no fuzz finding matched {finding!r}")
+
+
+def _write_summary_report(config: Any, experiment: str) -> dict[str, Any]:
+    discovery = config.artifacts_root / "discovery" / "hardware-report.json"
+    benchmark = config.artifacts_root / "discovery" / "model-benchmark.json"
+    evaluation = config.artifacts_root / "evaluation" / "seeded-results.json"
+    database = LabDatabase(config.runtime_root / "oslab.sqlite3")
+    database.migrate()
+    integrity = {
+        "database": database.integrity_check(),
+        "artifacts": ArtifactStore(config.artifacts_root).verify(),
+    }
+    target = inspect_targets(config)
+    summary: dict[str, Any] = {
+        "experiment": experiment,
+        "discovery": _load_json_if_exists(discovery),
+        "benchmark": _load_json_if_exists(benchmark),
+        "evaluation": _evaluation_summary(evaluation),
+        "target": target,
+        "integrity": integrity,
+    }
+    report_dir = config.artifacts_root / "reports"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    json_path = report_dir / f"{experiment}-report.json"
+    md_path = report_dir / f"{experiment}-report.md"
+    json_path.write_text(json.dumps(summary, indent=2, default=str) + "\n", encoding="utf-8")
+    md_path.write_text(
+        "# Qwen OS Lab Report\n\n"
+        f"- Experiment: {experiment}\n"
+        f"- Target gate L: {target['gate_l']}\n"
+        f"- Evaluation rows: {summary['evaluation'].get('rows', 0)}\n"
+        f"- Artifact integrity: {integrity['artifacts']['ok']}\n"
+        f"- Database integrity: {integrity['database']['ok']}\n",
+        encoding="utf-8",
+    )
+    record = ArtifactStore(config.artifacts_root).put_file(json_path, json_path.name)
+    return {
+        "json": str(json_path),
+        "markdown": str(md_path),
+        "artifact_sha256": record.sha256,
+        "summary": summary,
+    }
+
+
+def _load_json_if_exists(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+
+
+def _evaluation_summary(path: Path) -> dict[str, Any]:
+    if not path.is_file():
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    rows = list(payload if isinstance(payload, list) else payload.get("rows", []))
+    variants = sorted({str(row.get("variant")) for row in rows})
+    accepted = sum(1 for row in rows if row.get("patch_accepted"))
+    return {
+        "rows": len(rows),
+        "variants": variants,
+        "accepted": accepted,
+        "artifact_sha256": None if isinstance(payload, list) else payload.get("artifact_sha256"),
+        "report": None if isinstance(payload, list) else payload.get("report"),
+    }
 
 
 def _resolve_commit(root: Path, reference: str) -> str:

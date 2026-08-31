@@ -5,6 +5,7 @@ import os
 import platform
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from contextlib import suppress
@@ -68,6 +69,37 @@ def _version(path: str | None) -> dict[str, Any]:
     result = _run([path, "--version"], 5)
     first = (result.get("stdout") or result.get("stderr") or "").splitlines()
     return {"present": True, "path": path, "version": first[0] if first else None}
+
+
+def _tool_path(name: str, root: Path) -> str | None:
+    candidates: list[Path] = []
+    if name == "python":
+        candidates.append(Path(sys.executable))
+    elif name == "node":
+        candidates.append(
+            Path.home()
+            / ".cache"
+            / "codex-runtimes"
+            / "codex-primary-runtime"
+            / "dependencies"
+            / "node"
+            / "bin"
+            / "node.exe"
+        )
+    elif name == "uv":
+        candidates.extend([root / ".venv" / "Scripts" / "uv.exe", root / ".venv" / "bin" / "uv"])
+    elif name in {"qwen", "qwen-code"}:
+        candidates.extend(
+            [
+                root / "node_modules" / ".bin" / "qwen.CMD",
+                root / "node_modules" / ".bin" / "qwen",
+                root / "node_modules" / ".bin" / "qwen.ps1",
+            ]
+        )
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return shutil.which(name)
 
 
 def _disk_benchmark(root: Path, size_mb: int = 16) -> dict[str, Any]:
@@ -195,6 +227,27 @@ def _model_files() -> list[dict[str, Any]]:
     return models
 
 
+def _project_qwen_code(root: Path) -> dict[str, Any]:
+    package = root / "node_modules" / "@qwen-code" / "qwen-code" / "package.json"
+    bins = [
+        root / "node_modules" / ".bin" / "qwen.CMD",
+        root / "node_modules" / ".bin" / "qwen",
+        root / "node_modules" / ".bin" / "qwen.ps1",
+    ]
+    present_bins = [path for path in bins if path.exists()]
+    version = None
+    if package.is_file():
+        with suppress(OSError, json.JSONDecodeError):
+            payload = json.loads(package.read_text(encoding="utf-8"))
+            version = payload.get("version")
+    return {
+        "present": bool(present_bins or package.is_file()),
+        "version": version,
+        "package": str(package) if package.is_file() else None,
+        "executables": [str(path) for path in present_bins],
+    }
+
+
 def _target_scan(root: Path) -> dict[str, Any]:
     markers = {
         "Cargo.toml",
@@ -229,7 +282,17 @@ def _target_scan(root: Path) -> dict[str, Any]:
 
 
 def collect_report(config: LabConfig) -> dict[str, Any]:
-    tooling = {name: _version(shutil.which(name)) for name in TOOLS}
+    tooling = {name: _version(_tool_path(name, config.project_root)) for name in TOOLS}
+    project_qwen = _project_qwen_code(config.project_root)
+    if project_qwen["present"]:
+        tooling["qwen"]["project_local"] = project_qwen
+        tooling["qwen-code"]["project_local"] = project_qwen
+        tooling["qwen"]["version"] = project_qwen.get("version")
+        tooling["qwen-code"]["version"] = project_qwen.get("version")
+        tooling["qwen"]["runtime_note"] = "project-local package; QwenCodeWorker injects bundled Node on PATH"
+        tooling["qwen-code"]["runtime_note"] = (
+            "project-local package; QwenCodeWorker injects bundled Node on PATH"
+        )
     memory = psutil.virtual_memory()
     report = {
         "schema_version": 1,
@@ -260,7 +323,11 @@ def collect_report(config: LabConfig) -> dict[str, Any]:
             "loopback_only": True,
         },
         "qwen_code": {
-            "present": tooling["qwen"].get("present") or tooling["qwen-code"].get("present"),
+            "present": tooling["qwen"].get("present")
+            or tooling["qwen-code"].get("present")
+            or project_qwen["present"],
+            "version": project_qwen.get("version"),
+            "project_local": project_qwen,
             "project_settings": str(config.project_root / ".qwen" / "settings.json"),
             "global_settings_inspected": False,
             "reason": "global configuration is not read to avoid exposing credentials",
@@ -300,7 +367,7 @@ Generated: `{report["generated_at"]}`
 - Model ID: `{report["model_endpoint"]["model_id"]}`
 - QEMU accelerators: {", ".join(report["virtualization"]["accelerators"]) or "none detected"}
 - Docker: {"available" if report["tooling"]["docker"]["present"] else "not found"}
-- Qwen Code: {"available" if report["qwen_code"]["present"] else "not installed"}
+- Qwen Code: {"available" if report["qwen_code"]["present"] else "not installed"}{f" ({report['qwen_code'].get('version')})" if report["qwen_code"].get("version") else ""}
 
 ## Target
 

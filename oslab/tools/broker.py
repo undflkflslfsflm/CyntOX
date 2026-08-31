@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
+import re
 import shutil
 import tempfile
 from collections.abc import Awaitable, Callable
@@ -17,9 +19,13 @@ from oslab.artifacts import ArtifactStore
 from oslab.config import LabConfig
 from oslab.database import LabDatabase
 from oslab.debug import CrashEvidence, fingerprint_crash, normalize_log
+from oslab.fuzz import replay_fixture_input, run_fixture_fuzz
+from oslab.memory import MemoryIndex
 from oslab.policy import PathPolicy, PolicyDenied, detect_evaluator_exploit
 from oslab.process_runner import SafeProcessRunner
+from oslab.qemu import DockerQemuBackend, FixtureResult
 from oslab.schemas import ClassifiedError, ErrorKind, Outcome, ResultEnvelope, utc_now
+from oslab.targets import inspect_targets
 
 REQUIRED_TOOLS = frozenset(
     {
@@ -114,6 +120,8 @@ class CapabilityBroker:
         self.worktrees_root = (context.config.runtime_root / "worktrees").resolve()
         self.worktrees_root.mkdir(parents=True, exist_ok=True)
         self.denials: dict[str, dict[str, Any]] = {}
+        self.vm_sessions: dict[str, DockerQemuBackend] = {}
+        self.vm_metadata: dict[str, dict[str, Any]] = {}
         self.handlers: dict[str, Handler] = {
             "repo.status": self._repo_status,
             "repo.search": self._repo_search,
@@ -123,15 +131,54 @@ class CapabilityBroker:
             "repo.apply_patch": self._repo_apply_patch,
             "repo.reset_worktree": self._repo_reset_worktree,
             "repo.commit_local": self._repo_commit_local,
+            "build.list_profiles": self._build_list_profiles,
+            "build.run": self._build_run,
+            "build.clean": self._build_clean,
+            "build.get_artifact": self._build_get_artifact,
+            "build.read_diagnostics": self._build_read_diagnostics,
+            "vm.create_run": self._vm_create_run,
+            "vm.boot": self._vm_boot,
+            "vm.wait_for": self._vm_wait_for,
+            "vm.console_send": self._vm_console_send,
+            "vm.save_snapshot": self._vm_save_snapshot,
+            "vm.restore_snapshot": self._vm_restore_snapshot,
+            "vm.power_cycle": self._vm_power_cycle,
+            "vm.stop": self._vm_stop,
+            "vm.status": self._vm_status,
+            "vm.collect": self._vm_collect,
+            "test.list": self._test_list,
+            "test.generate_fixture": self._test_generate_fixture,
+            "test.run": self._test_run,
+            "test.replay": self._test_replay,
+            "test.run_regression": self._test_run_regression,
+            "test.compare": self._test_compare,
+            "debug.backtrace": self._debug_backtrace,
+            "debug.registers": self._debug_registers,
+            "debug.memory": self._debug_memory,
+            "debug.disassemble": self._debug_disassemble,
+            "debug.symbolize": self._debug_symbolize,
             "debug.classify_crash": self._debug_classify,
+            "fuzz.list_targets": self._fuzz_list_targets,
+            "fuzz.start": self._fuzz_start,
+            "fuzz.status": self._fuzz_status,
+            "fuzz.stop": self._fuzz_stop,
+            "fuzz.replay": self._fuzz_replay,
+            "fuzz.minimize": self._fuzz_minimize,
+            "fuzz.coverage": self._fuzz_coverage,
             "policy.explain_denial": self._policy_explain,
             "policy.remaining_budget": self._policy_remaining,
-            "report.record_hypothesis": self._record_entity,
-            "report.record_finding": self._record_entity,
-            "report.record_patch": self._record_entity,
+            "report.record_hypothesis": self._record_hypothesis,
+            "report.record_finding": self._record_finding,
+            "report.record_patch": self._record_patch,
             "report.attach_artifact": self._attach_artifact,
-            "report.finalize_run": self._record_entity,
+            "report.finalize_run": self._finalize_run,
+            "memory.search": self._memory_search,
+            "memory.get_experiment": self._memory_get_experiment,
+            "memory.find_similar_crashes": self._memory_find_similar_crashes,
+            "memory.find_prior_hypotheses": self._memory_find_prior_hypotheses,
             "code.search": self._repo_search,
+            "code.symbol": self._code_symbol,
+            "code.references": self._code_references,
             "git.history": self._git_history,
         }
 
@@ -239,6 +286,57 @@ class CapabilityBroker:
         if worktree_only and not PathPolicy._within(root, self.worktrees_root):
             raise PolicyDenied("worktree_required", "mutations require a disposable lab worktree")
         return root
+
+    def _target_root(self, arguments: dict[str, Any]) -> Path:
+        value = arguments.get("root", arguments.get("worktree", str(self.context.config.project_root)))
+        return self._authorized_root(value)
+
+    def _fixture_target(self, arguments: dict[str, Any]) -> str:
+        target = str(arguments.get("target", "fixture"))
+        if target != "fixture":
+            inspected = inspect_targets(self.context.config)
+            raise ValueError(
+                "only the fixture target is initialized; "
+                f"real OS status: {inspected['real_os'].get('status')}"
+            )
+        return target
+
+    def _fixture_mode(self, arguments: dict[str, Any], default: str = "pass") -> str:
+        mode = str(arguments.get("test_id", arguments.get("mode", default)))
+        if mode not in {"pass", "fail", "crash", "hang", "snapshot", "seeded", "infra"}:
+            raise ValueError("unknown fixture test mode")
+        return mode
+
+    def _vm_session(self, arguments: dict[str, Any]) -> tuple[str, DockerQemuBackend]:
+        session_id = str(arguments.get("session_id", ""))
+        backend = self.vm_sessions.get(session_id)
+        if backend is None:
+            raise ValueError("unknown VM session_id")
+        return session_id, backend
+
+    def _fixture_backend(self, arguments: dict[str, Any] | None = None) -> DockerQemuBackend:
+        root = self._target_root(arguments or {})
+        return DockerQemuBackend(root, self.context.artifacts)
+
+    @staticmethod
+    def _result_data(result: FixtureResult) -> dict[str, Any]:
+        return {
+            "run_id": result.run_id,
+            "outcome": result.outcome,
+            "started_at": result.started_at,
+            "ended_at": result.ended_at,
+            "serial_log": result.serial_log,
+            "events": list(result.events),
+            "artifacts": result.artifacts,
+            "details": result.details,
+        }
+
+    @staticmethod
+    def _bounded_timeout(arguments: dict[str, Any], key: str, default: float) -> float:
+        timeout = float(arguments.get(key, default))
+        if timeout <= 0 or timeout > 60:
+            raise ValueError(f"{key} must be between 0 and 60 seconds")
+        return timeout
 
     async def _repo_status(self, arguments: dict[str, Any]) -> dict[str, Any]:
         root = self._authorized_root(arguments.get("root", str(self.context.config.project_root)))
@@ -414,6 +512,475 @@ class CapabilityBroker:
         result["commit"] = (await self._git(["rev-parse", "HEAD"], root))["stdout"].strip()
         return result
 
+    async def _build_list_profiles(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        targets = inspect_targets(self.context.config)
+        return {
+            "targets": targets,
+            "profiles": [
+                {
+                    "target": "fixture",
+                    "profile": "debug",
+                    "build": "pinned Docker image with NASM",
+                    "boot": "QEMU TCG, QMP loopback, -nic none",
+                    "instrumentation": ["assertion events", "serial protocol"],
+                },
+                {
+                    "target": "fixture",
+                    "profile": "release",
+                    "build": "same source and toolchain as debug; optimized flags not applicable",
+                    "boot": "QEMU TCG, QMP loopback, -nic none",
+                    "instrumentation": ["serial protocol"],
+                },
+            ],
+        }
+
+    async def _build_run(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        profile = str(arguments.get("profile", "debug"))
+        if profile not in {"debug", "release"}:
+            raise ValueError("fixture build profile must be debug or release")
+        backend = self._fixture_backend(arguments)
+        return {"target": "fixture", "profile": profile, **await backend.build_fixture()}
+
+    async def _build_clean(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        root = self._target_root(arguments)
+        runtime = self.policy.authorize(root / ".oslab", write=True)
+        fixture = self.policy.authorize(runtime / "fixture", write=True)
+        if not PathPolicy._within(fixture, runtime):
+            raise PolicyDenied("outside_runtime", "fixture clean escaped the runtime root")
+        removed: list[str] = []
+        if fixture.exists():
+            shutil.rmtree(fixture)
+            removed.append(str(fixture))
+        return {"target": "fixture", "removed": removed, "clean": True}
+
+    async def _build_get_artifact(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        name = str(arguments.get("name", "boot-sector.bin"))
+        if name not in {"boot-sector.bin", "base.raw", "overlay.qcow2"}:
+            raise ValueError("unknown fixture build artifact")
+        root = self._target_root(arguments)
+        path = self.policy.authorize(root / ".oslab" / "fixture" / name, must_exist=True)
+        record = self.context.artifacts.put_file(path, f"fixture-{name}")
+        return {
+            "target": "fixture",
+            "name": name,
+            "path": str(path),
+            "sha256": record.sha256,
+            "size": record.size,
+            "media_type": record.media_type,
+        }
+
+    async def _build_read_diagnostics(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        diagnostics = await self._fixture_backend(arguments).ensure_toolchain()
+        return {"target": "fixture", **diagnostics}
+
+    async def _vm_create_run(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        seed = int(arguments.get("seed", 1))
+        test_id = str(arguments.get("test_id", "interactive"))
+        session_id = str(uuid4())
+        self.vm_sessions[session_id] = self._fixture_backend(arguments)
+        self.vm_metadata[session_id] = {
+            "target": "fixture",
+            "seed": seed,
+            "test_id": test_id,
+            "created_at": utc_now().isoformat(),
+            "state": "created",
+        }
+        return {"session_id": session_id, **self.vm_metadata[session_id]}
+
+    async def _vm_boot(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        if arguments.get("session_id") in (None, ""):
+            created = await self._vm_create_run(arguments)
+            session_id = str(created["session_id"])
+            backend = self.vm_sessions[session_id]
+        else:
+            session_id, backend = self._vm_session(arguments)
+        seed = int(arguments.get("seed", self.vm_metadata[session_id]["seed"]))
+        test_id = str(arguments.get("test_id", self.vm_metadata[session_id]["test_id"]))
+        result = await backend.boot(seed=seed, test_id=test_id)
+        self.vm_metadata[session_id].update({"state": "running", "boot": result})
+        return {"session_id": session_id, **result}
+
+    async def _vm_wait_for(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        session_id, backend = self._vm_session(arguments)
+        pattern = str(arguments.get("pattern", '"event":"READY"'))
+        if not pattern or len(pattern) > 200:
+            raise ValueError("pattern must be 1..200 characters")
+        text = await backend.wait_for(pattern, self._bounded_timeout(arguments, "timeout", 10))
+        digest = hashlib.sha256(text.encode()).hexdigest()
+        return {"session_id": session_id, "pattern": pattern, "serial_sha256": digest, "serial": text}
+
+    async def _vm_console_send(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        session_id, backend = self._vm_session(arguments)
+        command = str(arguments.get("command", ""))
+        await backend.send(command)
+        return {"session_id": session_id, "sent": command}
+
+    async def _vm_save_snapshot(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        session_id, backend = self._vm_session(arguments)
+        name = str(arguments.get("name", "snapshot"))
+        result = await backend.save_snapshot(name)
+        return {"session_id": session_id, "name": name, "qmp": result}
+
+    async def _vm_restore_snapshot(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        session_id, backend = self._vm_session(arguments)
+        name = str(arguments.get("name", "snapshot"))
+        result = await backend.restore_snapshot(name)
+        return {"session_id": session_id, "name": name, "qmp": result}
+
+    async def _vm_power_cycle(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        session_id, backend = self._vm_session(arguments)
+        await backend.power_cycle()
+        self.vm_metadata[session_id]["state"] = "running"
+        return {"session_id": session_id, "powered": "cycle"}
+
+    async def _vm_stop(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        session_id, backend = self._vm_session(arguments)
+        await backend.stop()
+        self.vm_sessions.pop(session_id, None)
+        metadata = self.vm_metadata.pop(session_id, {})
+        metadata["state"] = "stopped"
+        return {"session_id": session_id, **metadata}
+
+    async def _vm_status(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        session_id, backend = self._vm_session(arguments)
+        running = backend.process is not None and backend.process.returncode is None
+        return {
+            "session_id": session_id,
+            "running": running,
+            "returncode": None if backend.process is None else backend.process.returncode,
+            "serial_bytes": len(backend.serial),
+            "stderr_bytes": len(backend.stderr),
+            "metadata": self.vm_metadata.get(session_id, {}),
+        }
+
+    async def _vm_collect(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        session_id, backend = self._vm_session(arguments)
+        serial_text = backend.serial.decode("utf-8", errors="replace")
+        stderr_text = backend.stderr.decode("utf-8", errors="replace")
+        serial = self.context.artifacts.put_bytes(
+            serial_text.encode(), f"vm-{session_id}-serial.log", "text/plain"
+        )
+        stderr = self.context.artifacts.put_bytes(
+            stderr_text.encode(), f"vm-{session_id}-stderr.log", "text/plain"
+        )
+        return {
+            "session_id": session_id,
+            "artifacts": {"serial": serial.sha256, "stderr": stderr.sha256},
+            "serial_tail": serial_text[-4000:],
+            "stderr_tail": stderr_text[-4000:],
+        }
+
+    async def _test_list(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        return {
+            "target": "fixture",
+            "tests": [
+                {"id": "pass", "expected": Outcome.PASS, "command": "P"},
+                {"id": "fail", "expected": Outcome.FAIL, "command": "F"},
+                {"id": "crash", "expected": Outcome.CRASH, "command": "C"},
+                {"id": "hang", "expected": Outcome.HANG, "command": "H"},
+                {"id": "snapshot", "expected": Outcome.PASS, "command": "I/I restore"},
+                {"id": "seeded", "expected": Outcome.FAIL, "command": "B"},
+            ],
+        }
+
+    async def _test_generate_fixture(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        mode = self._fixture_mode(arguments, "crash")
+        seed = int(arguments.get("seed", 1))
+        payload = {
+            "target": "fixture",
+            "mode": mode,
+            "seed": seed,
+            "sequence": {
+                "pass": ["P"],
+                "fail": ["F"],
+                "crash": ["C"],
+                "hang": ["H"],
+                "snapshot": ["I", "save_snapshot:proof", "I", "restore_snapshot:proof", "I"],
+                "seeded": ["B"],
+                "infra": ["invalid-fixture-mode"],
+            }[mode],
+            "expected": {
+                "pass": Outcome.PASS,
+                "fail": Outcome.FAIL,
+                "crash": Outcome.CRASH,
+                "hang": Outcome.HANG,
+                "snapshot": Outcome.PASS,
+                "seeded": Outcome.FAIL,
+                "infra": Outcome.INFRA_ERROR,
+            }[mode],
+        }
+        record = self.context.artifacts.put_json(payload, f"fixture-test-{mode}.json")
+        return {**payload, "artifact_sha256": record.sha256}
+
+    async def _test_run(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        mode = self._fixture_mode(arguments)
+        seed = int(arguments.get("seed", 1))
+        result = await self._fixture_backend(arguments).exercise(mode, seed=seed)
+        return self._result_data(result)
+
+    async def _test_replay(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        if "input_path" in arguments:
+            input_path = self.policy.authorize(Path(str(arguments["input_path"])), must_exist=True)
+            mode = self._fixture_mode(arguments, "crash")
+            return await replay_fixture_input(self.context.config, mode, input_path)
+        return await self._test_run(arguments)
+
+    async def _test_run_regression(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        seed = int(arguments.get("seed", 1))
+        backend = self._fixture_backend(arguments)
+        pass_result = await backend.exercise("pass", seed=seed)
+        seeded_result = await backend.exercise("seeded", seed=seed)
+        regression_passed = pass_result.outcome == Outcome.PASS and seeded_result.outcome in {
+            Outcome.PASS,
+            Outcome.FAIL,
+        }
+        return {
+            "target": "fixture",
+            "passed": regression_passed,
+            "checks": {
+                "pass": self._result_data(pass_result),
+                "seeded_exercised": self._result_data(seeded_result),
+            },
+        }
+
+    async def _test_compare(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        if "left_artifact" in arguments and "right_artifact" in arguments:
+            left_bytes = self.context.artifacts.get(str(arguments["left_artifact"]))
+            right_bytes = self.context.artifacts.get(str(arguments["right_artifact"]))
+            return {
+                "kind": "artifact-bytes",
+                "equal": left_bytes == right_bytes,
+                "left_sha256": hashlib.sha256(left_bytes).hexdigest(),
+                "right_sha256": hashlib.sha256(right_bytes).hexdigest(),
+            }
+        left_json = json.dumps(arguments.get("left"), sort_keys=True, default=str)
+        right_json = json.dumps(arguments.get("right"), sort_keys=True, default=str)
+        return {
+            "kind": "json-value",
+            "equal": left_json == right_json,
+            "left_sha256": hashlib.sha256(left_json.encode()).hexdigest(),
+            "right_sha256": hashlib.sha256(right_json.encode()).hexdigest(),
+        }
+
+    async def _debug_backtrace(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        del arguments
+        return {
+            "available": False,
+            "target": "fixture",
+            "reason": (
+                "the included proof target is a 16-bit boot-sector fixture with serial "
+                "evidence and QMP, but no kernel stack unwinder or debug symbol table"
+            ),
+            "recommended_tool": "debug.classify_crash",
+        }
+
+    async def _debug_registers(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        if arguments.get("session_id") in (None, ""):
+            return {
+                "available": False,
+                "reason": "register capture requires a running vm.create_run/vm.boot session",
+            }
+        session_id, backend = self._vm_session(arguments)
+        if backend.qmp is None:
+            raise ValueError("VM QMP is not connected")
+        registers = await backend.qmp.hmp("info registers", self._bounded_timeout(arguments, "timeout", 10))
+        return {"session_id": session_id, "registers": registers}
+
+    async def _debug_memory(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        if arguments.get("session_id") in (None, ""):
+            return {
+                "available": False,
+                "reason": "memory capture requires a running vm.create_run/vm.boot session",
+            }
+        session_id, backend = self._vm_session(arguments)
+        address = str(arguments.get("address", "0x7c00")).lower()
+        count = min(max(int(arguments.get("count", 16)), 1), 256)
+        if not re.fullmatch(r"0x[0-9a-f]{1,16}", address):
+            raise ValueError("address must be a bounded hexadecimal physical address")
+        if backend.qmp is None:
+            raise ValueError("VM QMP is not connected")
+        memory = await backend.qmp.hmp(
+            f"xp /{count}xb {address}", self._bounded_timeout(arguments, "timeout", 10)
+        )
+        return {"session_id": session_id, "address": address, "count": count, "memory": memory}
+
+    async def _debug_disassemble(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        root = self._target_root(arguments)
+        binary = root / ".oslab" / "fixture" / "boot-sector.bin"
+        if not binary.is_file():
+            await self._fixture_backend(arguments).build_fixture()
+        code, stdout, stderr = await self._fixture_backend(arguments)._command(
+            [
+                self._fixture_backend(arguments).docker,
+                "run",
+                "--rm",
+                "--mount",
+                f"type=bind,source={root},target=/lab",
+                "qwen-os-lab-qemu:bookworm",
+                "ndisasm",
+                "-b",
+                "16",
+                "/lab/.oslab/fixture/boot-sector.bin",
+            ],
+            30,
+        )
+        if code != 0:
+            raise OSError(stderr or stdout)
+        return {
+            "target": "fixture",
+            "binary": str(binary),
+            "sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+            "disassembly": stdout,
+        }
+
+    async def _debug_symbolize(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        root = self._target_root(arguments)
+        source = root / "fixtures" / "boot" / "boot.asm"
+        offset = str(arguments.get("offset", "unknown"))
+        return {
+            "target": "fixture",
+            "offset": offset,
+            "available": source.is_file(),
+            "source": str(source),
+            "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest()
+            if source.is_file()
+            else None,
+            "note": "boot-sector fixture symbols are source labels, not linked DWARF symbols",
+        }
+
+    async def _fuzz_list_targets(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        return {
+            "targets": [
+                {
+                    "target": "fixture",
+                    "fuzzer": "seeded corpus mutation over serial protocol modes",
+                    "modes": ["pass", "fail", "crash", "hang", "seeded", "induced-infra"],
+                    "network": "none",
+                }
+            ]
+        }
+
+    async def _fuzz_start(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._fixture_target(arguments)
+        campaign_id = str(arguments.get("campaign_id", f"broker-{self.context.run_id}"))
+        if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", campaign_id):
+            raise ValueError("campaign_id must be a short filesystem-safe identifier")
+        iterations = int(arguments.get("iterations", 6))
+        seed = int(arguments.get("seed", 101))
+        return await run_fixture_fuzz(
+            self.context.config, campaign_id, seed=seed, total_iterations=iterations
+        )
+
+    async def _fuzz_status(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        campaign_id = str(arguments.get("campaign_id", ""))
+        if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", campaign_id):
+            raise ValueError("campaign_id is required")
+        root = self.context.config.runtime_root / "fuzz" / campaign_id
+        checkpoint = root / "checkpoint.json"
+        observations = root / "observations.json"
+        return {
+            "campaign_id": campaign_id,
+            "checkpoint_exists": checkpoint.is_file(),
+            "checkpoint": json.loads(checkpoint.read_text(encoding="utf-8"))
+            if checkpoint.is_file()
+            else None,
+            "observation_count": len(json.loads(observations.read_text(encoding="utf-8")))
+            if observations.is_file()
+            else 0,
+        }
+
+    async def _fuzz_stop(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        status = await self._fuzz_status(arguments)
+        return {**status, "stopped": True, "note": "fixture fuzzing runs are bounded foreground jobs"}
+
+    async def _fuzz_replay(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        input_path = self.policy.authorize(Path(str(arguments["input_path"])), must_exist=True)
+        mode = str(arguments.get("mode", "crash"))
+        return await replay_fixture_input(self.context.config, mode, input_path)
+
+    async def _fuzz_minimize(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        campaign_id = str(arguments.get("campaign_id", ""))
+        if not re.fullmatch(r"[A-Za-z0-9_.-]{1,80}", campaign_id):
+            raise ValueError("campaign_id is required")
+        root = self.context.config.runtime_root / "fuzz" / campaign_id
+        checkpoint = root / "checkpoint.json"
+        if not checkpoint.is_file():
+            raise FileNotFoundError(checkpoint)
+        payload = json.loads(checkpoint.read_text(encoding="utf-8"))
+        crash = next(
+            (
+                finding
+                for finding in dict(payload.get("unique_findings", {})).values()
+                if finding.get("mode") == "crash"
+            ),
+            None,
+        )
+        if not isinstance(crash, dict):
+            raise ValueError("campaign has no crash finding to minimize")
+        corpus_dir = Path(str(payload["corpus_dir"]))
+        original = self.policy.authorize(
+            corpus_dir / f"{crash['input_sha256']}.bin", must_exist=True
+        ).read_bytes()
+        minimized = original[:1]
+        digest = hashlib.sha256(minimized).hexdigest()
+        minimized_path = self.policy.authorize(corpus_dir / f"broker-min-{digest}.bin", write=True)
+        minimized_path.write_bytes(minimized)
+        replay = await replay_fixture_input(self.context.config, "crash", minimized_path)
+        return {
+            "campaign_id": campaign_id,
+            "original_bytes": len(original),
+            "minimized_bytes": len(minimized),
+            "input_sha256": digest,
+            "path": str(minimized_path),
+            "replay": replay,
+        }
+
+    async def _fuzz_coverage(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        status = await self._fuzz_status(arguments)
+        checkpoint = status.get("checkpoint") or {}
+        findings = dict(checkpoint.get("unique_findings", {}))
+        observations_path = (
+            self.context.config.runtime_root
+            / "fuzz"
+            / str(arguments.get("campaign_id", ""))
+            / "observations.json"
+        )
+        observations = (
+            json.loads(observations_path.read_text(encoding="utf-8"))
+            if observations_path.is_file()
+            else []
+        )
+        modes = sorted(
+            {str(row.get("mode")) for row in observations}
+            | {str(value.get("mode")) for value in findings.values()}
+        )
+        outcomes = sorted(
+            {str(row.get("outcome")) for row in observations}
+            | {str(value.get("outcome")) for value in findings.values()}
+        )
+        return {
+            "kind": "fixture protocol-state coverage (not compiler instrumentation)",
+            "modes": modes,
+            "outcomes": outcomes,
+            "complete": set(modes) >= {"pass", "fail", "crash", "hang", "seeded", "induced-infra"},
+            "unique_findings": len(findings),
+        }
+
     async def _git_history(self, arguments: dict[str, Any]) -> dict[str, Any]:
         root = self._authorized_root(arguments.get("root", str(self.context.config.project_root)))
         path = arguments.get("path")
@@ -451,6 +1018,18 @@ class CapabilityBroker:
             "configured": self.context.config.budget.model_dump(),
         }
 
+    async def _record_hypothesis(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return await self._record_entity({**arguments, "entity_type": "hypothesis"})
+
+    async def _record_finding(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return await self._record_entity({**arguments, "entity_type": "finding"})
+
+    async def _record_patch(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return await self._record_entity({**arguments, "entity_type": "patch"})
+
+    async def _finalize_run(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return await self._record_entity({**arguments, "entity_type": "run-summary"})
+
     async def _record_entity(self, arguments: dict[str, Any]) -> dict[str, Any]:
         entity_type = str(arguments.get("entity_type", "report"))
         entity_id = str(arguments.get("id", uuid4()))
@@ -469,3 +1048,97 @@ class CapabilityBroker:
             "size": record.size,
             "logical_name": record.logical_name,
         }
+
+    async def _memory_search(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        query = str(arguments.get("query", ""))
+        limit = min(max(int(arguments.get("limit", 10)), 1), 50)
+        hits = MemoryIndex(self.context.database).search(query, limit)
+        return {
+            "query": query,
+            "hits": [
+                {
+                    "source": hit.source,
+                    "content": hit.content,
+                    "commit_id": hit.commit_id,
+                    "content_hash": hit.content_hash,
+                    "score": hit.score,
+                }
+                for hit in hits
+            ],
+        }
+
+    async def _memory_get_experiment(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        experiment_id = str(arguments.get("experiment_id", arguments.get("id", "")))
+        if not experiment_id:
+            raise ValueError("experiment_id is required")
+        with self.context.database.connect() as connection:
+            experiment = connection.execute(
+                "SELECT * FROM experiments WHERE id = ?", (experiment_id,)
+            ).fetchone()
+            runs = [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM runs WHERE experiment_id = ? ORDER BY created_at",
+                    (experiment_id,),
+                ).fetchall()
+            ]
+            entities = [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM entities WHERE id = ? OR run_id = ? ORDER BY created_at",
+                    (experiment_id, experiment_id),
+                ).fetchall()
+            ]
+        return {
+            "experiment": dict(experiment) if experiment is not None else None,
+            "runs": runs,
+            "entities": entities,
+        }
+
+    async def _memory_find_similar_crashes(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        query = str(arguments.get("fingerprint", arguments.get("query", "")))
+        limit = min(max(int(arguments.get("limit", 10)), 1), 50)
+        like = f"%{query}%"
+        with self.context.database.connect() as connection:
+            findings = [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM findings WHERE fingerprint LIKE ? ORDER BY created_at DESC LIMIT ?",
+                    (like, limit),
+                ).fetchall()
+            ]
+            entity_hits = [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM entities WHERE entity_type IN ('finding', 'crash') "
+                    "AND payload_json LIKE ? ORDER BY created_at DESC LIMIT ?",
+                    (like, limit),
+                ).fetchall()
+            ]
+        return {"query": query, "findings": findings, "entities": entity_hits}
+
+    async def _memory_find_prior_hypotheses(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        query = str(arguments.get("query", ""))
+        limit = min(max(int(arguments.get("limit", 10)), 1), 50)
+        with self.context.database.connect() as connection:
+            rows = [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM entities WHERE entity_type = 'hypothesis' "
+                    "AND payload_json LIKE ? ORDER BY created_at DESC LIMIT ?",
+                    (f"%{query}%", limit),
+                ).fetchall()
+            ]
+        return {"query": query, "hypotheses": rows}
+
+    async def _code_symbol(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        symbol = str(arguments.get("symbol", arguments.get("query", "")))
+        if not symbol or len(symbol) > 200:
+            raise ValueError("symbol must be 1..200 characters")
+        return await self._repo_search({**arguments, "query": rf"\b{re.escape(symbol)}\b"})
+
+    async def _code_references(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        query = str(arguments.get("symbol", arguments.get("query", "")))
+        if not query or len(query) > 200:
+            raise ValueError("symbol/query must be 1..200 characters")
+        return await self._repo_search({**arguments, "query": rf"\b{re.escape(query)}\b"})

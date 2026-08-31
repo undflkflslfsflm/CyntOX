@@ -61,3 +61,11 @@
 - Context: bounded discovery found a dedicated orchestrator but no authorized OS source tree or build manifest.
 - Decision: complete every fixture/framework gate and report the overall goal blocked rather than complete. The smallest unlocking input is a local OS source path and its build entry point.
 - Consequence: no unrelated filesystem crawl or guessed target integration is attempted.
+
+## D-009 — Keep optional offload runtimes disabled until locally benchmarked
+
+- Status: accepted
+- Date: 2026-08-31
+- Context: only Ollama is installed and benchmarked locally. AirLLM, KTransformers, llama.cpp, vLLM, SGLang, and LM Studio are absent as commands/packages. Current upstream docs show possible compatibility paths, but several require different model formats, plugins, large disk caches, or offload-heavy operation.
+- Decision: route `fast`, `deep`, and `long` profiles to the resident Ollama Qwen worker; leave `oracle` disabled.
+- Consequence: v1 proof uses the fast resident model. Optional runtimes can be added only after local installation, compatibility checks, and measured utility.

@@ -2,12 +2,12 @@
 
 ## Current position
 
-- Active milestone: 11–13 — evaluation, runtime assessment, and training dry run
+- Active milestone: 15 — final acceptance audit and proof bundle
 - Branch: `codex/qwen-os-lab`
 - Validated primary model: `huihui-qwen3.8-27b-abliterated:latest`, Qwen3.8 27.3B Q4_K_M through Ollama 0.33.2
 - Validated Qwen Code worker: 0.22.3 with wrapper model `qwen-os-lab-worker:latest`, two read-only MCP tools, and fail-closed tool-set checking
 - Real OS target: absent from the bounded discovery scope; fixture work continues independently
-- Next action: finish persistent campaign recovery, bounded fuzz/evaluation CLIs, runtime report, training dry run, and acceptance bundle
+- Next action: run final verification, produce artifact index, clean-checkout proof, `PROOF.json`, and `FINAL_REPORT.md`
 
 ## Ledger
 
@@ -24,9 +24,13 @@
 | 2026-08-31 | Qwen Code | Pass | Qwen Code 0.22.3 connected the local 27B model to `mcp__oslab__policy_remaining_budget`, executed exactly one successful read-only MCP call, exposed no host-shell/file tools, and returned `MCP_BUDGET_OK`. |
 | 2026-08-31 | 7 | Pass | A worker subprocess exited deliberately with code 97 after six transitions, resumed from `GENERATE_TEST`, reached `COMPLETE`, retained SQLite integrity, recorded exactly one finding, and produced artifact `9dcc166333912c4ad2e5ca06597a23158c9aaa98778b41387bf3c6d74fd1f7d1`. |
 | 2026-08-31 | 9 | Pass | Actual QEMU campaign `acceptance-fixture-fuzz-s101` covered pass/fail/crash/hang/seeded/induced-infra states, checkpointed six inputs, deduplicated four findings, replayed an irreducible one-byte crash input, and produced artifact `f49ba28548559c5086b824e07c61f2256942f8dd05bd744f4677d3410084dbb2`. |
+| 2026-08-31 | Broker/CLI | Pass | Every required broker tool has a handler; lightweight broker contract tests pass; CLI now exposes `minimize`, `verify`, `report`, `cleanup`, `training dry-run`, and `campaign run`. |
+| 2026-08-31 | 11 | Pass | Seeded evaluation completed variants A-E across seeds 1,2,3; all 15 rows reproduced the failure, accepted a patch, survived regression, and variants with adversarial verification recorded verifier artifacts. CAS artifact `f88e00dc0789d26059d863428c211b3104a9ff283f96b8337630c6518a0672aa`. |
+| 2026-08-31 | 12 | Pass | Runtime assessment found only Ollama installed/benchmarked; optional runtimes documented from current upstream sources; router/scheduler tests pass. |
+| 2026-08-31 | 13 | Pass | `oslab training dry-run --json` exported 16 verified JSONL/Parquet records and reloaded both formats. Summary artifact `d1ff60f41e8a450d52a5c29fab71c224b727b4cb0bfec59b720ca514d72d631c`. |
+| 2026-08-31 | 14 | Pass | Added `ARCHITECTURE`, `THREAT_MODEL`, `RUNBOOK`, `MODEL_RUNTIME_REPORT`, `REAL_OS_INTEGRATION`, `TRAINING_READINESS`, `KNOWN_LIMITATIONS`, `NEXT_EXPERIMENTS`, demo scripts, and updated README. |
 
 ## Remaining acceptance work
 
-- Run variants A–E with seeds 1–3 and save raw JSON/CSV plus the comparative report.
-- Finish runtime assessment, training export dry run, complete documentation, and final clean-checkout proof bundle.
+- Run final verification and clean-checkout proof bundle.
 - Gate L remains externally blocked until a real OS source path/build entry point is supplied.

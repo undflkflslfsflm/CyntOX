@@ -28,11 +28,11 @@ Build and verify a local, safety-bounded OS reliability lab driven by the instal
 | 8. Fix loop | Complete | Live Qwen + disposable worktree + actual QEMU fix/regression loop passed. |
 | 9. Fuzzing | Complete | Six actual QEMU protocol modes, checkpoint/resume data, deduplication, stable replay, and minimal input passed. |
 | 10. Adaptive/verifier | Complete for fixture | Population prompts, adaptive variant and independent live verifier; invalid evaluator edit rejected. |
-| 11. Evaluation | In progress | Execute A–E for seeds 1–3; label micro-suite limits honestly. |
-| 12. Runtime routing | In progress | Document installed-runtime benchmark and evidence-based optional-runtime assessment; no large downloads. |
-| 13. Training readiness | In progress | Execute verified JSONL/Parquet export and validate reload. |
-| 14. Documentation/security | Pending | Architecture, threat model, runbook, real-target, runtime, training and demo scripts. |
-| 15. Acceptance | Pending | Full test/audit commands, artifact index, `PROOF.json`, and `FINAL_REPORT.md`. |
+| 11. Evaluation | Complete | A-E variants ran for seeds 1-3 with 15 accepted fixture repairs, raw JSON/CSV, and report saved. |
+| 12. Runtime routing | Complete | `docs/MODEL_RUNTIME_REPORT.md`, `artifacts/discovery/runtime-assessment.json`, `ModelRouter`, and `ResourceScheduler` added. |
+| 13. Training readiness | Complete | `oslab training dry-run --json` exported and reloaded 16 JSONL/Parquet records. |
+| 14. Documentation/security | Complete | Architecture, threat model, runbook, real-target, runtime, training, limitations, next experiments, README, and demo scripts added. |
+| 15. Acceptance | In progress | Run full verification, clean-checkout proof, artifact index, `PROOF.json`, and `FINAL_REPORT.md`. |
 
 ## Resume
 

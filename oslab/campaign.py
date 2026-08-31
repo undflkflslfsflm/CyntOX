@@ -178,7 +178,7 @@ def _record_finding_once(database: LabDatabase, run_id: str) -> None:
                 "fixture-seeded-calculation-v1",
                 "PASS",
                 "seeded-command-B",
-                "mov-al-4",
+                f"mov-al-4-{run_id}",
                 json.dumps({"targeted": "PASS", "regression": "PASS"}, sort_keys=True),
                 utc_now().isoformat(),
             ),

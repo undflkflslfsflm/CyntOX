@@ -8,7 +8,7 @@
     {
       "device": "C:\\",
       "filesystem": "NTFS",
-      "free_bytes": 1069697523712,
+      "free_bytes": 1068929921024,
       "mountpoint": "C:\\",
       "total_bytes": 2046642089984
     },
@@ -20,12 +20,12 @@
       "total_bytes": 16000898560000
     }
   ],
-  "generated_at": "2026-08-31T13:11:34.601004+00:00",
+  "generated_at": "2026-08-31T14:25:27.468559+00:00",
   "gpu": {
     "compute_capability": "8.9",
     "driver": "581.80",
     "memory_total_mib": "24564",
-    "memory_used_mib": "851",
+    "memory_used_mib": "907",
     "name": "NVIDIA GeForce RTX 4090",
     "nvidia_smi": "C:\\WINDOWS\\system32\\nvidia-smi.EXE",
     "power_limit_w": "450.00",
@@ -41,7 +41,7 @@
     "version": "10.0.26200"
   },
   "memory": {
-    "available_bytes": 52350672896,
+    "available_bytes": 51996360704,
     "total_bytes": 68488650752
   },
   "model_endpoint": {
@@ -66,19 +66,48 @@
       "manifest": "C:\\Users\\vikto\\.ollama\\models\\manifests\\registry.ollama.ai\\library\\huihui-qwen3.8-27b-abliterated\\latest",
       "model_id": "huihui-qwen3.8-27b-abliterated:latest",
       "runtime": "ollama"
+    },
+    {
+      "layers": [
+        {
+          "digest": "sha256:0351f044d3580a997c93eaeb773b677a6f56bca365d26586827cca628f5fda66",
+          "from": "huihui-qwen3.8-27b-abliterated:latest",
+          "mediaType": "application/vnd.ollama.image.model",
+          "size": 17378626464
+        },
+        {
+          "digest": "sha256:6321d58431712d011686fa0c1514182cef3348105a40b9729a70a860c7140895",
+          "mediaType": "application/vnd.ollama.image.params",
+          "size": 57
+        }
+      ],
+      "manifest": "C:\\Users\\vikto\\.ollama\\models\\manifests\\registry.ollama.ai\\library\\qwen-os-lab-worker\\latest",
+      "model_id": "qwen-os-lab-worker:latest",
+      "runtime": "ollama"
     }
   ],
   "qwen_code": {
     "global_settings_inspected": false,
-    "present": false,
+    "present": true,
+    "project_local": {
+      "executables": [
+        "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
+        "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen",
+        "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.ps1"
+      ],
+      "package": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\@qwen-code\\qwen-code\\package.json",
+      "present": true,
+      "version": "0.22.3"
+    },
     "project_settings": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.qwen\\settings.json",
-    "reason": "global configuration is not read to avoid exposing credentials"
+    "reason": "global configuration is not read to avoid exposing credentials",
+    "version": "0.22.3"
   },
   "safe_disk_benchmark": {
     "bytes": 16777216,
-    "read_mib_s": 1452.12,
+    "read_mib_s": 1605.57,
     "scope": "small temporary sequential safety probe",
-    "write_mib_s": 2040.66
+    "write_mib_s": 1834.04
   },
   "schema_version": 1,
   "target": {
@@ -114,7 +143,9 @@
       "present": false
     },
     "node": {
-      "present": false
+      "path": "C:\\Users\\vikto\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\node\\bin\\node.exe",
+      "present": true,
+      "version": "v24.19.0"
     },
     "ollama": {
       "path": "C:\\Users\\vikto\\AppData\\Local\\Programs\\Ollama\\ollama.EXE",
@@ -125,7 +156,7 @@
       "present": false
     },
     "python": {
-      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.venv\\Scripts\\python.EXE",
+      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.venv\\Scripts\\python.exe",
       "present": true,
       "version": "Python 3.12.13"
     },
@@ -136,13 +167,39 @@
       "present": false
     },
     "qwen": {
-      "present": false
+      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
+      "present": true,
+      "project_local": {
+        "executables": [
+          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
+          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen",
+          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.ps1"
+        ],
+        "package": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\@qwen-code\\qwen-code\\package.json",
+        "present": true,
+        "version": "0.22.3"
+      },
+      "runtime_note": "project-local package; QwenCodeWorker injects bundled Node on PATH",
+      "version": "0.22.3"
     },
     "qwen-code": {
-      "present": false
+      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
+      "present": true,
+      "project_local": {
+        "executables": [
+          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
+          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen",
+          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.ps1"
+        ],
+        "package": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\@qwen-code\\qwen-code\\package.json",
+        "present": true,
+        "version": "0.22.3"
+      },
+      "runtime_note": "project-local package; QwenCodeWorker injects bundled Node on PATH",
+      "version": "0.22.3"
     },
     "uv": {
-      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.venv\\Scripts\\uv.EXE",
+      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.venv\\Scripts\\uv.exe",
       "present": true,
       "version": "uv 0.8.14 (af856fb88 2025-08-28)"
     },
