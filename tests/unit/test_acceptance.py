@@ -13,6 +13,7 @@ from oslab.acceptance import (
     REQUIRED_SUPPORT_FILES,
     audit_acceptance,
 )
+from oslab.artifacts import ArtifactStore
 
 
 def _git(root: Path, *args: str) -> str:
@@ -51,8 +52,33 @@ def _write_artifact_index(root: Path) -> None:
     _write(index, json.dumps(payload, indent=2) + "\n")
 
 
+def _write_selftest_proof_artifact(artifact_root: Path, marker: str) -> str:
+    commands = [
+        ["python", "-m", "pytest", "-q"],
+        ["python", "-m", "ruff", "format", "--check", "."],
+        ["python", "-m", "ruff", "check", "."],
+        ["python", "-m", "mypy", "oslab"],
+        ["python", "-m", "oslab.cli", "target", "inspect", "--json"],
+        ["python", "-m", "oslab.cli", "target", "manifest-template", "--json"],
+        ["python", "-m", "oslab.cli", "training", "dry-run", "--json"],
+        ["python", "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
+        ["python", "-m", "oslab.cli", "model", "probe", "--live", "--json"],
+        ["python", "-m", "oslab.cli", "model", "qwen-code-smoke", "--json"],
+        ["python", "-m", "oslab.cli", "integrity", "check", "--json"],
+    ]
+    payload = {
+        "marker": marker,
+        "status": "PASS",
+        "commands": [
+            {"argv": argv, "exit_code": 0, "stdout": "", "stderr": ""} for argv in commands
+        ],
+    }
+    return ArtifactStore(artifact_root).put_json(payload, "selftest-proof.json").sha256
+
+
 def _create_complete_fixture_proof(root: Path) -> None:
     _git(root, "init")
+    _write(root / ".gitignore", ".oslab/\nartifacts/blobs/\nartifacts/artifact-index.jsonl\n")
     _write(root / "fixtures" / "boot" / "boot.asm", "bits 16\n")
     _write(root / "oslab" / "__init__.py", "__version__ = '0.1.0'\n")
     _git(root, "add", ".")
@@ -78,6 +104,10 @@ def _create_complete_fixture_proof(root: Path) -> None:
         _write(root / relative, "{}\n" if relative.endswith(".json") else "evidence\n")
     for relative in REQUIRED_SUPPORT_FILES:
         _write(root / relative, "schema_version = 1\n")
+
+    clean_worktree = ".oslab\\clean-checkouts\\fixture"
+    main_proof_sha = _write_selftest_proof_artifact(root / "artifacts", "main")
+    clean_proof_sha = _write_selftest_proof_artifact(root / clean_worktree / "artifacts", "clean")
 
     proof = {
         "goal_status": "blocked_on_gate_l",
@@ -115,19 +145,19 @@ def _create_complete_fixture_proof(root: Path) -> None:
                 "scope": "main checkout",
                 "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
                 "exit_code": 0,
-                "proof_sha256": "a" * 64,
+                "proof_sha256": main_proof_sha,
             },
             {
                 "scope": "clean checkout",
                 "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
                 "exit_code": 0,
-                "worktree": ".oslab\\clean-checkouts\\fixture",
+                "worktree": clean_worktree,
             },
             {
                 "scope": "clean checkout",
                 "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
                 "exit_code": 0,
-                "proof_sha256": "b" * 64,
+                "proof_sha256": clean_proof_sha,
             },
         ],
         "gate_summary": EXPECTED_GATE_SUMMARY,
@@ -181,3 +211,21 @@ def test_acceptance_audit_rejects_weakened_gate_summary(tmp_path: Path) -> None:
 
     assert not result["ok"]
     assert "gate_summary_matches_contract" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_missing_selftest_proof_artifact(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    proof_path = tmp_path / "PROOF.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    for row in proof["verified_commands"]:
+        if row.get("scope") == "main checkout" and row.get("command", "").endswith(
+            "selftest --live --json"
+        ):
+            row["proof_sha256"] = "c" * 64
+            break
+    _write(proof_path, json.dumps(proof, indent=2) + "\n")
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "selftest_proof_artifacts_are_verifiable" in result["failed_checks"]

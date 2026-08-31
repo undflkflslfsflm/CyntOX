@@ -64,6 +64,22 @@ REQUIRED_ARTIFACTS = (
 
 REQUIRED_SUPPORT_FILES = ("config/oslab-target.example.toml",)
 
+SELFTEST_COMMAND = ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json"
+
+SELFTEST_EXPECTED_ARGV_TAILS = (
+    ("-m", "pytest", "-q"),
+    ("-m", "ruff", "format", "--check", "."),
+    ("-m", "ruff", "check", "."),
+    ("-m", "mypy", "oslab"),
+    ("-m", "oslab.cli", "target", "inspect", "--json"),
+    ("-m", "oslab.cli", "target", "manifest-template", "--json"),
+    ("-m", "oslab.cli", "training", "dry-run", "--json"),
+    ("-m", "oslab.cli", "cleanup", "--dry-run", "--json"),
+    ("-m", "oslab.cli", "model", "probe", "--live", "--json"),
+    ("-m", "oslab.cli", "model", "qwen-code-smoke", "--json"),
+    ("-m", "oslab.cli", "integrity", "check", "--json"),
+)
+
 PROOF_ONLY_AFTER_VERIFIED_COMMIT_PREFIXES = (
     "artifacts/",
     "docs/",
@@ -105,6 +121,7 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
     _check_required_files(project_root, checks)
     _check_gate_summary(proof, checks)
     _check_proof_commands(proof, checks)
+    _check_selftest_proof_artifacts(project_root, proof, checks)
     _check_model_and_qwen_code(proof, checks)
     _check_artifact_index(project_root, checks)
     _check_target_gate_l(project_root, checks)
@@ -210,7 +227,7 @@ def _check_proof_commands(proof: dict[str, Any], checks: list[dict[str, Any]]) -
         ),
         "main_live_selftest": (
             "main checkout",
-            ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
+            SELFTEST_COMMAND,
         ),
         "clean_bootstrap": (
             "clean checkout",
@@ -218,7 +235,7 @@ def _check_proof_commands(proof: dict[str, Any], checks: list[dict[str, Any]]) -
         ),
         "clean_live_selftest": (
             "clean checkout",
-            ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
+            SELFTEST_COMMAND,
         ),
     }
     missing_or_failed: dict[str, Any] = {}
@@ -237,9 +254,7 @@ def _check_proof_commands(proof: dict[str, Any], checks: list[dict[str, Any]]) -
     )
 
     selftest_hashes = [
-        row.get("proof_sha256")
-        for row in command_rows
-        if row.get("command") == ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json"
+        row.get("proof_sha256") for row in command_rows if row.get("command") == SELFTEST_COMMAND
     ]
     valid_hashes = [value for value in selftest_hashes if _is_sha256(value)]
     _record(
@@ -248,6 +263,118 @@ def _check_proof_commands(proof: dict[str, Any], checks: list[dict[str, Any]]) -
         len(valid_hashes) >= 2,
         {"hashes": valid_hashes},
     )
+
+
+def _check_selftest_proof_artifacts(
+    project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
+) -> None:
+    command_rows = [row for row in proof.get("verified_commands", []) if isinstance(row, dict)]
+    clean_worktree = _clean_worktree_path(project_root, command_rows)
+    selftest_rows = [
+        row
+        for row in command_rows
+        if row.get("command") == SELFTEST_COMMAND and row.get("exit_code") == 0
+    ]
+    failures: list[dict[str, Any]] = []
+    for row in selftest_rows:
+        scope = str(row.get("scope", "<unknown>"))
+        digest = row.get("proof_sha256")
+        if not _is_sha256(digest):
+            failures.append({"scope": scope, "reason": "invalid_or_missing_proof_sha256"})
+            continue
+        assert isinstance(digest, str)
+        artifact_root = project_root / "artifacts"
+        if scope == "clean checkout":
+            if clean_worktree is None:
+                failures.append({"scope": scope, "sha256": digest, "reason": "missing_worktree"})
+                continue
+            artifact_root = clean_worktree / "artifacts"
+        payload = _load_artifact_payload(artifact_root, digest)
+        if not payload["ok"]:
+            failures.append({"scope": scope, "sha256": digest, "reason": payload["reason"]})
+            continue
+        proof_payload = payload["json"]
+        if not isinstance(proof_payload, dict) or proof_payload.get("status") != "PASS":
+            failures.append({"scope": scope, "sha256": digest, "reason": "selftest_not_pass"})
+            continue
+        commands = proof_payload.get("commands", [])
+        if not isinstance(commands, list) or not commands:
+            failures.append({"scope": scope, "sha256": digest, "reason": "missing_commands"})
+            continue
+        failed_commands = [
+            _argv_for_details(command)
+            for command in commands
+            if not isinstance(command, dict) or command.get("exit_code") != 0
+        ]
+        missing_tails = [
+            " ".join(tail)
+            for tail in SELFTEST_EXPECTED_ARGV_TAILS
+            if not any(
+                isinstance(command, dict) and _argv_endswith(command.get("argv"), tail)
+                for command in commands
+            )
+        ]
+        if failed_commands or missing_tails:
+            failures.append(
+                {
+                    "scope": scope,
+                    "sha256": digest,
+                    "reason": "selftest_commands_incomplete_or_failed",
+                    "failed_commands": failed_commands,
+                    "missing": missing_tails,
+                }
+            )
+    _record(
+        checks,
+        "selftest_proof_artifacts_are_verifiable",
+        len(selftest_rows) >= 2 and not failures,
+        {"checked": len(selftest_rows), "failures": failures},
+    )
+
+
+def _clean_worktree_path(project_root: Path, command_rows: list[dict[str, Any]]) -> Path | None:
+    for row in command_rows:
+        worktree = row.get("worktree")
+        if (
+            row.get("scope") == "clean checkout"
+            and row.get("command")
+            == "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1"
+            and row.get("exit_code") == 0
+            and isinstance(worktree, str)
+        ):
+            return (project_root / worktree).resolve()
+    return None
+
+
+def _load_artifact_payload(artifact_root: Path, digest: str) -> dict[str, Any]:
+    path = artifact_root / "blobs" / "sha256" / digest[:2] / digest
+    if not path.is_file():
+        return {"ok": False, "reason": "missing_artifact_blob"}
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != digest:
+        return {"ok": False, "reason": "artifact_hash_mismatch"}
+    try:
+        text = data.decode("utf-8")
+        parsed = json.loads(text)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return {"ok": False, "reason": "artifact_is_not_json"}
+    return {"ok": True, "json": parsed}
+
+
+def _argv_endswith(value: object, tail: tuple[str, ...]) -> bool:
+    if not isinstance(value, list) or len(value) < len(tail):
+        return False
+    argv = [str(item) for item in value]
+    return tuple(argv[-len(tail) :]) == tail
+
+
+def _argv_for_details(command: object) -> str:
+    if not isinstance(command, dict):
+        return "<non-object-command>"
+    argv = command.get("argv")
+    if not isinstance(argv, list):
+        return "<missing-argv>"
+    return " ".join(str(part) for part in argv)
 
 
 def _check_model_and_qwen_code(proof: dict[str, Any], checks: list[dict[str, Any]]) -> None:
