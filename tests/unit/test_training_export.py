@@ -36,7 +36,8 @@ def test_trajectory_export_is_byte_stable(tmp_path: Path) -> None:
     first = export_trajectories([event], tmp_path / "first")
     second = export_trajectories([event], tmp_path / "second")
 
-    for key in ("jsonl", "parquet"):
+    for key in ("jsonl", "parquet", "card"):
         left = hashlib.sha256(Path(first[key]).read_bytes()).hexdigest()
         right = hashlib.sha256(Path(second[key]).read_bytes()).hexdigest()
         assert left == right
+    assert b"\r\n" not in Path(first["card"]).read_bytes()

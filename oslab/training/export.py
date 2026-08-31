@@ -43,11 +43,12 @@ def export_trajectories(events: list[TrajectoryEvent], output: Path) -> dict[str
     parquet = output / "trajectories.parquet"
     pq.write_table(pa.Table.from_pylist(rows), parquet)
     card = output / "DATASET_CARD.md"
-    card.write_text(
-        "# Qwen OS Lab Verified Trajectories\n\n"
-        f"Records: {len(rows)}. Only verifier-approved, evidence-linked events are exported. "
-        "Splits are assigned by defect family to reduce leakage. Source licenses and model/runtime "
-        "identities remain attached to each trajectory.\n",
-        encoding="utf-8",
-    )
+    with card.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(
+            "# Qwen OS Lab Verified Trajectories\n\n"
+            f"Records: {len(rows)}. Only verifier-approved, evidence-linked events are exported. "
+            "Splits are assigned by defect family to reduce leakage. Source licenses and model/runtime "
+            "identities remain attached to each trajectory. The dry-run export is deterministic so "
+            "repeated verification does not dirty a clean checkout.\n"
+        )
     return {"records": len(rows), "jsonl": str(jsonl), "parquet": str(parquet), "card": str(card)}
