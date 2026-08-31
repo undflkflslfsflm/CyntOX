@@ -23,7 +23,7 @@ Build and verify a local, safety-bounded OS reliability lab driven by the instal
 | 3. Live Qwen | Complete | Exact identity, structured smoke, and resident throughput benchmark saved. |
 | 4. Tool broker | Complete | Transactional patch, rollback, receipts, immutable evaluator and policy tests pass. |
 | 5. QEMU fixture | Complete | Actual cold boots, QMP, snapshot restore and controlled failures pass. |
-| 6. Real target | Blocked externally | Finish framework/adapter report; resume needs authorized source path plus build entry point. |
+| 6. Real target | Blocked externally | Manifest schema, template, and validator are complete; resume still needs authorized source path plus build entry point. |
 | 7. Supervisor | Complete | Controlled exit 97, database recovery, full state path, one idempotent finding, and CAS proof passed. |
 | 8. Fix loop | Complete | Live Qwen + disposable worktree + actual QEMU fix/regression loop passed. |
 | 9. Fuzzing | Complete | Six actual QEMU protocol modes, checkpoint/resume data, deduplication, stable replay, and minimal input passed. |
@@ -32,7 +32,7 @@ Build and verify a local, safety-bounded OS reliability lab driven by the instal
 | 12. Runtime routing | Complete | `docs/MODEL_RUNTIME_REPORT.md`, `artifacts/discovery/runtime-assessment.json`, `ModelRouter`, and `ResourceScheduler` added. |
 | 13. Training readiness | Complete | `oslab training dry-run --json` exported and reloaded 16 JSONL/Parquet records. |
 | 14. Documentation/security | Complete | Architecture, threat model, runbook, real-target, runtime, training, limitations, next experiments, README, and demo scripts added. |
-| 15. Acceptance | Complete except Gate L | Main checkout and clean checkout live selftests passed at verified code commit `241650c`; artifact index, `PROOF.json`, `FINAL_REPORT.md`, and runnable acceptance audit are produced. Overall goal remains blocked until an authorized real OS source path and build entry point are supplied. |
+| 15. Acceptance | Complete except Gate L | Main checkout and clean checkout live selftests passed at verified code commit `88b122d`; artifact index, `PROOF.json`, `FINAL_REPORT.md`, and runnable acceptance audit are produced. Overall goal remains blocked until an authorized real OS source path and build entry point are supplied. |
 
 ## Resume
 

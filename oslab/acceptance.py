@@ -62,12 +62,15 @@ REQUIRED_ARTIFACTS = (
     "artifacts/ARTIFACT_INDEX.snapshot.json",
 )
 
+REQUIRED_SUPPORT_FILES = ("config/oslab-target.example.toml",)
+
 PROOF_ONLY_AFTER_VERIFIED_COMMIT_PREFIXES = (
     "artifacts/",
     "docs/",
 )
 
 PROOF_ONLY_AFTER_VERIFIED_COMMIT_FILES = {
+    "config/oslab-target.example.toml",
     "FINAL_REPORT.md",
     "PROOF.json",
     "README.md",
@@ -134,6 +137,7 @@ def _load_json(path: Path) -> dict[str, Any]:
 def _check_required_files(project_root: Path, checks: list[dict[str, Any]]) -> None:
     missing_docs = _missing(project_root, REQUIRED_DOCS)
     missing_artifacts = _missing(project_root, REQUIRED_ARTIFACTS)
+    missing_support = _missing(project_root, REQUIRED_SUPPORT_FILES)
     _record(
         checks,
         "required_documents_exist",
@@ -145,6 +149,12 @@ def _check_required_files(project_root: Path, checks: list[dict[str, Any]]) -> N
         "required_artifacts_exist",
         not missing_artifacts,
         {"missing": missing_artifacts, "count": len(REQUIRED_ARTIFACTS) - len(missing_artifacts)},
+    )
+    _record(
+        checks,
+        "required_support_files_exist",
+        not missing_support,
+        {"missing": missing_support, "count": len(REQUIRED_SUPPORT_FILES) - len(missing_support)},
     )
 
 
@@ -303,7 +313,7 @@ def _check_artifact_index(project_root: Path, checks: list[dict[str, Any]]) -> N
 
     missing_index_entries = [
         path
-        for path in (*REQUIRED_DOCS, *REQUIRED_ARTIFACTS)
+        for path in (*REQUIRED_DOCS, *REQUIRED_ARTIFACTS, *REQUIRED_SUPPORT_FILES)
         if path != "artifacts/ARTIFACT_INDEX.snapshot.json" and path not in indexed_paths
     ]
     _record(

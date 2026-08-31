@@ -77,3 +77,11 @@
 - Context: every local fixture/framework gate now has evidence, including main-checkout and clean-checkout live selftests. Gate L still lacks the external real OS source path and build entry point needed for authorized integration.
 - Decision: record local proof as complete and mark the overall goal `blocked_on_gate_l` instead of pretending real-target validation was performed.
 - Consequence: future work resumes from one minimal user-provided input: the authorized OS repository path plus its existing build command.
+
+## D-011 — Require a validated real-target manifest before Gate L execution
+
+- Status: accepted
+- Date: 2026-08-31
+- Context: a provided real OS path is not enough by itself; the lab must know the existing build entry point, artifacts, QEMU boot shape, readiness signal, smoke tests, and cleanup boundary before it can safely build or boot the target.
+- Decision: add a typed `oslab-target.toml` schema, a tracked example manifest, `target manifest-template`, and `target validate-manifest`.
+- Consequence: explicit real-target onboarding rejects path traversal, missing smoke tests, malformed identifiers, and non-isolated QEMU networking before any target build or boot command can run.

@@ -10,6 +10,7 @@ from oslab.acceptance import (
     EXPECTED_GATE_SUMMARY,
     REQUIRED_ARTIFACTS,
     REQUIRED_DOCS,
+    REQUIRED_SUPPORT_FILES,
     audit_acceptance,
 )
 
@@ -33,7 +34,7 @@ def _write(path: Path, content: str | bytes) -> None:
 
 def _write_artifact_index(root: Path) -> None:
     entries = []
-    for relative in (*REQUIRED_DOCS, *REQUIRED_ARTIFACTS):
+    for relative in (*REQUIRED_DOCS, *REQUIRED_ARTIFACTS, *REQUIRED_SUPPORT_FILES):
         path = root / relative
         if relative == "artifacts/ARTIFACT_INDEX.snapshot.json":
             continue
@@ -75,6 +76,8 @@ def _create_complete_fixture_proof(root: Path) -> None:
         if relative == "artifacts/ARTIFACT_INDEX.snapshot.json":
             continue
         _write(root / relative, "{}\n" if relative.endswith(".json") else "evidence\n")
+    for relative in REQUIRED_SUPPORT_FILES:
+        _write(root / relative, "schema_version = 1\n")
 
     proof = {
         "goal_status": "blocked_on_gate_l",
