@@ -63,6 +63,13 @@
       "exit_code": 0,
       "proof_sha256": "e40c55923875c2388d79c130b26bf1c6b507283326a97001a342e2a4fab0a86c",
       "stdout_summary": "37 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
+      "exit_code": 0,
+      "artifact_sha256": "4ca896222faa606fd60c8b501ae17a19a3efad01f064131fe4a538ca2c38f9bc",
+      "stdout_summary": "Acceptance audit passed: gate summary, required docs/artifacts, artifact-index hashes, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
     }
   ],
   "gate_summary": {

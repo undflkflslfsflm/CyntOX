@@ -19,7 +19,7 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
 - `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `241650c`, including `ruff format --check .`.
-- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, artifact-index hashes, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders.
+- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, artifact-index hashes, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. Saved audit artifact: `4ca896222faa606fd60c8b501ae17a19a3efad01f064131fe4a538ca2c38f9bc`.
 
 ## Tested but Limited
 
@@ -54,6 +54,7 @@ The path must point to the authorized OS source and its existing build entry poi
 - Main checkout selftest at `241650c`: PASS, proof artifact `59bbc6cd35b3e783c03810b8e64e64cda6884ad51695e9c0df2dbb534effb9d0`; checkout remained clean afterward.
 - Clean checkout bootstrap at `241650c`: PASS
 - Clean checkout selftest: PASS, proof artifact `e40c55923875c2388d79c130b26bf1c6b507283326a97001a342e2a4fab0a86c`; checkout remained clean afterward.
+- Acceptance audit: PASS, artifact `4ca896222faa606fd60c8b501ae17a19a3efad01f064131fe4a538ca2c38f9bc`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Machine proof: `PROOF.json`
 
