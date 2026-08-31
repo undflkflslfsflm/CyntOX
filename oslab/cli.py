@@ -790,6 +790,8 @@ def selftest(
 ) -> None:
     config = load_config()
     commands = [
+        [_venv_tool("uv"), "lock", "--check"],
+        [_path_tool("pnpm"), "install", "--frozen-lockfile", "--offline"],
         [sys.executable, "-m", "pytest", "-q"],
         [sys.executable, "-m", "ruff", "format", "--check", "."],
         [sys.executable, "-m", "ruff", "check", "."],
@@ -823,6 +825,19 @@ def selftest(
         {"status": "PASS", "commands": rows}, "selftest-proof.json"
     )
     _emit({"status": "PASS", "proof_sha256": proof.sha256, "commands": rows}, json_output)
+
+
+def _venv_tool(name: str) -> str:
+    suffix = ".exe" if sys.platform == "win32" else ""
+    sibling = Path(sys.executable).with_name(f"{name}{suffix}")
+    if sibling.is_file():
+        return str(sibling)
+    return _path_tool(name)
+
+
+def _path_tool(name: str) -> str:
+    resolved = shutil.which(name)
+    return resolved if resolved is not None else name
 
 
 def _parse_budget_seconds(value: str) -> float:

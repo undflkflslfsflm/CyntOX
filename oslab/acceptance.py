@@ -73,6 +73,8 @@ EXPECTED_QWEN_CODE_TOOLS = [
 ]
 
 SELFTEST_EXPECTED_ARGV_TAILS = (
+    ("lock", "--check"),
+    ("install", "--frozen-lockfile", "--offline"),
     ("-m", "pytest", "-q"),
     ("-m", "ruff", "format", "--check", "."),
     ("-m", "ruff", "check", "."),

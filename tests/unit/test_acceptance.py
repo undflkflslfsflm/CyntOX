@@ -308,6 +308,8 @@ def _write_selftest_proof_artifact(
     artifact_root: Path, marker: str, *, qwen_result: str = "MCP_BUDGET_OK"
 ) -> str:
     commands = [
+        ["uv", "lock", "--check"],
+        ["pnpm", "install", "--frozen-lockfile", "--offline"],
         ["python", "-m", "pytest", "-q"],
         ["python", "-m", "ruff", "format", "--check", "."],
         ["python", "-m", "ruff", "check", "."],
@@ -535,6 +537,47 @@ def test_acceptance_audit_rejects_missing_selftest_proof_artifact(tmp_path: Path
             "selftest --live --json"
         ):
             row["proof_sha256"] = "c" * 64
+            break
+    _write(proof_path, json.dumps(proof, indent=2) + "\n")
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "selftest_proof_artifacts_are_verifiable" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_selftest_without_dependency_checks(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    proof_path = tmp_path / "PROOF.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    stale_commands = [
+        ["python", "-m", "pytest", "-q"],
+        ["python", "-m", "ruff", "format", "--check", "."],
+        ["python", "-m", "ruff", "check", "."],
+        ["python", "-m", "mypy", "oslab"],
+        ["python", "-m", "oslab.cli", "target", "inspect", "--json"],
+        ["python", "-m", "oslab.cli", "target", "manifest-template", "--json"],
+        ["python", "-m", "oslab.cli", "training", "dry-run", "--json"],
+        ["python", "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
+        ["python", "-m", "oslab.cli", "model", "probe", "--live", "--json"],
+        ["python", "-m", "oslab.cli", "model", "qwen-code-smoke", "--json"],
+        ["python", "-m", "oslab.cli", "integrity", "check", "--json"],
+    ]
+    stale_payload = {
+        "status": "PASS",
+        "commands": [
+            {"argv": command, "exit_code": 0, "stdout": "", "stderr": ""}
+            for command in stale_commands
+        ],
+    }
+    stale_sha = (
+        ArtifactStore(tmp_path / "artifacts").put_json(stale_payload, "selftest-proof.json").sha256
+    )
+    for row in proof["verified_commands"]:
+        if row.get("scope") == "main checkout" and row.get("command", "").endswith(
+            "selftest --live --json"
+        ):
+            row["proof_sha256"] = stale_sha
             break
     _write(proof_path, json.dumps(proof, indent=2) + "\n")
 
