@@ -48,9 +48,7 @@ class FlakyQwenRunner(SafeProcessRunner):
             {
                 "type": "message",
                 "message": {
-                    "content": [
-                        {"type": "tool_use", "name": "mcp__oslab__policy_remaining_budget"}
-                    ]
+                    "content": [{"type": "tool_use", "name": "mcp__oslab__policy_remaining_budget"}]
                 },
             },
             {
@@ -60,9 +58,7 @@ class FlakyQwenRunner(SafeProcessRunner):
                 "usage": {"input_tokens": 1, "output_tokens": 1},
             },
         ]
-        return ProcessResult(
-            tuple(argv), 0, json.dumps(events), "", now, now, 0, False, False
-        )
+        return ProcessResult(tuple(argv), 0, json.dumps(events), "", now, now, 0, False, False)
 
 
 def test_qwen_code_worker_retries_native_transient_failure(tmp_path: Path) -> None:

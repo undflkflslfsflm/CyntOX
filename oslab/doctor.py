@@ -291,7 +291,9 @@ def collect_report(config: LabConfig) -> dict[str, Any]:
         tooling["qwen-code"]["project_local"] = project_qwen
         tooling["qwen"]["version"] = project_qwen.get("version")
         tooling["qwen-code"]["version"] = project_qwen.get("version")
-        tooling["qwen"]["runtime_note"] = "project-local package; QwenCodeWorker injects bundled Node on PATH"
+        tooling["qwen"]["runtime_note"] = (
+            "project-local package; QwenCodeWorker injects bundled Node on PATH"
+        )
         tooling["qwen-code"]["runtime_note"] = (
             "project-local package; QwenCodeWorker injects bundled Node on PATH"
         )

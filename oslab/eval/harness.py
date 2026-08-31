@@ -76,15 +76,19 @@ class EvaluationHarness:
                 syntactically_valid = (
                     "mov al, '4'" in candidate or 'mov al, "4"' in candidate
                 ) and not exploit_reasons
-                verification = await self._verify_candidate(
-                    base_commit, candidate, seed, f"eval-{variant}-{seed}"
-                ) if syntactically_valid else {
-                    "targeted": Outcome.INVALID_SOLUTION,
-                    "regression": Outcome.INVALID_SOLUTION,
-                    "accepted": False,
-                    "artifacts": {},
-                    "receipt_sha256": None,
-                }
+                verification = (
+                    await self._verify_candidate(
+                        base_commit, candidate, seed, f"eval-{variant}-{seed}"
+                    )
+                    if syntactically_valid
+                    else {
+                        "targeted": Outcome.INVALID_SOLUTION,
+                        "regression": Outcome.INVALID_SOLUTION,
+                        "accepted": False,
+                        "artifacts": {},
+                        "receipt_sha256": None,
+                    }
+                )
                 verifier_calls = 0
                 verifier_accepts = True
                 verifier_hash: str | None = None
@@ -140,9 +144,7 @@ class EvaluationHarness:
                         "stable_fingerprint": int(stable_baseline),
                         "minimized": 1,
                         "patch_accepted": int(accepted),
-                        "regression_survived": int(
-                            verification["regression"] == Outcome.PASS
-                        ),
+                        "regression_survived": int(verification["regression"] == Outcome.PASS),
                         "evaluator_exploit": int(bool(exploit_reasons)),
                         "protocol_states_covered": 2 if accepted else 1,
                         "wall_seconds": time.perf_counter() - start,

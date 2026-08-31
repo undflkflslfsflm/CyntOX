@@ -29,7 +29,9 @@ from oslab.training import export_trajectories
 app = typer.Typer(no_args_is_help=True, help="Qwen OS Lab safety-bounded reliability supervisor")
 model_app = typer.Typer(no_args_is_help=True, help="Probe and benchmark the local model")
 integrity_app = typer.Typer(no_args_is_help=True, help="Verify database and artifact integrity")
-target_app = typer.Typer(no_args_is_help=True, help="Inspect fixture and authorized real OS targets")
+target_app = typer.Typer(
+    no_args_is_help=True, help="Inspect fixture and authorized real OS targets"
+)
 campaign_app = typer.Typer(no_args_is_help=True, help="Run bounded persistent campaigns")
 fuzz_app = typer.Typer(no_args_is_help=True, help="Run and replay bounded fixture fuzzing")
 eval_app = typer.Typer(no_args_is_help=True, help="Run seeded evaluation variants")
@@ -281,9 +283,7 @@ def qwen_code_smoke(
             "mcp__oslab__policy_remaining_budget"
         ]:
             raise RuntimeError("Qwen Code did not complete the exact controlled MCP task")
-        record = ArtifactStore(config.artifacts_root).put_json(
-            proof, "qwen-code-mcp-smoke.json"
-        )
+        record = ArtifactStore(config.artifacts_root).put_json(proof, "qwen-code-mcp-smoke.json")
         return {**proof, "artifact_sha256": record.sha256}
 
     try:
@@ -338,9 +338,7 @@ def fuzz_run(
 ) -> None:
     try:
         result = asyncio.run(
-            run_fixture_fuzz(
-                load_config(), campaign_id, seed=seed, total_iterations=iterations
-            )
+            run_fixture_fuzz(load_config(), campaign_id, seed=seed, total_iterations=iterations)
         )
     except Exception as exc:
         typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
@@ -519,9 +517,7 @@ def training_dry_run(
     )
     result = export_trajectories(events, output)
     result["reload"] = _training_reload_summary(Path(result["jsonl"]), Path(result["parquet"]))
-    record = ArtifactStore(config.artifacts_root).put_json(
-        result, "training-dry-run-summary.json"
-    )
+    record = ArtifactStore(config.artifacts_root).put_json(result, "training-dry-run-summary.json")
     _emit({**result, "artifact_sha256": record.sha256}, json_output)
 
 
@@ -538,9 +534,9 @@ def reproduce(
 
     async def run() -> dict[str, Any]:
         results = [
-            await DockerQemuBackend(config.project_root, ArtifactStore(config.artifacts_root)).exercise(
-                mode, seed=index + 1
-            )
+            await DockerQemuBackend(
+                config.project_root, ArtifactStore(config.artifacts_root)
+            ).exercise(mode, seed=index + 1)
             for index in range(cold_boots)
         ]
         fingerprints = [
@@ -560,9 +556,7 @@ def reproduce(
             "stable": stable,
             "artifacts": [result.artifacts for result in results],
         }
-        record = ArtifactStore(config.artifacts_root).put_json(
-            proof, f"reproduce-{mode}.json"
-        )
+        record = ArtifactStore(config.artifacts_root).put_json(proof, f"reproduce-{mode}.json")
         return {**proof, "artifact_sha256": record.sha256}
 
     result = asyncio.run(run())
@@ -573,7 +567,9 @@ def reproduce(
 
 @app.command("minimize")
 def minimize(
-    finding: Annotated[str, typer.Option(help="Fuzz finding fingerprint or latest-crash")] = "latest-crash",
+    finding: Annotated[
+        str, typer.Option(help="Fuzz finding fingerprint or latest-crash")
+    ] = "latest-crash",
     campaign_id: Annotated[str | None, typer.Option(help="Fuzz campaign id")] = None,
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
@@ -609,7 +605,9 @@ def minimize(
 
 @app.command("verify")
 def verify(
-    finding: Annotated[str, typer.Option(help="Finding id, fingerprint, or fixture mode")] = "crash",
+    finding: Annotated[
+        str, typer.Option(help="Finding id, fingerprint, or fixture mode")
+    ] = "crash",
     cold_boots: Annotated[int, typer.Option(min=2, max=5)] = 2,
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
@@ -640,9 +638,7 @@ def verify(
             "accepted": accepted,
             "artifacts": [row.artifacts for row in rows],
         }
-        record = ArtifactStore(config.artifacts_root).put_json(
-            result, f"verify-{finding}.json"
-        )
+        record = ArtifactStore(config.artifacts_root).put_json(result, f"verify-{finding}.json")
         return {**result, "artifact_sha256": record.sha256}
 
     result = asyncio.run(run())
@@ -712,6 +708,7 @@ def selftest(
     config = load_config()
     commands = [
         [sys.executable, "-m", "pytest", "-q"],
+        [sys.executable, "-m", "ruff", "format", "--check", "."],
         [sys.executable, "-m", "ruff", "check", "."],
         [sys.executable, "-m", "mypy", "oslab"],
         [sys.executable, "-m", "oslab.cli", "target", "inspect", "--json"],
@@ -720,9 +717,7 @@ def selftest(
     ]
     if live:
         commands.append([sys.executable, "-m", "oslab.cli", "model", "probe", "--live", "--json"])
-        commands.append(
-            [sys.executable, "-m", "oslab.cli", "model", "qwen-code-smoke", "--json"]
-        )
+        commands.append([sys.executable, "-m", "oslab.cli", "model", "qwen-code-smoke", "--json"])
     commands.append([sys.executable, "-m", "oslab.cli", "integrity", "check", "--json"])
     rows: list[dict[str, Any]] = []
     for command in commands:
@@ -769,9 +764,7 @@ def _training_reload_summary(jsonl: Path, parquet: Path) -> dict[str, Any]:
     import pyarrow.parquet as pq
 
     jsonl_rows = [
-        json.loads(line)
-        for line in jsonl.read_text(encoding="utf-8").splitlines()
-        if line.strip()
+        json.loads(line) for line in jsonl.read_text(encoding="utf-8").splitlines() if line.strip()
     ]
     parquet_rows = pq.read_table(parquet).num_rows
     return {
@@ -781,9 +774,7 @@ def _training_reload_summary(jsonl: Path, parquet: Path) -> dict[str, Any]:
     }
 
 
-def _find_fuzz_finding(
-    config: Any, campaign_id: str | None, finding: str
-) -> dict[str, Any]:
+def _find_fuzz_finding(config: Any, campaign_id: str | None, finding: str) -> dict[str, Any]:
     roots = (
         [config.runtime_root / "fuzz" / campaign_id]
         if campaign_id is not None

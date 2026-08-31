@@ -288,7 +288,9 @@ class CapabilityBroker:
         return root
 
     def _target_root(self, arguments: dict[str, Any]) -> Path:
-        value = arguments.get("root", arguments.get("worktree", str(self.context.config.project_root)))
+        value = arguments.get(
+            "root", arguments.get("worktree", str(self.context.config.project_root))
+        )
         return self._authorized_root(value)
 
     def _fixture_target(self, arguments: dict[str, Any]) -> str:
@@ -614,7 +616,12 @@ class CapabilityBroker:
             raise ValueError("pattern must be 1..200 characters")
         text = await backend.wait_for(pattern, self._bounded_timeout(arguments, "timeout", 10))
         digest = hashlib.sha256(text.encode()).hexdigest()
-        return {"session_id": session_id, "pattern": pattern, "serial_sha256": digest, "serial": text}
+        return {
+            "session_id": session_id,
+            "pattern": pattern,
+            "serial_sha256": digest,
+            "serial": text,
+        }
 
     async def _vm_console_send(self, arguments: dict[str, Any]) -> dict[str, Any]:
         session_id, backend = self._vm_session(arguments)
@@ -795,7 +802,9 @@ class CapabilityBroker:
         session_id, backend = self._vm_session(arguments)
         if backend.qmp is None:
             raise ValueError("VM QMP is not connected")
-        registers = await backend.qmp.hmp("info registers", self._bounded_timeout(arguments, "timeout", 10))
+        registers = await backend.qmp.hmp(
+            "info registers", self._bounded_timeout(arguments, "timeout", 10)
+        )
         return {"session_id": session_id, "registers": registers}
 
     async def _debug_memory(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -906,7 +915,11 @@ class CapabilityBroker:
 
     async def _fuzz_stop(self, arguments: dict[str, Any]) -> dict[str, Any]:
         status = await self._fuzz_status(arguments)
-        return {**status, "stopped": True, "note": "fixture fuzzing runs are bounded foreground jobs"}
+        return {
+            **status,
+            "stopped": True,
+            "note": "fixture fuzzing runs are bounded foreground jobs",
+        }
 
     async def _fuzz_replay(self, arguments: dict[str, Any]) -> dict[str, Any]:
         input_path = self.policy.authorize(Path(str(arguments["input_path"])), must_exist=True)

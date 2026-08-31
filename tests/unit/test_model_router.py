@@ -27,6 +27,6 @@ def test_resource_scheduler_defers_disk_heavy_offload() -> None:
     scheduler = ResourceScheduler()
     assert scheduler.can_run_together(WorkloadKind.MODEL, WorkloadKind.QEMU)
     assert not scheduler.can_run_together(WorkloadKind.DISK_HEAVY_OFFLOAD, WorkloadKind.FUZZ)
-    assert scheduler.admission_reason([WorkloadKind.QEMU], WorkloadKind.DISK_HEAVY_OFFLOAD).startswith(
-        "defer"
-    )
+    assert scheduler.admission_reason(
+        [WorkloadKind.QEMU], WorkloadKind.DISK_HEAVY_OFFLOAD
+    ).startswith("defer")

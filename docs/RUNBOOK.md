@@ -60,7 +60,7 @@ python -m oslab.cli doctor --json
 .\.venv\Scripts\python.exe -m oslab.cli selftest --live --json
 ```
 
-`selftest` runs pytest, lint, strict typing, target inspection, training export, cleanup dry-run, live Ollama smoke, Qwen Code MCP smoke, and artifact/database integrity. The QEMU and live tests require Docker Desktop/WSL2, Ollama, and the local Qwen model to be available.
+`selftest` runs pytest, format check, lint, strict typing, target inspection, training export, cleanup dry-run, live Ollama smoke, Qwen Code MCP smoke, and artifact/database integrity. The QEMU and live tests require Docker Desktop/WSL2, Ollama, and the local Qwen model to be available.
 
 ## Real OS Target
 

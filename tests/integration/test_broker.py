@@ -156,12 +156,8 @@ def test_lightweight_broker_tools_are_functional(
         )
     )
     memory = asyncio.run(broker.invoke("memory.search", {"query": "before"}))
-    prior = asyncio.run(
-        broker.invoke("memory.find_prior_hypotheses", {"query": "before"})
-    )
-    symbol = asyncio.run(
-        broker.invoke("code.symbol", {"root": str(source), "symbol": "before"})
-    )
+    prior = asyncio.run(broker.invoke("memory.find_prior_hypotheses", {"query": "before"}))
+    symbol = asyncio.run(broker.invoke("code.symbol", {"root": str(source), "symbol": "before"}))
 
     assert profiles.status == Outcome.PASS
     assert tests.data["tests"][0]["id"] == "pass"

@@ -58,26 +58,30 @@ async def run_fixture_fuzz(
             Outcome.CRASH,
             Outcome.HANG,
         }
-        is_new = campaign.record_finding(
-            fingerprint,
-            {
-                "mode": mode,
-                "outcome": result.outcome,
-                "input_sha256": corpus_hash,
-                "serial_sha256": result.artifacts["serial"],
-            },
-        ) if is_finding else False
+        is_new = (
+            campaign.record_finding(
+                fingerprint,
+                {
+                    "mode": mode,
+                    "outcome": result.outcome,
+                    "input_sha256": corpus_hash,
+                    "serial_sha256": result.artifacts["serial"],
+                },
+            )
+            if is_finding
+            else False
+        )
         row = {
-                "iteration": index,
-                "mode": mode,
-                "input_sha256": corpus_hash,
-                "input_size": len(generated),
-                "outcome": result.outcome,
-                "fingerprint": fingerprint,
-                "new_finding": is_new,
-                "artifacts": result.artifacts,
-                "events": [event.get("event") for event in result.events],
-            }
+            "iteration": index,
+            "mode": mode,
+            "input_sha256": corpus_hash,
+            "input_size": len(generated),
+            "outcome": result.outcome,
+            "fingerprint": fingerprint,
+            "new_finding": is_new,
+            "artifacts": result.artifacts,
+            "events": [event.get("event") for event in result.events],
+        }
         rows.append(row)
         history.append(row)
         campaign.checkpoint(checkpoint)
@@ -85,12 +89,14 @@ async def run_fixture_fuzz(
     minimized = await _minimize_and_replay(backend, campaign, rows)
     coverage = {
         "kind": "fixture protocol-state coverage (not compiler instrumentation)",
-        "modes": sorted({row["mode"] for row in history} | {
-            str(value["mode"]) for value in campaign.unique_findings.values()
-        }),
-        "outcomes": sorted({str(row["outcome"]) for row in history} | {
-            str(value["outcome"]) for value in campaign.unique_findings.values()
-        }),
+        "modes": sorted(
+            {row["mode"] for row in history}
+            | {str(value["mode"]) for value in campaign.unique_findings.values()}
+        ),
+        "outcomes": sorted(
+            {str(row["outcome"]) for row in history}
+            | {str(value["outcome"]) for value in campaign.unique_findings.values()}
+        ),
         "required_modes": list(MODES),
         "complete": campaign.iterations >= len(MODES),
     }
@@ -116,9 +122,7 @@ async def run_fixture_fuzz(
     return {**report, "artifact_sha256": record.sha256}
 
 
-async def replay_fixture_input(
-    config: LabConfig, mode: str, input_path: Path
-) -> dict[str, Any]:
+async def replay_fixture_input(config: LabConfig, mode: str, input_path: Path) -> dict[str, Any]:
     if mode not in MODES:
         raise ValueError("unknown fixture fuzz mode")
     data = input_path.read_bytes()
@@ -148,11 +152,13 @@ async def _minimize_and_replay(
         if selected_value is None:
             raise RuntimeError("no crash finding exists for minimization")
         input_hash = str(selected_value["input_sha256"])
-        expected = str(next(
-            key
-            for key, value in campaign.unique_findings.items()
-            if value["input_sha256"] == input_hash and value["mode"] == "crash"
-        ))
+        expected = str(
+            next(
+                key
+                for key, value in campaign.unique_findings.items()
+                if value["input_sha256"] == input_hash and value["mode"] == "crash"
+            )
+        )
     else:
         input_hash = str(selected["input_sha256"])
         expected = str(selected["fingerprint"])
@@ -179,9 +185,7 @@ async def _minimize_and_replay(
 
 def _fingerprint(mode: str, result: FixtureResult) -> str:
     event_names = sorted(
-        str(event.get("event"))
-        for event in result.events
-        if event.get("event") not in {"READY"}
+        str(event.get("event")) for event in result.events if event.get("event") not in {"READY"}
     )
     payload = {
         "mode": mode,
@@ -207,7 +211,5 @@ def _input_seed(value: bytes) -> int:
 def _atomic_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
-    temporary.write_text(
-        json.dumps(value, sort_keys=True, default=str) + "\n", encoding="utf-8"
-    )
+    temporary.write_text(json.dumps(value, sort_keys=True, default=str) + "\n", encoding="utf-8")
     temporary.replace(path)

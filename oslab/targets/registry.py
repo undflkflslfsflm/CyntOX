@@ -26,7 +26,9 @@ def inspect_targets(config: LabConfig, requested: Path | None = None) -> dict[st
         "build_profile": "pinned Docker/NASM",
         "boot_profile": "QEMU TCG, -nic none, QMP loopback",
     }
-    real = _inspect_real_target(requested.resolve()) if requested is not None else _from_doctor(config)
+    real = (
+        _inspect_real_target(requested.resolve()) if requested is not None else _from_doctor(config)
+    )
     return {
         "fixture": fixture,
         "real_os": real,
