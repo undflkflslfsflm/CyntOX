@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -40,6 +41,8 @@ app.add_typer(campaign_app, name="campaign")
 app.add_typer(fuzz_app, name="fuzz")
 app.add_typer(eval_app, name="eval")
 app.add_typer(training_app, name="training")
+
+TRAINING_DRY_RUN_TIMESTAMP = datetime(2026, 8, 31, tzinfo=UTC)
 
 
 def _emit(value: Any, as_json: bool) -> None:
@@ -454,6 +457,7 @@ def training_dry_run(
                 TrajectoryEvent(
                     trajectory_id=f"eval-{row.get('variant', 'unknown')}-{row.get('seed', index)}",
                     sequence=index,
+                    timestamp=TRAINING_DRY_RUN_TIMESTAMP,
                     kind="evaluation-row",
                     role=str(row.get("variant_name", "worker")),
                     content={
@@ -483,6 +487,7 @@ def training_dry_run(
             TrajectoryEvent(
                 trajectory_id="fixture-dry-run-positive",
                 sequence=0,
+                timestamp=TRAINING_DRY_RUN_TIMESTAMP,
                 kind="verification",
                 role="verifier",
                 content={
@@ -499,6 +504,7 @@ def training_dry_run(
         TrajectoryEvent(
             trajectory_id="fixture-dry-run-negative",
             sequence=len(events),
+            timestamp=TRAINING_DRY_RUN_TIMESTAMP,
             kind="negative-example",
             role="verifier",
             content={
