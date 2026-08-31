@@ -108,6 +108,7 @@ ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
     "required_artifacts_exist",
     "required_support_files_exist",
     "required_artifact_contents_are_valid",
+    "key_evidence_artifacts_are_verifiable",
     "gate_summary_matches_contract",
     "gate_l_blocker_is_precise",
     "proof_records_required_commands",
