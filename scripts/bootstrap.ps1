@@ -19,5 +19,11 @@ $venvPython = Join-Path $venv 'Scripts\python.exe'
 & $venvPython -m pip install --disable-pip-version-check 'uv==0.8.14'
 $uv = Join-Path $venv 'Scripts\uv.exe'
 & $uv sync --all-groups --locked
+if (Test-Path -LiteralPath (Join-Path $projectRoot 'package.json')) {
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue
+    if (-not $pnpm) { throw 'pnpm was not found in PATH or Codex bundled runtime.' }
+    & $pnpm.Source install --frozen-lockfile --offline
+    if ($LASTEXITCODE -ne 0) { & $pnpm.Source install --frozen-lockfile }
+    if ($LASTEXITCODE -ne 0) { throw 'pnpm install failed.' }
+}
 & $uv run oslab init --json
-
