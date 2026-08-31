@@ -99,5 +99,13 @@
 - Status: accepted
 - Date: 2026-09-01
 - Context: `PROOF.json` records the saved acceptance audit hash, but the audit should prove that the referenced blob exists and contains a passing audit rather than trusting metadata.
-- Decision: have `acceptance audit` load the recorded `acceptance-gate-audit.json` artifact, verify its SHA-256 digest, parse its JSON, require `status = PASS`, `ok = true`, no failed checks, and all non-recursive acceptance checks present as `PASS`.
+- Decision: have `acceptance audit` load the recorded `acceptance-gate-audit.json` artifact, verify its SHA-256 digest, parse its JSON, require `status = PASS`, `ok = true`, no failed checks, and the stable core acceptance checks present as `PASS`.
 - Consequence: the final proof cannot point at a missing, corrupt, failing, or incomplete acceptance audit artifact.
+
+## D-014 — Cross-check live selftest stdout against final proof claims
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: a successful live selftest command is stronger evidence when its embedded stdout is machine-checked against the final proof metadata.
+- Decision: have `acceptance audit` parse live Ollama probe output and Qwen Code smoke output from both recorded selftest artifacts. The audit checks model identity, structured response, constrained visible tools, single allowed MCP call, wrapper model, runtime version, and smoke result against `PROOF.json`.
+- Consequence: the final proof fails if the recorded live runs disagree with the model/Qwen Code claims, even when the commands exited zero.

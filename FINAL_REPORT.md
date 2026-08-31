@@ -18,7 +18,7 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Live agentic fix loop repaired the seeded fixture in a disposable worktree and rejected an invalid evaluator edit.
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
-- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `95aa53c`, including `ruff format --check .`.
+- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `639d836`, including `ruff format --check .`.
 - `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, artifact-index hashes, real selftest proof artifacts, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. Saved audit artifact: `508998b34e5a0c06a6c7935d056f4d261c7d8b07c5522d0f84c4ebb4a8a1ca21`.
 - Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, and a `target validate-manifest` command. The validator rejects path traversal, source-root escapes, missing smoke tests, non-isolated QEMU networking, branch-like base commits, and shell-eval command wrappers before any real target build is attempted.
 
@@ -52,9 +52,9 @@ The path must point to the authorized OS source and its existing build entry poi
 
 ## Final Verification
 
-- Main checkout selftest at `95aa53c`: PASS, proof artifact `32d2f2e59c17a9b7418f8ed602494323458aa6957748321d0f403629959b5ee3`; checkout remained clean afterward.
-- Clean checkout bootstrap at `95aa53c`: PASS
-- Clean checkout selftest: PASS, proof artifact `c2203ebb2a96f53264918fd3b849e6478ebb847e62eb8059b198eb4d8fe40bb4`; checkout remained clean afterward.
+- Main checkout selftest at `639d836`: PASS, proof artifact `ecde9831903de70de6afd59df8a253812b26049a0a082276507e596b77d22b77`; checkout remained clean afterward.
+- Clean checkout bootstrap at `639d836`: PASS
+- Clean checkout selftest: PASS, proof artifact `4c8cfd834250ddf816fc1147ed8e8c505e47e1912f180a2ac617b1b574b720a6`; checkout remained clean afterward.
 - Acceptance audit: PASS, artifact `508998b34e5a0c06a6c7935d056f4d261c7d8b07c5522d0f84c4ebb4a8a1ca21`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Machine proof: `PROOF.json`

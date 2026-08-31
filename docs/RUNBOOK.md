@@ -63,7 +63,7 @@ python -m oslab.cli doctor --json
 ```
 
 `selftest` runs pytest, format check, lint, strict typing, target inspection, training export, cleanup dry-run, live Ollama smoke, Qwen Code MCP smoke, and artifact/database integrity. The QEMU and live tests require Docker Desktop/WSL2, Ollama, and the local Qwen model to be available.
-`acceptance audit` checks the final proof files, gate summary, artifact snapshot, referenced proof blobs, recorded audit artifact, clean Git state, and proof-only post-verification changes.
+`acceptance audit` checks the final proof files, gate summary, artifact snapshot, referenced proof blobs, live smoke stdout, recorded audit artifact, clean Git state, and proof-only post-verification changes.
 
 ## Real OS Target
 
