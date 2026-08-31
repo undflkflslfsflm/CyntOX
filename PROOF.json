@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-31T23:22:22Z",
+  "generated_at": "2026-08-31T23:30:27Z",
   "goal_status": "blocked_on_gate_l",
-  "source_commit_verified": "0f75f18",
-  "source_commit_full": "0f75f18c4931aca55452073b99731dab74c8622a",
+  "source_commit_verified": "1832962",
+  "source_commit_full": "1832962258fbd26e5b3f8c6ca1fb2c36a51b6dad",
   "branch": "codex/qwen-os-lab",
   "blocked_gate": {
     "gate": "L",
@@ -48,20 +48,20 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "41ce6489a070663803e96e14cbaa13529de4f5993e6d55a5851fe4fb3222b678",
+      "proof_sha256": "2e10c788c7803cde72b20f9878984bd8583a40303a236c391dfee695223c98ca",
       "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 50 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the main checkout clean."
     },
     {
       "scope": "clean checkout",
       "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
       "exit_code": 0,
-      "worktree": ".oslab\\clean-checkouts\\0f75f18"
+      "worktree": ".oslab\\clean-checkouts\\1832962"
     },
     {
       "scope": "clean checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "b1d14c436a69df660b3115bdf166567f609f6b1df041b99433703422a1c45757",
+      "proof_sha256": "d0077794b55cb073f13174eca6624b842eb3e8d9387bedcec4df1fae6acda940",
       "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 50 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
     },
     {
