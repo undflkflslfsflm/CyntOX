@@ -117,12 +117,14 @@ def _disk_benchmark(root: Path, size_mb: int = 16) -> dict[str, Any]:
             os.fsync(stream.fileno())
         write_seconds = time.perf_counter() - start
         start = time.perf_counter()
+        read_bytes = 0
         with path.open("rb", buffering=0) as stream:
-            while stream.read(1024 * 1024):
-                pass
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                read_bytes += len(chunk)
         read_seconds = time.perf_counter() - start
         return {
             "bytes": size_mb * 1024 * 1024,
+            "read_bytes": read_bytes,
             "write_mib_s": round(size_mb / max(write_seconds, 0.000001), 2),
             "read_mib_s": round(size_mb / max(read_seconds, 0.000001), 2),
             "scope": "small temporary sequential safety probe",

@@ -10,7 +10,7 @@ from oslab.schemas import ModelIdentity, ModelResponse
 class ModelProvider(ABC):
     @abstractmethod
     async def probe(self) -> ModelIdentity:
-        raise NotImplementedError
+        raise AssertionError("abstract ModelProvider.probe called")
 
     @abstractmethod
     async def complete(
@@ -21,7 +21,7 @@ class ModelProvider(ABC):
         seed: int | None = None,
         timeout: float | None = None,
     ) -> ModelResponse:
-        raise NotImplementedError
+        raise AssertionError("abstract ModelProvider.complete called")
 
     async def stream(
         self, messages: list[dict[str, str]], *, seed: int | None = None

@@ -7,7 +7,7 @@ from uuid import uuid4
 
 
 class QmpError(RuntimeError):
-    pass
+    """Raised for QMP connection, protocol, and monitor command failures."""
 
 
 class QmpClient:
