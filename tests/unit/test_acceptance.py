@@ -12,6 +12,7 @@ from oslab.acceptance import (
     EXPECTED_QWEN_CODE_TOOLS,
     REQUIRED_ARTIFACTS,
     REQUIRED_DOCS,
+    REQUIRED_KEY_EVIDENCE_ARTIFACTS,
     REQUIRED_SUPPORT_FILES,
     audit_acceptance,
 )
@@ -117,19 +118,173 @@ def _evaluation_rows() -> list[dict[str, object]]:
     return rows
 
 
-def _write_required_artifact_payloads(root: Path) -> None:
-    model = {
+def _artifact_pair(store: ArtifactStore, label: str) -> dict[str, str]:
+    serial = store.put_bytes(
+        f"{label} serial evidence".encode(),
+        f"{label}-serial.log",
+        "text/plain",
+    ).sha256
+    stderr = store.put_bytes(
+        f"{label} stderr evidence".encode(),
+        f"{label}-stderr.log",
+        "text/plain",
+    ).sha256
+    return {"serial": serial, "stderr": stderr}
+
+
+def _test_model_identity() -> dict[str, object]:
+    return {
         "architecture": "qwen35",
+        "format": "gguf",
+        "runtime": "Ollama",
+        "runtime_version": "0.33.2",
+        "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+        "parameters": 27320697856,
+        "quantization": "Q4_K_M",
+    }
+
+
+def _fuzz_campaign_payload(store: ArtifactStore, label: str) -> dict[str, object]:
+    cases = [
+        ("pass", "PASS"),
+        ("fail", "FAIL"),
+        ("crash", "CRASH"),
+        ("hang", "HANG"),
+        ("seeded", "CRASH"),
+        ("induced-infra", "INFRA_ERROR"),
+    ]
+    observations = [
+        {
+            "case_id": f"{label}-{index}",
+            "mode": mode,
+            "outcome": outcome,
+            "artifacts": _artifact_pair(store, f"{label}-{mode}"),
+        }
+        for index, (mode, outcome) in enumerate(cases, start=1)
+    ]
+    return {
+        "coverage": {
+            "complete": True,
+            "modes": [mode for mode, _ in cases],
+            "outcomes": ["PASS", "FAIL", "CRASH", "HANG", "INFRA_ERROR"],
+        },
+        "iterations": 6,
+        "unique_inputs": 6,
+        "observations": observations,
+        "unique_findings": {
+            "fail": _sha(f"{label}-finding-fail"),
+            "crash": _sha(f"{label}-finding-crash"),
+            "hang": _sha(f"{label}-finding-hang"),
+            "infra": _sha(f"{label}-finding-infra"),
+        },
+        "minimized": {
+            "replay_outcome": "CRASH",
+            "original_bytes": 32,
+            "minimized_bytes": 8,
+        },
+    }
+
+
+def _crash_reproduction_payload(store: ArtifactStore, label: str) -> dict[str, object]:
+    fingerprint = _sha(f"{label}-fingerprint")
+    return {
+        "cold_boots": 3,
+        "stable": True,
+        "mode": "crash",
+        "outcomes": ["CRASH", "CRASH", "CRASH"],
+        "fingerprints": [fingerprint, fingerprint, fingerprint],
+        "expected_fingerprint": fingerprint,
+        "artifacts": [
+            _artifact_pair(store, f"{label}-cold-boot-1"),
+            _artifact_pair(store, f"{label}-cold-boot-2"),
+            _artifact_pair(store, f"{label}-cold-boot-3"),
+        ],
+    }
+
+
+def _write_key_evidence_artifacts(root: Path) -> dict[str, str]:
+    store = ArtifactStore(root / "artifacts")
+    fixture_fuzz = _fuzz_campaign_payload(store, "fixture-fuzz")
+    bounded_fuzz = _fuzz_campaign_payload(store, "bounded-fuzz")
+    crash_reproduction = _crash_reproduction_payload(store, "crash-reproduction")
+    crash_verification = {
+        **_crash_reproduction_payload(store, "crash-verification"),
+        "accepted": True,
+        "expected": "CRASH",
+    }
+    payloads: dict[str, object] = {
+        "agentic_fix_loop": {
+            "run_id": "agentic-fix-loop-test",
+            "diff": (
+                "diff --git a/fixtures/boot/boot.asm b/fixtures/boot/boot.asm\n"
+                "-    mov al, '3'\n"
+                "+    mov al, '4'\n"
+            ),
+            "targeted": {
+                "outcome": "PASS",
+                "serial_log": "READY\nOSLAB_BUG_VALUE 4\nPASS\n",
+                "details": {"mode": "seeded", "network": "none"},
+                "artifacts": _artifact_pair(store, "agentic-targeted"),
+            },
+            "regressions": [
+                {
+                    "outcome": "PASS",
+                    "details": {"mode": "pass", "network": "none"},
+                    "artifacts": _artifact_pair(store, "agentic-regression-pass"),
+                },
+                {
+                    "outcome": "PASS",
+                    "details": {"mode": "snapshot", "network": "none"},
+                    "artifacts": _artifact_pair(store, "agentic-regression-snapshot"),
+                },
+            ],
+            "verifier": {"structured": {"verdict": "accept"}},
+            "invalid_verifier": {"structured": {"verdict": "reject"}},
+            "proposal": {"model": _test_model_identity()},
+        },
+        "supervisor_recovery": {
+            "run_id": "supervisor-recovery-test",
+            "controlled_exit_code": 97,
+            "interrupted_state": "GENERATE_TEST",
+            "final_state": "COMPLETE",
+            "finding_count": 1,
+            "transition_count": 12,
+            "crash_command": [
+                "python",
+                "-m",
+                "oslab.cli",
+                "campaign",
+                "--crash-after",
+                "GENERATE_TEST",
+            ],
+            "resume_command": ["python", "-m", "oslab.cli", "campaign", "--resume"],
+            "integrity": {"ok": True},
+        },
+        "fixture_fuzz_campaign": fixture_fuzz,
+        "bounded_autonomous_campaign": {
+            "target": "fixture",
+            "campaign_id": "bounded-campaign-test",
+            "hypotheses_generated": True,
+            "tests_executed": True,
+            "errors_handled": True,
+            "findings_deduplicated": True,
+            "recovery": {"final_state": "COMPLETE"},
+            "fuzz": bounded_fuzz,
+        },
+        "seeded_evaluation_cas": _evaluation_rows(),
+        "crash_reproduction": crash_reproduction,
+        "crash_verification": crash_verification,
+    }
+    assert set(payloads) == set(REQUIRED_KEY_EVIDENCE_ARTIFACTS)
+    return {key: store.put_json(payload, f"{key}.json").sha256 for key, payload in payloads.items()}
+
+
+def _write_required_artifact_payloads(root: Path) -> None:
+    model = _test_model_identity() | {
         "capabilities": ["tools", "thinking", "completion"],
         "context_limit": 262144,
         "endpoint": "http://127.0.0.1:11434",
-        "format": "gguf",
-        "model_id": "huihui-qwen3.8-27b-abliterated:latest",
-        "parameters": 27320697856,
         "provider": "ollama",
-        "quantization": "Q4_K_M",
-        "runtime": "Ollama",
-        "runtime_version": "0.33.2",
     }
     hardware = {
         "schema_version": 1,
@@ -415,6 +570,7 @@ def _create_complete_fixture_proof(root: Path) -> None:
     main_proof_sha = _write_selftest_proof_artifact(root / "artifacts", "main")
     clean_proof_sha = _write_selftest_proof_artifact(root / clean_worktree / "artifacts", "clean")
     audit_sha = _write_acceptance_audit_artifact(root / "artifacts")
+    key_evidence_artifacts = _write_key_evidence_artifacts(root)
 
     proof = {
         "goal_status": "blocked_on_gate_l",
@@ -474,21 +630,14 @@ def _create_complete_fixture_proof(root: Path) -> None:
             },
         ],
         "gate_summary": EXPECTED_GATE_SUMMARY,
-        "model": {
-            "architecture": "qwen35",
-            "format": "gguf",
-            "runtime": "Ollama",
-            "runtime_version": "0.33.2",
-            "model_id": "huihui-qwen3.8-27b-abliterated:latest",
-            "parameters": 27320697856,
-            "quantization": "Q4_K_M",
-        },
+        "model": _test_model_identity(),
         "qwen_code": {
             "version": "0.22.3",
             "wrapper_model": "qwen-os-lab-worker:latest",
             "smoke_result": "MCP_BUDGET_OK",
             "visible_tools": EXPECTED_QWEN_CODE_TOOLS,
         },
+        "key_evidence_artifacts": key_evidence_artifacts,
     }
     _write(root / "PROOF.json", json.dumps(proof, indent=2) + "\n")
     _write_artifact_index(root)
@@ -670,3 +819,16 @@ def test_acceptance_audit_rejects_invalid_required_artifact_content(tmp_path: Pa
 
     assert not result["ok"]
     assert "required_artifact_contents_are_valid" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_invalid_key_evidence_artifact(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    proof_path = tmp_path / "PROOF.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    proof["key_evidence_artifacts"]["agentic_fix_loop"] = "e" * 64
+    _write(proof_path, json.dumps(proof, indent=2) + "\n")
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "key_evidence_artifacts_are_verifiable" in result["failed_checks"]

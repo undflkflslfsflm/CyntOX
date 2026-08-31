@@ -65,6 +65,16 @@ REQUIRED_ARTIFACTS = (
 
 REQUIRED_SUPPORT_FILES = ("config/oslab-target.example.toml",)
 
+REQUIRED_KEY_EVIDENCE_ARTIFACTS = (
+    "agentic_fix_loop",
+    "supervisor_recovery",
+    "fixture_fuzz_campaign",
+    "bounded_autonomous_campaign",
+    "seeded_evaluation_cas",
+    "crash_reproduction",
+    "crash_verification",
+)
+
 SELFTEST_COMMAND = ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json"
 ACCEPTANCE_AUDIT_COMMAND = ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json"
 EXPECTED_QWEN_CODE_TOOLS = [
@@ -154,6 +164,7 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
     proof = _load_json(project_root / "PROOF.json")
     _check_required_files(project_root, checks)
     _check_required_artifact_contents(project_root, proof, checks)
+    _check_key_evidence_artifacts(project_root, proof, checks)
     _check_gate_summary(proof, checks)
     _check_proof_commands(proof, checks)
     _check_selftest_proof_artifacts(project_root, proof, checks)
@@ -562,6 +573,321 @@ def _validate_latest_report(project_root: Path, failures: list[dict[str, Any]]) 
         or integrity["artifacts"].get("ok") is not True
     ):
         failures.append({"path": path, "reason": "integrity_summary_invalid"})
+
+
+def _check_key_evidence_artifacts(
+    project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
+) -> None:
+    evidence = proof.get("key_evidence_artifacts")
+    failures: list[dict[str, Any]] = []
+    if not isinstance(evidence, dict):
+        _record(
+            checks,
+            "key_evidence_artifacts_are_verifiable",
+            False,
+            {"failures": [{"key": "<root>", "reason": "missing_key_evidence_artifacts"}]},
+        )
+        return
+    missing = [key for key in REQUIRED_KEY_EVIDENCE_ARTIFACTS if not _is_sha256(evidence.get(key))]
+    for key in missing:
+        failures.append({"key": key, "reason": "missing_or_invalid_sha256"})
+    for key in REQUIRED_KEY_EVIDENCE_ARTIFACTS:
+        digest = evidence.get(key)
+        if not _is_sha256(digest):
+            continue
+        assert isinstance(digest, str)
+        payload = _load_artifact_payload(project_root / "artifacts", digest)
+        if not payload["ok"]:
+            failures.append({"key": key, "sha256": digest, "reason": payload["reason"]})
+            continue
+        parsed = payload["json"]
+        if key == "agentic_fix_loop":
+            _validate_agentic_fix_artifact(project_root, parsed, key, failures, proof)
+        elif key == "supervisor_recovery":
+            _validate_recovery_artifact(parsed, key, failures)
+        elif key == "fixture_fuzz_campaign":
+            _validate_fuzz_campaign_artifact(project_root, parsed, key, failures)
+        elif key == "bounded_autonomous_campaign":
+            _validate_bounded_campaign_artifact(project_root, parsed, key, failures)
+        elif key == "seeded_evaluation_cas":
+            if not isinstance(parsed, list):
+                failures.append({"key": key, "reason": "evaluation_payload_not_array"})
+            else:
+                _validate_evaluation_rows(parsed, key, failures)
+        elif key == "crash_reproduction":
+            _validate_crash_reproduction_artifact(project_root, parsed, key, failures)
+        elif key == "crash_verification":
+            _validate_crash_verification_artifact(project_root, parsed, key, failures)
+    _record(
+        checks,
+        "key_evidence_artifacts_are_verifiable",
+        not failures,
+        {"failures": failures},
+    )
+
+
+def _validate_agentic_fix_artifact(
+    project_root: Path,
+    payload: Any,
+    key: str,
+    failures: list[dict[str, Any]],
+    proof: dict[str, Any],
+) -> None:
+    if not isinstance(payload, dict):
+        failures.append({"key": key, "reason": "payload_not_object"})
+        return
+    targeted = payload.get("targeted")
+    regressions = payload.get("regressions")
+    verifier = payload.get("verifier")
+    invalid_verifier = payload.get("invalid_verifier")
+    proposal = payload.get("proposal")
+    diff = str(payload.get("diff", ""))
+    if not payload.get("run_id"):
+        failures.append({"key": key, "reason": "run_id_missing"})
+    if "fixtures/boot/boot.asm" not in diff or "mov al, '4'" not in diff:
+        failures.append({"key": key, "reason": "fixture_patch_diff_missing"})
+    if not isinstance(targeted, dict) or targeted.get("outcome") != "PASS":
+        failures.append({"key": key, "reason": "targeted_fix_not_pass"})
+    elif "OSLAB_BUG_VALUE 4" not in str(targeted.get("serial_log", "")):
+        failures.append({"key": key, "reason": "targeted_serial_missing_fixed_value"})
+    else:
+        _validate_artifact_reference_dict(project_root, targeted.get("artifacts"), key, failures)
+        details = targeted.get("details")
+        if not isinstance(details, dict) or details.get("network") != "none":
+            failures.append({"key": key, "reason": "targeted_network_not_disabled"})
+    if not isinstance(regressions, list) or len(regressions) < 2:
+        failures.append({"key": key, "reason": "regressions_incomplete"})
+    else:
+        modes = {
+            regression.get("details", {}).get("mode")
+            for regression in regressions
+            if isinstance(regression, dict) and isinstance(regression.get("details"), dict)
+        }
+        if not {"pass", "snapshot"}.issubset(modes):
+            failures.append({"key": key, "reason": "required_regression_modes_missing"})
+        for regression in regressions:
+            if not isinstance(regression, dict) or regression.get("outcome") != "PASS":
+                failures.append({"key": key, "reason": "regression_not_pass"})
+                continue
+            _validate_artifact_reference_dict(
+                project_root, regression.get("artifacts"), key, failures
+            )
+            details = regression.get("details")
+            if not isinstance(details, dict) or details.get("network") != "none":
+                failures.append({"key": key, "reason": "regression_network_not_disabled"})
+    if _structured_verdict(verifier) != "accept":
+        failures.append({"key": key, "reason": "valid_patch_not_accepted_by_verifier"})
+    if _structured_verdict(invalid_verifier) != "reject":
+        failures.append({"key": key, "reason": "invalid_solution_not_rejected"})
+    proposal_model = proposal.get("model") if isinstance(proposal, dict) else None
+    if isinstance(proposal_model, dict):
+        mismatches = _model_identity_mismatches(proposal_model, proof.get("model", {}))
+        if mismatches:
+            failures.append(
+                {"key": key, "reason": "proposal_model_mismatch", "mismatches": mismatches}
+            )
+    else:
+        failures.append({"key": key, "reason": "proposal_model_missing"})
+
+
+def _validate_recovery_artifact(payload: Any, key: str, failures: list[dict[str, Any]]) -> None:
+    if not isinstance(payload, dict):
+        failures.append({"key": key, "reason": "payload_not_object"})
+        return
+    integrity = payload.get("integrity")
+    if (
+        payload.get("controlled_exit_code") != 97
+        or payload.get("interrupted_state") != "GENERATE_TEST"
+        or payload.get("final_state") != "COMPLETE"
+        or payload.get("finding_count") != 1
+        or not _positive_int(payload.get("transition_count"))
+        or not isinstance(payload.get("crash_command"), list)
+        or not isinstance(payload.get("resume_command"), list)
+        or not payload.get("run_id")
+    ):
+        failures.append({"key": key, "reason": "recovery_summary_invalid"})
+    if not isinstance(integrity, dict) or integrity.get("ok") is not True:
+        failures.append({"key": key, "reason": "recovery_integrity_not_ok"})
+
+
+def _validate_fuzz_campaign_artifact(
+    project_root: Path, payload: Any, key: str, failures: list[dict[str, Any]]
+) -> None:
+    if not isinstance(payload, dict):
+        failures.append({"key": key, "reason": "payload_not_object"})
+        return
+    coverage = payload.get("coverage")
+    observations = payload.get("observations")
+    unique_findings = payload.get("unique_findings")
+    minimized = payload.get("minimized")
+    if not isinstance(coverage, dict) or coverage.get("complete") is not True:
+        failures.append({"key": key, "reason": "coverage_not_complete"})
+    else:
+        required_modes = {"pass", "fail", "crash", "hang", "seeded", "induced-infra"}
+        if not required_modes.issubset(set(coverage.get("modes", []))):
+            failures.append({"key": key, "reason": "coverage_modes_incomplete"})
+        if not {"PASS", "FAIL", "CRASH", "HANG", "INFRA_ERROR"}.issubset(
+            set(coverage.get("outcomes", []))
+        ):
+            failures.append({"key": key, "reason": "coverage_outcomes_incomplete"})
+    iterations = payload.get("iterations")
+    if not (isinstance(iterations, int) and not isinstance(iterations, bool) and iterations >= 6):
+        failures.append({"key": key, "reason": "iterations_insufficient"})
+    unique_inputs = payload.get("unique_inputs")
+    if not (
+        isinstance(unique_inputs, int)
+        and not isinstance(unique_inputs, bool)
+        and unique_inputs >= 6
+    ):
+        failures.append({"key": key, "reason": "unique_inputs_insufficient"})
+    if not isinstance(observations, list) or len(observations) < 6:
+        failures.append({"key": key, "reason": "observations_incomplete"})
+    else:
+        modes = {row.get("mode") for row in observations if isinstance(row, dict)}
+        outcomes = {row.get("outcome") for row in observations if isinstance(row, dict)}
+        if not {"pass", "fail", "crash", "hang", "seeded", "induced-infra"}.issubset(modes):
+            failures.append({"key": key, "reason": "observation_modes_incomplete"})
+        if not {"PASS", "FAIL", "CRASH", "HANG", "INFRA_ERROR"}.issubset(outcomes):
+            failures.append({"key": key, "reason": "observation_outcomes_incomplete"})
+        for observation in observations:
+            if isinstance(observation, dict):
+                _validate_artifact_reference_dict(
+                    project_root, observation.get("artifacts"), key, failures
+                )
+    if not isinstance(unique_findings, dict) or len(unique_findings) < 4:
+        failures.append({"key": key, "reason": "unique_findings_incomplete"})
+    if not isinstance(minimized, dict) or minimized.get("replay_outcome") != "CRASH":
+        failures.append({"key": key, "reason": "minimized_crash_not_replayed"})
+    else:
+        original_bytes = minimized.get("original_bytes")
+        minimized_bytes = minimized.get("minimized_bytes")
+        if (
+            not isinstance(original_bytes, int)
+            or isinstance(original_bytes, bool)
+            or not isinstance(minimized_bytes, int)
+            or isinstance(minimized_bytes, bool)
+            or original_bytes <= 0
+            or minimized_bytes <= 0
+        ):
+            failures.append({"key": key, "reason": "minimized_size_invalid"})
+        elif minimized_bytes > original_bytes:
+            failures.append({"key": key, "reason": "minimized_larger_than_original"})
+
+
+def _validate_bounded_campaign_artifact(
+    project_root: Path, payload: Any, key: str, failures: list[dict[str, Any]]
+) -> None:
+    if not isinstance(payload, dict):
+        failures.append({"key": key, "reason": "payload_not_object"})
+        return
+    if (
+        payload.get("target") != "fixture"
+        or payload.get("hypotheses_generated") is not True
+        or payload.get("tests_executed") is not True
+        or payload.get("errors_handled") is not True
+        or payload.get("findings_deduplicated") is not True
+        or not payload.get("campaign_id")
+    ):
+        failures.append({"key": key, "reason": "bounded_campaign_summary_invalid"})
+    recovery = payload.get("recovery")
+    if not isinstance(recovery, dict) or recovery.get("final_state") != "COMPLETE":
+        failures.append({"key": key, "reason": "bounded_campaign_recovery_invalid"})
+    fuzz = payload.get("fuzz")
+    if not isinstance(fuzz, dict):
+        failures.append({"key": key, "reason": "bounded_campaign_fuzz_missing"})
+    else:
+        _validate_fuzz_campaign_artifact(project_root, fuzz, key, failures)
+
+
+def _validate_crash_reproduction_artifact(
+    project_root: Path, payload: Any, key: str, failures: list[dict[str, Any]]
+) -> None:
+    if not isinstance(payload, dict):
+        failures.append({"key": key, "reason": "payload_not_object"})
+        return
+    cold_boots = payload.get("cold_boots")
+    if (
+        not (isinstance(cold_boots, int) and not isinstance(cold_boots, bool) and cold_boots >= 2)
+        or payload.get("stable") is not True
+        or payload.get("mode") != "crash"
+    ):
+        failures.append({"key": key, "reason": "crash_reproduction_summary_invalid"})
+    outcomes = payload.get("outcomes")
+    fingerprints = payload.get("fingerprints")
+    expected = payload.get("expected_fingerprint")
+    fingerprint_values = (
+        [fingerprint for fingerprint in fingerprints if isinstance(fingerprint, str)]
+        if isinstance(fingerprints, list)
+        else []
+    )
+    if (
+        not isinstance(outcomes, list)
+        or len(outcomes) < 2
+        or any(outcome != "CRASH" for outcome in outcomes)
+    ):
+        failures.append({"key": key, "reason": "crash_outcomes_invalid"})
+    if (
+        not isinstance(fingerprints, list)
+        or len(fingerprint_values) != len(fingerprints)
+        or len(fingerprint_values) < 2
+        or len(set(fingerprint_values)) != 1
+        or not _is_sha256(expected)
+        or fingerprint_values[0] != expected
+    ):
+        failures.append({"key": key, "reason": "crash_fingerprint_not_stable"})
+    _validate_artifact_reference_list(project_root, payload.get("artifacts"), key, failures)
+
+
+def _validate_crash_verification_artifact(
+    project_root: Path, payload: Any, key: str, failures: list[dict[str, Any]]
+) -> None:
+    if not isinstance(payload, dict):
+        failures.append({"key": key, "reason": "payload_not_object"})
+        return
+    if payload.get("accepted") is not True or payload.get("expected") != "CRASH":
+        failures.append({"key": key, "reason": "crash_verification_not_accepted"})
+    _validate_crash_reproduction_artifact(project_root, payload, key, failures)
+
+
+def _validate_artifact_reference_list(
+    project_root: Path, value: Any, key: str, failures: list[dict[str, Any]]
+) -> None:
+    if not isinstance(value, list) or not value:
+        failures.append({"key": key, "reason": "artifact_reference_list_missing"})
+        return
+    for item in value:
+        _validate_artifact_reference_dict(project_root, item, key, failures)
+
+
+def _validate_artifact_reference_dict(
+    project_root: Path, value: Any, key: str, failures: list[dict[str, Any]]
+) -> None:
+    if not isinstance(value, dict):
+        failures.append({"key": key, "reason": "artifact_reference_missing"})
+        return
+    for name in ("serial", "stderr"):
+        digest = value.get(name)
+        if not _is_sha256(digest):
+            failures.append({"key": key, "reason": f"{name}_artifact_hash_invalid"})
+            continue
+        assert isinstance(digest, str)
+        if not _artifact_blob_exists(project_root / "artifacts", digest):
+            failures.append({"key": key, "reason": f"{name}_artifact_missing", "sha256": digest})
+
+
+def _artifact_blob_exists(artifact_root: Path, digest: str) -> bool:
+    path = artifact_root / "blobs" / "sha256" / digest[:2] / digest
+    return path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == digest
+
+
+def _structured_verdict(value: Any) -> str | None:
+    if not isinstance(value, dict):
+        return None
+    structured = value.get("structured")
+    if isinstance(structured, dict):
+        verdict = structured.get("verdict")
+        return str(verdict) if verdict is not None else None
+    return None
 
 
 def _check_gate_summary(proof: dict[str, Any], checks: list[dict[str, Any]]) -> None:
