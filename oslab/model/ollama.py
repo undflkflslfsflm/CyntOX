@@ -76,6 +76,7 @@ class OllamaProvider(ModelProvider):
         }
         if schema is not None:
             request["format"] = schema
+            request["think"] = False
         started = utc_now()
         async with httpx.AsyncClient(timeout=timeout or self.config.timeout_seconds) as client:
             response = await client.post(f"{self.config.endpoint}/api/chat", json=request)

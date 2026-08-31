@@ -1,0 +1,30 @@
+import asyncio
+from pathlib import Path
+
+import pytest
+
+from oslab.model import QwenCodeWorker
+
+
+@pytest.mark.live
+def test_qwen_code_uses_only_brokered_mcp_tool() -> None:
+    worker = QwenCodeWorker(Path.cwd())
+    response = asyncio.run(
+        worker.complete(
+            [
+                {
+                    "role": "user",
+                    "content": (
+                        "Invoke mcp__oslab__policy_remaining_budget exactly once, then reply "
+                        "exactly MCP_BUDGET_OK."
+                    ),
+                }
+            ],
+            seed=3,
+            timeout=120,
+        )
+    )
+    assert response.content == "MCP_BUDGET_OK"
+    assert worker.tool_calls() == ["mcp__oslab__policy_remaining_budget"]
+    assert set(worker.last_events[0]["tools"]) == worker.allowed_tools
+    assert worker.last_events[0]["mcp_servers"] == [{"name": "oslab", "status": "connected"}]

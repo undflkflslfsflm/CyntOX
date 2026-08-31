@@ -17,6 +17,7 @@
           "contextWindowSize": 16384,
           "splitToolMedia": true,
           "extra_body": {
+            "think": false,
             "options": {
               "num_ctx": 16384
             }
@@ -41,24 +42,53 @@
     "name": "qwen-os-lab-worker:latest",
     "maxSessionTurns": 6,
     "maxWallTimeSeconds": 120,
-    "maxToolCalls": 0,
+    "maxToolCalls": 4,
     "maxSubagentDepth": 1
   },
   "tools": {
-    "approvalMode": "plan",
+    "approvalMode": "yolo",
+    "visible": [
+      "mcp__oslab__policy_remaining_budget",
+      "mcp__oslab__fixture_explain"
+    ],
+    "toolSearch": {
+      "enabled": false
+    },
     "disabled": [
       "agent",
+      "cron_create",
+      "cron_delete",
+      "cron_list",
       "edit",
+      "enter_worktree",
+      "exit_worktree",
+      "get_goal",
       "google_web_search",
+      "grep_search",
+      "glob",
       "list_directory",
+      "list_agents",
+      "loop_wakeup",
+      "monitor",
+      "notebook_edit",
       "read_file",
       "read_many_files",
+      "read_mcp_resource",
+      "record_artifact",
       "replace",
+      "report_findings",
       "run_shell_command",
       "save_memory",
+      "send_message",
+      "skill",
       "task",
+      "task_stop",
+      "todo_write",
+      "tool_search",
+      "update_goal",
       "web_fetch",
-      "write_file"
+      "write_file",
+      "zoom_image"
     ]
   },
   "general": {
@@ -71,6 +101,29 @@
   },
   "privacy": {
     "usageStatisticsEnabled": false
+  },
+  "memory": {
+    "enableManagedAutoMemory": false,
+    "enableManagedAutoDream": false,
+    "enableAutoSkill": false,
+    "enableTeamMemory": false,
+    "enableTeamMemorySync": false
+  },
+  "mcpServers": {
+    "oslab": {
+      "command": ".venv\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "oslab.mcp_server"
+      ],
+      "cwd": ".",
+      "includeTools": [
+        "policy_remaining_budget",
+        "fixture_explain"
+      ],
+      "timeout": 15000,
+      "trust": true
+    }
   },
   "output": {
     "format": "json"

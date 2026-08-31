@@ -37,3 +37,27 @@
 - Context: native Windows QEMU and compiler tools are absent, while Docker Desktop 4.88.1 and WSL2 are operational.
 - Decision: build a pinned Linux container containing NASM and QEMU and run the true fixture under TCG. Do not install system-wide packages.
 - Consequence: WHPX is unavailable inside the Linux container; TCG performance will be measured and classified honestly.
+
+## D-006 — Give Qwen Code a larger zero-copy Ollama wrapper
+
+- Status: accepted
+- Date: 2026-08-31
+- Context: Qwen Code 0.22.3 sends an approximately 8.6k-token initial prompt, while the installed model's default Modelfile limited context to 8,192. The native architecture declares 262,144, and a 16,384-token wrapper ran stably.
+- Decision: create `qwen-os-lab-worker:latest` from the existing Ollama blob with `num_ctx 16384`; do not duplicate or download model weights.
+- Consequence: the user's original model remains unchanged and Qwen Code can complete its two-turn MCP smoke.
+
+## D-007 — Fail closed around Qwen Code tools
+
+- Status: accepted
+- Date: 2026-08-31
+- Context: project MCP servers remain pending in non-interactive runs unless Qwen Code uses its non-prompting approval mode. Its `yolo` label would be unsafe with ordinary built-ins.
+- Decision: disable every observed built-in tool, surface only two read-only MCP tools, mark both idempotent/non-destructive, and have `QwenCodeWorker` reject any startup tool set other than those exact names.
+- Consequence: approval is automatic inside a smaller capability boundary. A Qwen Code upgrade that introduces an unexpected tool causes the adapter to abort before trusting the result.
+
+## D-008 — Classify the missing real OS as Gate L only
+
+- Status: accepted
+- Date: 2026-08-31
+- Context: bounded discovery found a dedicated orchestrator but no authorized OS source tree or build manifest.
+- Decision: complete every fixture/framework gate and report the overall goal blocked rather than complete. The smallest unlocking input is a local OS source path and its build entry point.
+- Consequence: no unrelated filesystem crawl or guessed target integration is attempted.
