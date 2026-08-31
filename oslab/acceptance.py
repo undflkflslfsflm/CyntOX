@@ -162,10 +162,12 @@ def _check_gate_summary(proof: dict[str, Any], checks: list[dict[str, Any]]) -> 
     _record(checks, "gate_summary_matches_contract", not mismatches, {"mismatches": mismatches})
 
     blocked_gate = proof.get("blocked_gate", {})
+    reason = str(blocked_gate.get("reason", "")) if isinstance(blocked_gate, dict) else ""
     gate_l_precise = (
         isinstance(blocked_gate, dict)
         and blocked_gate.get("gate") == "L"
-        and "authorized OS source" in str(blocked_gate.get("reason", ""))
+        and "authorized" in reason
+        and "OS source" in reason
         and "AUTHORIZED_OS_SOURCE_PATH" in str(blocked_gate.get("resume_command", ""))
     )
     _record(checks, "gate_l_blocker_is_precise", gate_l_precise, {"blocked_gate": blocked_gate})

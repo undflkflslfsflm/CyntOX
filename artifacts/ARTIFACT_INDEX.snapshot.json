@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-31T21:26:38Z",
+  "generated_at": "2026-08-31T21:28:24Z",
   "entries": [
     {
       "bytes": 7888,
@@ -75,6 +75,11 @@
       "bytes": 4171,
       "path": "docs/MODEL_RUNTIME_REPORT.md",
       "sha256": "b656e526b0fc0c7c6217aff0cde9ae780b94781c9ed4664542c63bda0364d7ff"
+    },
+    {
+      "bytes": 830,
+      "path": "docs/HARDWARE_REPORT.md",
+      "sha256": "2ee52828e3c997202a8e8139d8a473f62d0b2d4ebe0783a489f04627bf63ba59"
     },
     {
       "bytes": 1936,
