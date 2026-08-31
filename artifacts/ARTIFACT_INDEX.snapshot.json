@@ -1,6 +1,81 @@
 {
-  "generated_at": "2026-08-31T23:10:54Z",
+  "generated_at": "2026-08-31T23:22:22Z",
   "entries": [
+    {
+      "bytes": 1873,
+      "path": "README.md",
+      "sha256": "0bb8125147f7cb17954aacfec12025579598fed9e4855760aba3e1f46364ee77"
+    },
+    {
+      "bytes": 5501,
+      "path": "FINAL_REPORT.md",
+      "sha256": "ccd5778db139c1d02fd7a8b51af43a381dda66ccac07f246b20f5bd44173c3cb"
+    },
+    {
+      "bytes": 5819,
+      "path": "PROOF.json",
+      "sha256": "4bc77faf1cf279c463af0ae9318c5adbc0102c3ba5cdea76a7ecd11d88d8e97b"
+    },
+    {
+      "bytes": 4013,
+      "path": "docs/ARCHITECTURE.md",
+      "sha256": "a930833d31a4f4f35a145de0e5a4d09e598b05de76195e94a983cbd162f8f96c"
+    },
+    {
+      "bytes": 3226,
+      "path": "docs/THREAT_MODEL.md",
+      "sha256": "8cb31af83c374c2fbd0d4e0ee7868418c7ec58e96a1cf4fa9a9b5ca429c94c22"
+    },
+    {
+      "bytes": 3782,
+      "path": "docs/RUNBOOK.md",
+      "sha256": "b2709835c7271c1d5961590ffaa10a240523095d996d5f237660b96345a9365b"
+    },
+    {
+      "bytes": 4171,
+      "path": "docs/MODEL_RUNTIME_REPORT.md",
+      "sha256": "b656e526b0fc0c7c6217aff0cde9ae780b94781c9ed4664542c63bda0364d7ff"
+    },
+    {
+      "bytes": 2440,
+      "path": "docs/REAL_OS_INTEGRATION.md",
+      "sha256": "468a1a3537ee6ba77f79cb1504afcb3f7f2d2f0721d3e5d38f388d09a2a0e6dd"
+    },
+    {
+      "bytes": 1364,
+      "path": "docs/TRAINING_READINESS.md",
+      "sha256": "200b75e10cc52c17011f2bcd5fe33f27ca0a8487c2b1aefef20e5c7baf538137"
+    },
+    {
+      "bytes": 1077,
+      "path": "docs/KNOWN_LIMITATIONS.md",
+      "sha256": "7d23389fb3759d1b74ed06fa1d7cc1b5708178fcabe19a7c2c0ade702915cc64"
+    },
+    {
+      "bytes": 1141,
+      "path": "docs/NEXT_EXPERIMENTS.md",
+      "sha256": "b689f48b0574c30db9632cfc83d4467e1944235ab4a2e7d832cdc7ff04cc0851"
+    },
+    {
+      "bytes": 830,
+      "path": "docs/HARDWARE_REPORT.md",
+      "sha256": "2ee52828e3c997202a8e8139d8a473f62d0b2d4ebe0783a489f04627bf63ba59"
+    },
+    {
+      "bytes": 3738,
+      "path": "docs/OSLAB_EXECPLAN.md",
+      "sha256": "1f5483e035cc5421647bbb648e0072cf4881c961d01dbb4f2a9e01168d4400d2"
+    },
+    {
+      "bytes": 8227,
+      "path": "docs/OSLAB_PROGRESS.md",
+      "sha256": "c9adb674e4f9d586099590793e454347f15ea9291711426ee256d4c5bb8c90df"
+    },
+    {
+      "bytes": 11396,
+      "path": "docs/OSLAB_DECISIONS.md",
+      "sha256": "f910c1641348fee332163c66e37782c77b1b0fea6593eb45ea0ef5db6e31bf73"
+    },
     {
       "bytes": 7888,
       "path": "artifacts/discovery/hardware-report.json",
@@ -60,81 +135,6 @@
       "bytes": 1107,
       "path": "config/oslab-target.example.toml",
       "sha256": "d9dc6d9614b6af4e8b8ace2f92b953f4cf47f58cee2ac8ab5853f1e8c06c36f1"
-    },
-    {
-      "bytes": 4013,
-      "path": "docs/ARCHITECTURE.md",
-      "sha256": "a930833d31a4f4f35a145de0e5a4d09e598b05de76195e94a983cbd162f8f96c"
-    },
-    {
-      "bytes": 3226,
-      "path": "docs/THREAT_MODEL.md",
-      "sha256": "8cb31af83c374c2fbd0d4e0ee7868418c7ec58e96a1cf4fa9a9b5ca429c94c22"
-    },
-    {
-      "bytes": 3688,
-      "path": "docs/RUNBOOK.md",
-      "sha256": "fbef416f6d51a50181de4c65a5d2ccde67a9929b45222f92e9ae31a3803bb1e1"
-    },
-    {
-      "bytes": 4171,
-      "path": "docs/MODEL_RUNTIME_REPORT.md",
-      "sha256": "b656e526b0fc0c7c6217aff0cde9ae780b94781c9ed4664542c63bda0364d7ff"
-    },
-    {
-      "bytes": 830,
-      "path": "docs/HARDWARE_REPORT.md",
-      "sha256": "2ee52828e3c997202a8e8139d8a473f62d0b2d4ebe0783a489f04627bf63ba59"
-    },
-    {
-      "bytes": 2440,
-      "path": "docs/REAL_OS_INTEGRATION.md",
-      "sha256": "468a1a3537ee6ba77f79cb1504afcb3f7f2d2f0721d3e5d38f388d09a2a0e6dd"
-    },
-    {
-      "bytes": 1364,
-      "path": "docs/TRAINING_READINESS.md",
-      "sha256": "200b75e10cc52c17011f2bcd5fe33f27ca0a8487c2b1aefef20e5c7baf538137"
-    },
-    {
-      "bytes": 1077,
-      "path": "docs/KNOWN_LIMITATIONS.md",
-      "sha256": "7d23389fb3759d1b74ed06fa1d7cc1b5708178fcabe19a7c2c0ade702915cc64"
-    },
-    {
-      "bytes": 1141,
-      "path": "docs/NEXT_EXPERIMENTS.md",
-      "sha256": "b689f48b0574c30db9632cfc83d4467e1944235ab4a2e7d832cdc7ff04cc0851"
-    },
-    {
-      "bytes": 1873,
-      "path": "README.md",
-      "sha256": "0bb8125147f7cb17954aacfec12025579598fed9e4855760aba3e1f46364ee77"
-    },
-    {
-      "bytes": 5438,
-      "path": "FINAL_REPORT.md",
-      "sha256": "0cdc9e1a2e84dfa4d0d4a8cfbcb9df0f31e9cd0cc405e94b31fff75a2e9a6f9a"
-    },
-    {
-      "bytes": 5113,
-      "path": "PROOF.json",
-      "sha256": "947b12b8a3e707d97090c8becf4fefe57ba55389b2199cd3f7e791231f4c014f"
-    },
-    {
-      "bytes": 7712,
-      "path": "docs/OSLAB_PROGRESS.md",
-      "sha256": "5f0928771ca919a0e931e85fcecef0ff4e70054c8f4b0bbc0b1bf1e2d8110331"
-    },
-    {
-      "bytes": 3761,
-      "path": "docs/OSLAB_EXECPLAN.md",
-      "sha256": "0f44e43c8f539ad181ce6a0aadca13bfa376f43579f0c6c69968610178d53ac8"
-    },
-    {
-      "bytes": 10503,
-      "path": "docs/OSLAB_DECISIONS.md",
-      "sha256": "fb6c3ab93d54ec96d3237048b80c0f22f5430c6c7eb1a62a6b34fe0977093004"
     }
   ]
 }

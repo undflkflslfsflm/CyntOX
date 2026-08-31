@@ -133,3 +133,11 @@
 - Context: `PROOF.json` recorded `uv lock --check` and frozen/offline `pnpm install`, but `oslab selftest --live --json` did not itself run those dependency checks.
 - Decision: run `uv lock --check` and `pnpm install --frozen-lockfile --offline` inside `selftest`, and make acceptance reject selftest proof blobs that omit either command.
 - Consequence: the one-command proof now covers Python and Qwen Code dependency reproducibility before quality checks, QEMU/live tests, and integrity checks.
+
+## D-018 — Machine-check key evidence artifacts
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: the final proof named the major evidence streams, but acceptance needed to prove that the decisive fixture/QEMU/recovery/agentic artifacts were real CAS blobs with the expected structured contents.
+- Decision: require `PROOF.json` to record key evidence hashes for the agentic fix loop, supervisor recovery, fixture fuzz campaign, bounded autonomous campaign, seeded evaluation CAS, crash reproduction, and crash verification. The audit opens each blob, verifies its SHA-256 path, validates the expected PASS/FAIL/CRASH/HANG/INFRA outcomes and live-model metadata, and verifies nested serial/stderr artifact references.
+- Consequence: final acceptance fails if a decisive evidence artifact is missing, corrupt, stale, semantically empty, or no longer matches the recorded model/proof claims.

@@ -18,8 +18,8 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Live agentic fix loop repaired the seeded fixture in a disposable worktree and rejected an invalid evaluator edit.
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
-- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `db19582`, including `uv lock --check`, frozen/offline `pnpm install`, and `ruff format --check .`.
-- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, semantic artifact contents, artifact-index hashes, real selftest proof artifacts, live Ollama/Qwen Code stdout, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. The recorded audit-artifact check now rejects stale audit blobs that lack the semantic-content or live-output checks. Saved audit artifact: `520fd8e0df72e7e3859b327da998933b449a3c39ea99a18ee2a1b5508ebcb307`.
+- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `0f75f18`, including `uv lock --check`, frozen/offline `pnpm install`, and `ruff format --check .`.
+- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, semantic artifact contents, key evidence CAS artifacts, artifact-index hashes, real selftest proof artifacts, live Ollama/Qwen Code stdout, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. The recorded audit-artifact check rejects stale audit blobs, and the key-evidence check rejects missing/corrupt/semantically invalid decisive artifacts. Saved audit artifact: `520fd8e0df72e7e3859b327da998933b449a3c39ea99a18ee2a1b5508ebcb307`.
 - Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, and a `target validate-manifest` command. The validator rejects path traversal, source-root escapes, missing smoke tests, non-isolated QEMU networking, branch-like base commits, and shell-eval command wrappers before any real target build is attempted.
 
 ## Tested but Limited
@@ -52,9 +52,9 @@ The path must point to the authorized OS source and its existing build entry poi
 
 ## Final Verification
 
-- Main checkout selftest at `db19582`: PASS, proof artifact `c42266165619f7b60c0aab22e92dc92730464ce348a9cc7e5852f6b8ebd5f622`; checkout remained clean afterward.
-- Clean checkout bootstrap at `db19582`: PASS
-- Clean checkout selftest: PASS, proof artifact `57daf107253fd6629de0efa9d433d271fe90f4a804032173934499d25ee35136`; checkout remained clean afterward.
+- Main checkout selftest at `0f75f18`: PASS, proof artifact `41ce6489a070663803e96e14cbaa13529de4f5993e6d55a5851fe4fb3222b678`; checkout remained clean afterward.
+- Clean checkout bootstrap at `0f75f18`: PASS
+- Clean checkout selftest: PASS, proof artifact `b1d14c436a69df660b3115bdf166567f609f6b1df041b99433703422a1c45757`; checkout remained clean afterward.
 - Acceptance audit: PASS, artifact `520fd8e0df72e7e3859b327da998933b449a3c39ea99a18ee2a1b5508ebcb307`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Machine proof: `PROOF.json`

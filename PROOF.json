@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-31T23:10:34Z",
+  "generated_at": "2026-08-31T23:22:22Z",
   "goal_status": "blocked_on_gate_l",
-  "source_commit_verified": "db19582",
-  "source_commit_full": "db19582747331e70a16689eafadd53b1dd71abc1",
+  "source_commit_verified": "0f75f18",
+  "source_commit_full": "0f75f18c4931aca55452073b99731dab74c8622a",
   "branch": "codex/qwen-os-lab",
   "blocked_gate": {
     "gate": "L",
@@ -32,7 +32,7 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m pytest -m \"not live and not qemu\" -q",
       "exit_code": 0,
-      "stdout": "45 passed, 4 deselected"
+      "stdout": "46 passed, 4 deselected"
     },
     {
       "scope": "main checkout",
@@ -48,21 +48,21 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "c42266165619f7b60c0aab22e92dc92730464ce348a9cc7e5852f6b8ebd5f622",
-      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 49 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the main checkout clean."
+      "proof_sha256": "41ce6489a070663803e96e14cbaa13529de4f5993e6d55a5851fe4fb3222b678",
+      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 50 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the main checkout clean."
     },
     {
       "scope": "clean checkout",
       "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
       "exit_code": 0,
-      "worktree": ".oslab\\clean-checkouts\\db19582"
+      "worktree": ".oslab\\clean-checkouts\\0f75f18"
     },
     {
       "scope": "clean checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "57daf107253fd6629de0efa9d433d271fe90f4a804032173934499d25ee35136",
-      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 49 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
+      "proof_sha256": "b1d14c436a69df660b3115bdf166567f609f6b1df041b99433703422a1c45757",
+      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 50 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
     },
     {
       "scope": "main checkout",
@@ -99,6 +99,15 @@
     "training_jsonl": "artifacts/training/dry-run/trajectories.jsonl",
     "training_parquet": "artifacts/training/dry-run/trajectories.parquet",
     "artifact_index": "artifacts/ARTIFACT_INDEX.snapshot.json"
+  },
+  "key_evidence_artifacts": {
+    "agentic_fix_loop": "d9d9cd955543fc8eb385cb76bf47119112cab9220d102cdf6b2cd2e4dc9820b2",
+    "supervisor_recovery": "9dcc166333912c4ad2e5ca06597a23158c9aaa98778b41387bf3c6d74fd1f7d1",
+    "fixture_fuzz_campaign": "f49ba28548559c5086b824e07c61f2256942f8dd05bd744f4677d3410084dbb2",
+    "bounded_autonomous_campaign": "1906ac688b0eeeb023aa9a6c74da0b2588eadfbc8fc450e210ad090b83cf9e82",
+    "seeded_evaluation_cas": "f88e00dc0789d26059d863428c211b3104a9ff283f96b8337630c6518a0672aa",
+    "crash_reproduction": "6484730e8af4c425d89359366e6c6553a5cd9a119982b70434bea9282e4cf77c",
+    "crash_verification": "79fd55b24ee8f8f0af4d2f79a3334849bb84a25ba0429ccf0b846422eac1ca69"
   },
   "model": {
     "runtime": "Ollama",
