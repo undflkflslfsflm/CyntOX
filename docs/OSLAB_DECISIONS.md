@@ -125,3 +125,11 @@
 - Context: after adding semantic artifact-content validation and live selftest stdout cross-checks, an older recorded acceptance-audit blob could still satisfy the audit-artifact meta-check if only the original core check names were required.
 - Decision: require the recorded acceptance-audit artifact to include the semantic artifact-content check and live selftest stdout cross-check as `PASS`, while still excluding the recursive audit-artifact self-check.
 - Consequence: `acceptance audit` fails if `PROOF.json` points at a stale audit artifact that predates the newer proof validations.
+
+## D-017 — Include dependency reproducibility in selftest proof
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: `PROOF.json` recorded `uv lock --check` and frozen/offline `pnpm install`, but `oslab selftest --live --json` did not itself run those dependency checks.
+- Decision: run `uv lock --check` and `pnpm install --frozen-lockfile --offline` inside `selftest`, and make acceptance reject selftest proof blobs that omit either command.
+- Consequence: the one-command proof now covers Python and Qwen Code dependency reproducibility before quality checks, QEMU/live tests, and integrity checks.
