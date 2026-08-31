@@ -855,11 +855,20 @@ def _write_summary_report(config: Any, experiment: str) -> dict[str, Any]:
     evaluation = config.artifacts_root / "evaluation" / "seeded-results.json"
     database = LabDatabase(config.runtime_root / "oslab.sqlite3")
     database.migrate()
+    target = inspect_targets(config)
+    report_dir = config.artifacts_root / "reports"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    json_path = report_dir / f"{experiment}-report.json"
+    md_path = report_dir / f"{experiment}-report.md"
+    artifact_integrity = ArtifactStore(config.artifacts_root).verify(
+        exclude_logical_names={json_path.name}
+    )
+    artifact_integrity.pop("excluded", None)
+    artifact_integrity["scope"] = f"excludes prior {json_path.name} self-artifacts"
     integrity = {
         "database": database.integrity_check(),
-        "artifacts": ArtifactStore(config.artifacts_root).verify(),
+        "artifacts": artifact_integrity,
     }
-    target = inspect_targets(config)
     summary: dict[str, Any] = {
         "experiment": experiment,
         "discovery": _load_json_if_exists(discovery),
@@ -868,10 +877,6 @@ def _write_summary_report(config: Any, experiment: str) -> dict[str, Any]:
         "target": target,
         "integrity": integrity,
     }
-    report_dir = config.artifacts_root / "reports"
-    report_dir.mkdir(parents=True, exist_ok=True)
-    json_path = report_dir / f"{experiment}-report.json"
-    md_path = report_dir / f"{experiment}-report.md"
     with json_path.open("w", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(summary, indent=2, default=str) + "\n")
     with md_path.open("w", encoding="utf-8", newline="\n") as handle:

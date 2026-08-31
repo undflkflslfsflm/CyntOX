@@ -15,3 +15,17 @@ def test_content_addressed_storage_and_tamper_detection(tmp_path: Path) -> None:
     with pytest.raises(OSError, match="integrity"):
         store.get(first.sha256)
     assert not store.verify()["ok"]
+
+
+def test_integrity_can_exclude_report_artifacts_by_logical_name(tmp_path: Path) -> None:
+    store = ArtifactStore(tmp_path)
+    report = store.put_bytes(b"report", "latest-report.json")
+    evidence = store.put_bytes(b"evidence", "evidence.json")
+
+    result = store.verify(exclude_logical_names={"latest-report.json"})
+
+    assert result["ok"]
+    assert result["checked"] == 1
+    assert result["excluded"] == 1
+    assert store.get(evidence.sha256) == b"evidence"
+    assert store.get(report.sha256) == b"report"

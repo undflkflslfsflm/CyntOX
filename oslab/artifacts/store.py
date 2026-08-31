@@ -67,18 +67,39 @@ class ArtifactStore:
             raise OSError("artifact integrity mismatch")
         return data
 
-    def verify(self) -> dict[str, Any]:
+    def verify(self, exclude_logical_names: set[str] | None = None) -> dict[str, Any]:
+        excluded_names = exclude_logical_names or set()
+        excluded_hashes = self._hashes_for_logical_names(excluded_names)
         checked = 0
+        excluded = 0
         failures: list[str] = []
         for path in self.blobs.glob("*/*"):
             if not path.is_file():
                 continue
+            if path.name in excluded_hashes:
+                excluded += 1
+                continue
             checked += 1
             if self.digest(path.read_bytes()) != path.name:
                 failures.append(str(path))
-        return {"checked": checked, "failures": failures, "ok": not failures}
+        return {"checked": checked, "excluded": excluded, "failures": failures, "ok": not failures}
 
     def _append_index(self, record: ArtifactRecord) -> None:
         self.index.parent.mkdir(parents=True, exist_ok=True)
         with self.index.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(json.dumps(asdict(record), sort_keys=True) + "\n")
+
+    def _hashes_for_logical_names(self, logical_names: set[str]) -> set[str]:
+        if not logical_names or not self.index.is_file():
+            return set()
+        hashes: set[str] = set()
+        for line in self.index.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if row.get("logical_name") in logical_names and isinstance(row.get("sha256"), str):
+                hashes.add(row["sha256"])
+        return hashes
