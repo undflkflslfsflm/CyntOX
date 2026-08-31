@@ -56,11 +56,15 @@ def _run(argv: list[str], timeout: float = 10.0) -> dict[str, Any]:
         return {
             "argv": argv,
             "exit_code": completed.returncode,
-            "stdout": completed.stdout.strip()[:8192],
-            "stderr": completed.stderr.strip()[:8192],
+            "stdout": _normalize_command_text(completed.stdout)[:8192],
+            "stderr": _normalize_command_text(completed.stderr)[:8192],
         }
     except (OSError, subprocess.TimeoutExpired) as exc:
         return {"argv": argv, "error": type(exc).__name__, "message": str(exc)}
+
+
+def _normalize_command_text(value: str) -> str:
+    return value.replace("\x00", "").strip()
 
 
 def _version(path: str | None) -> dict[str, Any]:

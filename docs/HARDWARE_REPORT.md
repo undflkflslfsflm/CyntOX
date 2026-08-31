@@ -1,12 +1,12 @@
 # Hardware Report
 
-Generated: `2026-08-31T14:25:27.468559+00:00`
+Generated: `2026-08-31T20:59:49.209891+00:00`
 
 ## Host
 
 - OS: Windows 11 (AMD64)
 - CPU: Intel64 Family 6 Model 183 Stepping 1, GenuineIntel — 24 cores / 32 threads
-- RAM: 63.79 GiB total; 48.43 GiB available during discovery
+- RAM: 63.79 GiB total; 43.00 GiB available during discovery
 - GPU: NVIDIA GeForce RTX 4090 — 24564 MiB VRAM, driver 581.80
 
 ## Runtime and virtualization
