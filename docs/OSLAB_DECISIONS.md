@@ -93,3 +93,11 @@
 - Context: a proof hash is weak evidence unless the referenced content-addressed blob exists and contains the expected selftest result.
 - Decision: have `acceptance audit` load the main and clean checkout selftest proof artifacts, verify their SHA-256 digests, parse their JSON, require `status = PASS`, and check that every expected selftest subcommand is present with exit code 0.
 - Consequence: the final audit fails if proof metadata points at a missing/corrupt/incomplete selftest artifact instead of relying on hash-shaped strings in `PROOF.json`.
+
+## D-013 — Verify the recorded acceptance audit artifact
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: `PROOF.json` records the saved acceptance audit hash, but the audit should prove that the referenced blob exists and contains a passing audit rather than trusting metadata.
+- Decision: have `acceptance audit` load the recorded `acceptance-gate-audit.json` artifact, verify its SHA-256 digest, parse its JSON, require `status = PASS`, `ok = true`, no failed checks, and all non-recursive acceptance checks present as `PASS`.
+- Consequence: the final proof cannot point at a missing, corrupt, failing, or incomplete acceptance audit artifact.
