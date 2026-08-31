@@ -13,6 +13,7 @@ from typing import Annotated, Any
 
 import typer
 
+from oslab.acceptance import audit_acceptance
 from oslab.artifacts import ArtifactStore
 from oslab.campaign import prove_recovery
 from oslab.config import default_config, load_config
@@ -36,6 +37,7 @@ campaign_app = typer.Typer(no_args_is_help=True, help="Run bounded persistent ca
 fuzz_app = typer.Typer(no_args_is_help=True, help="Run and replay bounded fixture fuzzing")
 eval_app = typer.Typer(no_args_is_help=True, help="Run seeded evaluation variants")
 training_app = typer.Typer(no_args_is_help=True, help="Export training-ready trajectories")
+acceptance_app = typer.Typer(no_args_is_help=True, help="Audit final acceptance evidence")
 app.add_typer(model_app, name="model")
 app.add_typer(integrity_app, name="integrity")
 app.add_typer(target_app, name="target")
@@ -43,6 +45,7 @@ app.add_typer(campaign_app, name="campaign")
 app.add_typer(fuzz_app, name="fuzz")
 app.add_typer(eval_app, name="eval")
 app.add_typer(training_app, name="training")
+app.add_typer(acceptance_app, name="acceptance")
 
 TRAINING_DRY_RUN_TIMESTAMP = datetime(2026, 8, 31, tzinfo=UTC)
 
@@ -520,6 +523,24 @@ def training_dry_run(
     result["reload"] = _training_reload_summary(Path(result["jsonl"]), Path(result["parquet"]))
     record = ArtifactStore(config.artifacts_root).put_json(result, "training-dry-run-summary.json")
     _emit({**result, "artifact_sha256": record.sha256}, json_output)
+
+
+@acceptance_app.command("audit")
+def acceptance_audit(
+    save: Annotated[
+        bool,
+        typer.Option("--save/--no-save", help="Save the audit result in the CAS artifact store"),
+    ] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    config = load_config()
+    result = audit_acceptance(config.project_root)
+    if save:
+        record = ArtifactStore(config.artifacts_root).put_json(result, "acceptance-gate-audit.json")
+        result = {**result, "artifact_sha256": record.sha256}
+    _emit(result, json_output)
+    if not result["ok"]:
+        raise typer.Exit(1)
 
 
 @app.command("reproduce")
