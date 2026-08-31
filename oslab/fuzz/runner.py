@@ -211,5 +211,6 @@ def _input_seed(value: bytes) -> int:
 def _atomic_json(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(".tmp")
-    temporary.write_text(json.dumps(value, sort_keys=True, default=str) + "\n", encoding="utf-8")
+    with temporary.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(value, sort_keys=True, default=str) + "\n")
     temporary.replace(path)

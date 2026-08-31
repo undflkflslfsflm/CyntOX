@@ -247,7 +247,8 @@ def model_benchmark(
         raise typer.Exit(2) from exc
     output = config.artifacts_root / "discovery" / "model-benchmark.json"
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(result, indent=2, default=str) + "\n", encoding="utf-8")
+    with output.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(result, indent=2, default=str) + "\n")
     _emit({**result, "saved": str(output)}, json_output)
 
 
@@ -871,16 +872,17 @@ def _write_summary_report(config: Any, experiment: str) -> dict[str, Any]:
     report_dir.mkdir(parents=True, exist_ok=True)
     json_path = report_dir / f"{experiment}-report.json"
     md_path = report_dir / f"{experiment}-report.md"
-    json_path.write_text(json.dumps(summary, indent=2, default=str) + "\n", encoding="utf-8")
-    md_path.write_text(
-        "# Qwen OS Lab Report\n\n"
-        f"- Experiment: {experiment}\n"
-        f"- Target gate L: {target['gate_l']}\n"
-        f"- Evaluation rows: {summary['evaluation'].get('rows', 0)}\n"
-        f"- Artifact integrity: {integrity['artifacts']['ok']}\n"
-        f"- Database integrity: {integrity['database']['ok']}\n",
-        encoding="utf-8",
-    )
+    with json_path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(summary, indent=2, default=str) + "\n")
+    with md_path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(
+            "# Qwen OS Lab Report\n\n"
+            f"- Experiment: {experiment}\n"
+            f"- Target gate L: {target['gate_l']}\n"
+            f"- Evaluation rows: {summary['evaluation'].get('rows', 0)}\n"
+            f"- Artifact integrity: {integrity['artifacts']['ok']}\n"
+            f"- Database integrity: {integrity['database']['ok']}\n"
+        )
     record = ArtifactStore(config.artifacts_root).put_file(json_path, json_path.name)
     return {
         "json": str(json_path),

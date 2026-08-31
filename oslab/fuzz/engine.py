@@ -59,7 +59,8 @@ class FuzzCampaign:
             "unique_findings": self.unique_findings,
         }
         temp = path.with_suffix(".tmp")
-        temp.write_text(json.dumps(payload, sort_keys=True) + "\n", encoding="utf-8")
+        with temp.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(json.dumps(payload, sort_keys=True) + "\n")
         temp.replace(path)
 
     @classmethod

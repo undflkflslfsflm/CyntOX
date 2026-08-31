@@ -171,14 +171,14 @@ class EvaluationHarness:
         report = self._summarize(rows, seeds)
         output = self.config.artifacts_root / "evaluation"
         output.mkdir(parents=True, exist_ok=True)
-        (output / "seeded-results.json").write_text(
-            json.dumps(rows, indent=2, sort_keys=True, default=str) + "\n", encoding="utf-8"
-        )
+        with (output / "seeded-results.json").open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(json.dumps(rows, indent=2, sort_keys=True, default=str) + "\n")
         with (output / "seeded-results.csv").open("w", newline="", encoding="utf-8") as handle:
             writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
             writer.writeheader()
             writer.writerows(rows)
-        (output / "EVALUATION_REPORT.md").write_text(report, encoding="utf-8")
+        with (output / "EVALUATION_REPORT.md").open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(report)
         record = self.store.put_json(rows, "evaluation-seeded-results.json")
         return {
             "rows": rows,

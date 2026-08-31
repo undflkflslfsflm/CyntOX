@@ -10,7 +10,7 @@
       {
         "device": "C:\\",
         "filesystem": "NTFS",
-        "free_bytes": 1068929921024,
+        "free_bytes": 1064940658688,
         "mountpoint": "C:\\",
         "total_bytes": 2046642089984
       },
@@ -22,12 +22,12 @@
         "total_bytes": 16000898560000
       }
     ],
-    "generated_at": "2026-08-31T14:25:27.468559+00:00",
+    "generated_at": "2026-08-31T20:59:49.209891+00:00",
     "gpu": {
       "compute_capability": "8.9",
       "driver": "581.80",
       "memory_total_mib": "24564",
-      "memory_used_mib": "907",
+      "memory_used_mib": "18267",
       "name": "NVIDIA GeForce RTX 4090",
       "nvidia_smi": "C:\\WINDOWS\\system32\\nvidia-smi.EXE",
       "power_limit_w": "450.00",
@@ -43,7 +43,7 @@
       "version": "10.0.26200"
     },
     "memory": {
-      "available_bytes": 51996360704,
+      "available_bytes": 46172594176,
       "total_bytes": 68488650752
     },
     "model_endpoint": {
@@ -107,9 +107,10 @@
     },
     "safe_disk_benchmark": {
       "bytes": 16777216,
-      "read_mib_s": 1605.57,
+      "read_bytes": 16777216,
+      "read_mib_s": 1624.81,
       "scope": "small temporary sequential safety probe",
-      "write_mib_s": 1834.04
+      "write_mib_s": 2158.81
     },
     "schema_version": 1,
     "target": {
@@ -208,7 +209,7 @@
       "wsl": {
         "path": "C:\\WINDOWS\\system32\\wsl.EXE",
         "present": true,
-        "version": "W\u0000S\u0000L\u0000 \u0000v\u0000e\u0000r\u0000s\u0000i\u0000o\u0000n\u0000:\u0000 \u00002\u0000.\u00007\u0000.\u00001\u00002\u0000.\u00000\u0000"
+        "version": "WSL version: 2.7.12.0"
       }
     },
     "virtualization": {
@@ -320,7 +321,7 @@
       "ok": true
     },
     "artifacts": {
-      "checked": 69,
+      "checked": 105,
       "failures": [],
       "ok": true
     }
