@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-31T23:37:38Z",
+  "generated_at": "2026-08-31T23:38:31Z",
   "goal_status": "blocked_on_gate_l",
   "source_commit_verified": "ad4a3be",
   "source_commit_full": "ad4a3becda0cd48779860bf8f204e919f19a209f",
@@ -68,7 +68,7 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
       "exit_code": 0,
-      "artifact_sha256": "3e08f052b742b45a61c6f53d936580bbd975ecaa99df63c9f54f70ec66c5eb13",
+      "artifact_sha256": "5e31d7dc212adc45cfcc1d96d95290af4eb2e8b6469d82d6cf6a3806dc537061",
       "stdout_summary": "Acceptance audit passed: gate summary, required docs/artifacts/support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, selftest proof artifacts, live Ollama/Qwen Code stdout, recorded audit artifact freshness, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
     }
   ],
