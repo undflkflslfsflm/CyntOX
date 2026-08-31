@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 from collections.abc import AsyncIterator
@@ -14,19 +15,26 @@ from oslab.schemas import ModelIdentity, ModelResponse, ModelUsage, utc_now
 
 
 class OllamaProvider(ModelProvider):
-    def __init__(self, config: ModelConfig) -> None:
+    def __init__(
+        self, config: ModelConfig, transport: httpx.AsyncBaseTransport | None = None
+    ) -> None:
         self.config = config
+        self._transport = transport
         self._identity: ModelIdentity | None = None
 
     async def probe(self) -> ModelIdentity:
-        async with httpx.AsyncClient(timeout=min(self.config.timeout_seconds, 30.0)) as client:
-            version_response = await client.get(f"{self.config.endpoint}/api/version")
-            version_response.raise_for_status()
-            show_response = await client.post(
+        async with httpx.AsyncClient(
+            timeout=min(self.config.timeout_seconds, 30.0), transport=self._transport
+        ) as client:
+            version_response = await self._request_with_retries(
+                client, "GET", f"{self.config.endpoint}/api/version"
+            )
+            show_response = await self._request_with_retries(
+                client,
+                "POST",
                 f"{self.config.endpoint}/api/show",
                 json={"model": self.config.model_id, "verbose": False},
             )
-            show_response.raise_for_status()
         version = version_response.json().get("version")
         body = show_response.json()
         details = body.get("details", {})
@@ -78,9 +86,12 @@ class OllamaProvider(ModelProvider):
             request["format"] = schema
             request["think"] = False
         started = utc_now()
-        async with httpx.AsyncClient(timeout=timeout or self.config.timeout_seconds) as client:
-            response = await client.post(f"{self.config.endpoint}/api/chat", json=request)
-            response.raise_for_status()
+        async with httpx.AsyncClient(
+            timeout=timeout or self.config.timeout_seconds, transport=self._transport
+        ) as client:
+            response = await self._request_with_retries(
+                client, "POST", f"{self.config.endpoint}/api/chat", json=request
+            )
         ended = utc_now()
         body = response.json()
         content = str(body.get("message", {}).get("content", ""))
@@ -129,7 +140,9 @@ class OllamaProvider(ModelProvider):
             "options": options,
         }
         async with (
-            httpx.AsyncClient(timeout=self.config.timeout_seconds) as client,
+            httpx.AsyncClient(
+                timeout=self.config.timeout_seconds, transport=self._transport
+            ) as client,
             client.stream("POST", f"{self.config.endpoint}/api/chat", json=request) as response,
         ):
             response.raise_for_status()
@@ -159,3 +172,34 @@ class OllamaProvider(ModelProvider):
             return int(value) if value is not None else None
         except (TypeError, ValueError):
             return None
+
+    async def _request_with_retries(
+        self,
+        client: httpx.AsyncClient,
+        method: str,
+        url: str,
+        **kwargs: Any,
+    ) -> httpx.Response:
+        last_error: Exception | None = None
+        for attempt in range(self.config.retry_attempts):
+            try:
+                response = await client.request(method, url, **kwargs)
+                if not self._is_retryable_status(response.status_code):
+                    response.raise_for_status()
+                    return response
+                response.raise_for_status()
+            except (httpx.TransportError, httpx.HTTPStatusError) as exc:
+                if isinstance(exc, httpx.HTTPStatusError) and not self._is_retryable_status(
+                    exc.response.status_code
+                ):
+                    raise
+                last_error = exc
+                if attempt + 1 >= self.config.retry_attempts:
+                    raise
+                if self.config.retry_backoff_seconds:
+                    await asyncio.sleep(self.config.retry_backoff_seconds * (attempt + 1))
+        raise AssertionError(f"unreachable retry loop exit: {last_error}")
+
+    @staticmethod
+    def _is_retryable_status(status_code: int) -> bool:
+        return status_code >= 500 or status_code in {408, 409, 425, 429}

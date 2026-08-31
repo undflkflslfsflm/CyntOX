@@ -15,6 +15,8 @@ class ModelConfig(BaseModel):
     model_id: str = "huihui-qwen3.8-27b-abliterated:latest"
     provider: str = "ollama"
     timeout_seconds: float = Field(default=180.0, gt=0)
+    retry_attempts: int = Field(default=3, ge=1, le=5)
+    retry_backoff_seconds: float = Field(default=0.25, ge=0, le=5)
     context_tokens: int = Field(default=8192, ge=512)
     output_tokens: int = Field(default=2048, ge=32)
     temperature: float = Field(default=0.0, ge=0, le=2)
