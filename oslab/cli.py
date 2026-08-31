@@ -795,6 +795,7 @@ def selftest(
         [sys.executable, "-m", "ruff", "check", "."],
         [sys.executable, "-m", "mypy", "oslab"],
         [sys.executable, "-m", "oslab.cli", "target", "inspect", "--json"],
+        [sys.executable, "-m", "oslab.cli", "target", "manifest-template", "--json"],
         [sys.executable, "-m", "oslab.cli", "training", "dry-run", "--json"],
         [sys.executable, "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
     ]

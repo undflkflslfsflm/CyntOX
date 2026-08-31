@@ -14,6 +14,20 @@ from oslab.schemas import Outcome
 MANIFEST_NAME = "oslab-target.toml"
 PROFILE_NAME = re.compile(r"^[a-zA-Z0-9_.-]+$")
 ENV_NAME = re.compile(r"^[A-Z_][A-Z0-9_]*$")
+COMMIT_SHA = re.compile(r"^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$")
+SHELL_EVAL_FLAGS = {
+    "bash": {"-c"},
+    "cmd.exe": {"/c", "/k"},
+    "cmd": {"/c", "/k"},
+    "node": {"-e", "--eval"},
+    "powershell.exe": {"-command", "-encodedcommand", "-ec"},
+    "powershell": {"-command", "-encodedcommand", "-ec"},
+    "pwsh.exe": {"-command", "-encodedcommand", "-ec"},
+    "pwsh": {"-command", "-encodedcommand", "-ec"},
+    "python.exe": {"-c"},
+    "python": {"-c"},
+    "sh": {"-c"},
+}
 
 TARGET_MANIFEST_TEMPLATE = """schema_version = 1
 name = "authorized-os"
@@ -84,6 +98,13 @@ class SourceSpec(BaseModel):
     def root_is_safe_path(cls, value: str) -> str:
         return _safe_path(value, allow_absolute=True)
 
+    @field_validator("base_commit")
+    @classmethod
+    def base_commit_is_immutable_sha(cls, value: str) -> str:
+        if not COMMIT_SHA.fullmatch(value):
+            raise ValueError("source.base_commit must be a full 40- or 64-character commit SHA")
+        return value.lower()
+
 
 class CommandSpec(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -97,6 +118,13 @@ class CommandSpec(BaseModel):
         for token in value:
             if not token or "\x00" in token or "\n" in token or "\r" in token:
                 raise ValueError("command argv entries must be non-empty single-line strings")
+        executable = Path(value[0]).name.lower()
+        blocked_flags = SHELL_EVAL_FLAGS.get(executable, set())
+        used_flags = {
+            token.lower() for token in value[1:] if token.startswith("-") or token.startswith("/")
+        }
+        if blocked_flags & used_flags:
+            raise ValueError("command argv must name scripts/tools directly, not shell eval flags")
         return value
 
     @field_validator("cwd")
@@ -378,7 +406,7 @@ def _safe_path(value: str, allow_absolute: bool = False) -> str:
 
 
 def hashlib_file(path: Path) -> str:
-    return hashlib_text(path.read_text(encoding="utf-8"))
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def hashlib_text(value: str) -> str:
