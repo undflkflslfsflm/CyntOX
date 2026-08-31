@@ -34,4 +34,5 @@ The bootstrap creates a project-local environment and does not install a service
 
 ```powershell
 .\.venv\Scripts\python.exe -m oslab.cli selftest --live --json
+.\.venv\Scripts\python.exe -m oslab.cli acceptance audit --save --json
 ```

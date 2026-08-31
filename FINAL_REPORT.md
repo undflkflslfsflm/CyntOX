@@ -18,7 +18,8 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Live agentic fix loop repaired the seeded fixture in a disposable worktree and rejected an invalid evaluator edit.
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
-- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `3a41938`, including `ruff format --check .`.
+- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `701ca0e`, including `ruff format --check .`.
+- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, artifact-index hashes, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders.
 
 ## Tested but Limited
 
@@ -50,9 +51,9 @@ The path must point to the authorized OS source and its existing build entry poi
 
 ## Final Verification
 
-- Main checkout selftest at `3a41938`: PASS, proof artifact `e24f8079c6d95818e956f037cbb27ff7a35d0eb7349b8ef60404b163f313669a`; checkout remained clean afterward.
-- Clean checkout bootstrap at `3a41938`: PASS
-- Clean checkout selftest: PASS, proof artifact `d786c5c06d35b3978605171d546808926ef460efd78fb5f9c8edbe48fce15c24`; checkout remained clean afterward.
+- Main checkout selftest at `701ca0e`: PASS, proof artifact `eb798a17117eb5ae1bbe877868480ccf043762132ab1055fb1bb288a3a9fd918`; checkout remained clean afterward.
+- Clean checkout bootstrap at `701ca0e`: PASS
+- Clean checkout selftest: PASS, proof artifact `c04c55d1fcf35fb3fd739610aabf7af8a6c97873bb4cc63dc5c01b177081e72e`; checkout remained clean afterward.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Machine proof: `PROOF.json`
 

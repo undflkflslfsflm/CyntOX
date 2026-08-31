@@ -29,7 +29,7 @@
 | 2026-08-31 | 12 | Pass | Runtime assessment found only Ollama installed/benchmarked; optional runtimes documented from current upstream sources; router/scheduler tests pass. |
 | 2026-08-31 | 13 | Pass | `oslab training dry-run --json` exported 16 verified JSONL/Parquet records and reloaded both formats. Summary artifact `d1ff60f41e8a450d52a5c29fab71c224b727b4cb0bfec59b720ca514d72d631c`. |
 | 2026-08-31 | 14 | Pass | Added `ARCHITECTURE`, `THREAT_MODEL`, `RUNBOOK`, `MODEL_RUNTIME_REPORT`, `REAL_OS_INTEGRATION`, `TRAINING_READINESS`, `KNOWN_LIMITATIONS`, `NEXT_EXPERIMENTS`, demo scripts, and updated README. |
-| 2026-08-31 | 15 | Pass except Gate L | Main checkout selftest proof `e24f8079c6d95818e956f037cbb27ff7a35d0eb7349b8ef60404b163f313669a`; clean checkout bootstrap and live selftest proof `d786c5c06d35b3978605171d546808926ef460efd78fb5f9c8edbe48fce15c24`; format checks are enforced; repeated verification leaves both checkouts clean; artifact index, `PROOF.json`, and `FINAL_REPORT.md` produced for verified code commit `3a41938`. |
+| 2026-08-31 | 15 | Pass except Gate L | Main checkout selftest proof `eb798a17117eb5ae1bbe877868480ccf043762132ab1055fb1bb288a3a9fd918`; clean checkout bootstrap and live selftest proof `c04c55d1fcf35fb3fd739610aabf7af8a6c97873bb4cc63dc5c01b177081e72e`; format checks are enforced; repeated verification leaves both checkouts clean; `oslab acceptance audit --save --json` now machine-checks gate evidence, proof-only post-verification changes, artifact-index hashes, clean Git status, and unresolved placeholders for verified code commit `701ca0e`. |
 
 ## Remaining acceptance work
 
