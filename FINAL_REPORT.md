@@ -19,7 +19,7 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
 - `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `639d836`, including `ruff format --check .`.
-- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, artifact-index hashes, real selftest proof artifacts, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. Saved audit artifact: `508998b34e5a0c06a6c7935d056f4d261c7d8b07c5522d0f84c4ebb4a8a1ca21`.
+- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, artifact-index hashes, real selftest proof artifacts, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. Saved audit artifact: `8c4128a4a9a2f941d9b1eb5f46c3a237ccb3f517a7d6c9d8c70b08abc1d3104a`.
 - Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, and a `target validate-manifest` command. The validator rejects path traversal, source-root escapes, missing smoke tests, non-isolated QEMU networking, branch-like base commits, and shell-eval command wrappers before any real target build is attempted.
 
 ## Tested but Limited
@@ -55,7 +55,7 @@ The path must point to the authorized OS source and its existing build entry poi
 - Main checkout selftest at `639d836`: PASS, proof artifact `ecde9831903de70de6afd59df8a253812b26049a0a082276507e596b77d22b77`; checkout remained clean afterward.
 - Clean checkout bootstrap at `639d836`: PASS
 - Clean checkout selftest: PASS, proof artifact `4c8cfd834250ddf816fc1147ed8e8c505e47e1912f180a2ac617b1b574b720a6`; checkout remained clean afterward.
-- Acceptance audit: PASS, artifact `508998b34e5a0c06a6c7935d056f4d261c7d8b07c5522d0f84c4ebb4a8a1ca21`.
+- Acceptance audit: PASS, artifact `8c4128a4a9a2f941d9b1eb5f46c3a237ccb3f517a7d6c9d8c70b08abc1d3104a`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Machine proof: `PROOF.json`
 
