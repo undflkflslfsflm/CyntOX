@@ -85,3 +85,11 @@
 - Context: a provided real OS path is not enough by itself; the lab must know the existing build entry point, artifacts, QEMU boot shape, readiness signal, smoke tests, and cleanup boundary before it can safely build or boot the target.
 - Decision: add a typed `oslab-target.toml` schema, a tracked example manifest, `target manifest-template`, and `target validate-manifest`. Require a full immutable 40- or 64-character `source.base_commit` SHA and direct tool/script argv entries rather than shell-eval wrappers.
 - Consequence: explicit real-target onboarding rejects path traversal, source-root escapes, missing smoke tests, malformed identifiers, branch-like base commits, shell-eval command forms, and non-isolated QEMU networking before any target build or boot command can run.
+
+## D-012 — Verify selftest proof blobs during acceptance audit
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: a proof hash is weak evidence unless the referenced content-addressed blob exists and contains the expected selftest result.
+- Decision: have `acceptance audit` load the main and clean checkout selftest proof artifacts, verify their SHA-256 digests, parse their JSON, require `status = PASS`, and check that every expected selftest subcommand is present with exit code 0.
+- Consequence: the final audit fails if proof metadata points at a missing/corrupt/incomplete selftest artifact instead of relying on hash-shaped strings in `PROOF.json`.
