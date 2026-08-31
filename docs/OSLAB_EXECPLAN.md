@@ -24,9 +24,9 @@ Build and verify a local, safety-bounded OS reliability lab driven by the instal
 | 4. Tool broker | Complete | Transactional patch, rollback, receipts, immutable evaluator and policy tests pass. |
 | 5. QEMU fixture | Complete | Actual cold boots, QMP, snapshot restore and controlled failures pass. |
 | 6. Real target | Blocked externally | Finish framework/adapter report; resume needs authorized source path plus build entry point. |
-| 7. Supervisor | In progress | Implement and execute subprocess crash/restart/resume proof with idempotent finding record. |
+| 7. Supervisor | Complete | Controlled exit 97, database recovery, full state path, one idempotent finding, and CAS proof passed. |
 | 8. Fix loop | Complete | Live Qwen + disposable worktree + actual QEMU fix/regression loop passed. |
-| 9. Fuzzing | In progress | Add actual fixture runner, checkpoint/replay/minimize and explicit protocol-state coverage. |
+| 9. Fuzzing | Complete | Six actual QEMU protocol modes, checkpoint/resume data, deduplication, stable replay, and minimal input passed. |
 | 10. Adaptive/verifier | Complete for fixture | Population prompts, adaptive variant and independent live verifier; invalid evaluator edit rejected. |
 | 11. Evaluation | In progress | Execute A–E for seeds 1–3; label micro-suite limits honestly. |
 | 12. Runtime routing | In progress | Document installed-runtime benchmark and evidence-based optional-runtime assessment; no large downloads. |

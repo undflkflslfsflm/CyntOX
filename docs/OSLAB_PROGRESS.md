@@ -2,7 +2,7 @@
 
 ## Current position
 
-- Active milestone: 7–13 — persistence, fuzz campaign, evaluation, runtime assessment, and training dry run
+- Active milestone: 11–13 — evaluation, runtime assessment, and training dry run
 - Branch: `codex/qwen-os-lab`
 - Validated primary model: `huihui-qwen3.8-27b-abliterated:latest`, Qwen3.8 27.3B Q4_K_M through Ollama 0.33.2
 - Validated Qwen Code worker: 0.22.3 with wrapper model `qwen-os-lab-worker:latest`, two read-only MCP tools, and fail-closed tool-set checking
@@ -22,11 +22,11 @@
 | 2026-08-31 | 6 | External blocker | No real OS source exists in the current repository, immediate parent/children, or configured bounded development scope. The required input is one local path to the authorized OS source and its build entry point. |
 | 2026-08-31 | 8/10 | Pass | Live Qwen proposed `mov al, '4'`; broker patched a disposable worktree; true QEMU baseline failed and targeted/regression runs passed; independent verifier accepted it and rejected evaluator tampering. Run `77253eed-ff3d-456f-983f-79f187e98440`. |
 | 2026-08-31 | Qwen Code | Pass | Qwen Code 0.22.3 connected the local 27B model to `mcp__oslab__policy_remaining_budget`, executed exactly one successful read-only MCP call, exposed no host-shell/file tools, and returned `MCP_BUDGET_OK`. |
+| 2026-08-31 | 7 | Pass | A worker subprocess exited deliberately with code 97 after six transitions, resumed from `GENERATE_TEST`, reached `COMPLETE`, retained SQLite integrity, recorded exactly one finding, and produced artifact `9dcc166333912c4ad2e5ca06597a23158c9aaa98778b41387bf3c6d74fd1f7d1`. |
+| 2026-08-31 | 9 | Pass | Actual QEMU campaign `acceptance-fixture-fuzz-s101` covered pass/fail/crash/hang/seeded/induced-infra states, checkpointed six inputs, deduplicated four findings, replayed an irreducible one-byte crash input, and produced artifact `f49ba28548559c5086b824e07c61f2256942f8dd05bd744f4677d3410084dbb2`. |
 
 ## Remaining acceptance work
 
-- Execute and save the supervisor crash/restart proof.
-- Run bounded deterministic fixture fuzzing with checkpoint, replay, minimization, and protocol-state coverage.
 - Run variants A–E with seeds 1–3 and save raw JSON/CSV plus the comparative report.
 - Finish runtime assessment, training export dry run, complete documentation, and final clean-checkout proof bundle.
 - Gate L remains externally blocked until a real OS source path/build entry point is supplied.
