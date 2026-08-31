@@ -17,8 +17,8 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Persistent supervisor recovery proves a controlled process exit and resume without DB corruption or duplicate accepted findings.
 - Live agentic fix loop repaired the seeded fixture in a disposable worktree and rejected an invalid evaluator edit.
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
-- Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records.
-- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `9eeb365`.
+- Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
+- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `7e28f1e`.
 
 ## Tested but Limited
 
@@ -50,9 +50,9 @@ The path must point to the authorized OS source and its existing build entry poi
 
 ## Final Verification
 
-- Main checkout selftest: PASS, proof artifact `bd5c0ef77b44592f39ebac8c72ffa643e29c0d58da359f26111fa5369890fb4e`
-- Clean checkout bootstrap at `9eeb365`: PASS
-- Clean checkout selftest: PASS, proof artifact `fe27968720fc4cdc168e81cbd5a7c931701e81bd85335988a52fcbb9f6fa8342`
+- Main checkout selftest at `7e28f1e`: PASS, proof artifact `48bb2fda9b988bb032d3eea952faa74d5ef70e42675fcb47e73ff794d22dabea`; checkout remained clean afterward.
+- Clean checkout bootstrap at `7e28f1e`: PASS
+- Clean checkout selftest: PASS, proof artifact `d3a544def507ae4ecb195fd83f3b2e36360dd3104f254388701011a01a10b36d`; checkout remained clean afterward.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Machine proof: `PROOF.json`
 

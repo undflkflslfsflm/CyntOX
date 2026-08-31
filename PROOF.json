@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-31T14:40:00+00:00",
+  "generated_at": "2026-08-31T20:49:14Z",
   "goal_status": "blocked_on_gate_l",
-  "source_commit_verified": "9eeb365",
-  "source_commit_full": "9eeb365254ff1d216105c498bf2d77c4e6fa33dc",
+  "source_commit_verified": "7e28f1e",
+  "source_commit_full": "7e28f1e09dee62f82717ea466ca3a3bee7092e02",
   "branch": "codex/qwen-os-lab",
   "blocked_gate": {
     "gate": "L",
@@ -26,7 +26,7 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m pytest -m \"not live and not qemu\" -q",
       "exit_code": 0,
-      "stdout": "26 passed, 4 deselected"
+      "stdout": "29 passed, 4 deselected"
     },
     {
       "scope": "main checkout",
@@ -42,21 +42,21 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "bd5c0ef77b44592f39ebac8c72ffa643e29c0d58da359f26111fa5369890fb4e",
-      "stdout_summary": "30 passed; Ruff passed; mypy passed; target inspect passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed."
+      "proof_sha256": "48bb2fda9b988bb032d3eea952faa74d5ef70e42675fcb47e73ff794d22dabea",
+      "stdout_summary": "33 passed; Ruff passed; mypy passed; target inspect passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the main checkout clean."
     },
     {
       "scope": "clean checkout",
       "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
       "exit_code": 0,
-      "worktree": ".oslab\\clean-checkouts\\9eeb365"
+      "worktree": ".oslab\\clean-checkouts\\7e28f1e"
     },
     {
       "scope": "clean checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "fe27968720fc4cdc168e81cbd5a7c931701e81bd85335988a52fcbb9f6fa8342",
-      "stdout_summary": "30 passed; Ruff passed; mypy passed; target inspect passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed."
+      "proof_sha256": "d3a544def507ae4ecb195fd83f3b2e36360dd3104f254388701011a01a10b36d",
+      "stdout_summary": "33 passed; Ruff passed; mypy passed; target inspect passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
     }
   ],
   "gate_summary": {
