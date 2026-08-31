@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-31T22:52:06Z",
+  "generated_at": "2026-08-31T23:00:33Z",
   "goal_status": "blocked_on_gate_l",
-  "source_commit_verified": "e06baaf",
-  "source_commit_full": "e06baaf9a0d1f6a552f6c7153eb401ea07f451e8",
+  "source_commit_verified": "c7ec168",
+  "source_commit_full": "c7ec168d2890e9fc408f9d626108178301c73876",
   "branch": "codex/qwen-os-lab",
   "blocked_gate": {
     "gate": "L",
@@ -32,7 +32,7 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m pytest -m \"not live and not qemu\" -q",
       "exit_code": 0,
-      "stdout": "43 passed, 4 deselected"
+      "stdout": "44 passed, 4 deselected"
     },
     {
       "scope": "main checkout",
@@ -48,28 +48,28 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "5faaa6caf507624f9be4dc6b25a324bd6cb120ab19d0631204103147c9a73a26",
-      "stdout_summary": "47 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the main checkout clean."
+      "proof_sha256": "45c4ff05144aa7fae15a55ada7c74cfadbf18f8953aef7581117b0a72451af38",
+      "stdout_summary": "48 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the main checkout clean."
     },
     {
       "scope": "clean checkout",
       "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
       "exit_code": 0,
-      "worktree": ".oslab\\clean-checkouts\\e06baaf"
+      "worktree": ".oslab\\clean-checkouts\\c7ec168"
     },
     {
       "scope": "clean checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "6a6a5b60bf178422546ecbb975a25a3b6252da9278e72fca5e0204523b36706a",
-      "stdout_summary": "47 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
+      "proof_sha256": "b4937a77c10a1e40be1755ce63bd24e168b7cb52253e4e13c20200eb188d4e5a",
+      "stdout_summary": "48 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
     },
     {
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
       "exit_code": 0,
       "artifact_sha256": "5145f5b855f17dbefbfd6142dccd9e2e05e778dfc2823c516b8fdda7cbd82f10",
-      "stdout_summary": "Acceptance audit passed: gate summary, required docs/artifacts/support files, artifact-index hashes, selftest proof artifacts, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
+      "stdout_summary": "Acceptance audit passed: gate summary, required docs/artifacts/support files, semantic required-artifact contents, artifact-index hashes, selftest proof artifacts, live Ollama/Qwen Code stdout, recorded audit artifact freshness, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
     }
   ],
   "gate_summary": {

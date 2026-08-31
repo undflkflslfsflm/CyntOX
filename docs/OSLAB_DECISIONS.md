@@ -117,3 +117,11 @@
 - Context: existence and SHA-256 matching prove artifact immutability but not that required artifacts contain the expected discovery, benchmark, evaluation, report, and training evidence.
 - Decision: have `acceptance audit` parse required JSON/CSV/JSONL/Parquet/Markdown artifacts and validate the expected content shape: hardware sections, loopback model endpoint, model benchmark samples, runtime profiles, A-E seeded evaluation matrix, training record count/labels/evidence hashes, dataset card summary, latest report integrity, and Gate L target status.
 - Consequence: the final audit fails if a required artifact is present and indexed but semantically empty, malformed, or missing the required proof payload.
+
+## D-016 — Reject stale recorded acceptance-audit artifacts
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: after adding semantic artifact-content validation and live selftest stdout cross-checks, an older recorded acceptance-audit blob could still satisfy the audit-artifact meta-check if only the original core check names were required.
+- Decision: require the recorded acceptance-audit artifact to include the semantic artifact-content check and live selftest stdout cross-check as `PASS`, while still excluding the recursive audit-artifact self-check.
+- Consequence: `acceptance audit` fails if `PROOF.json` points at a stale audit artifact that predates the newer proof validations.
