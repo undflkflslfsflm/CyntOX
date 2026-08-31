@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-31T21:26:38Z",
+  "generated_at": "2026-08-31T21:32:28Z",
   "goal_status": "blocked_on_gate_l",
-  "source_commit_verified": "701ca0e",
-  "source_commit_full": "701ca0e5c063b940117fb0b606b0bd8fdf26da5b",
+  "source_commit_verified": "414c89b",
+  "source_commit_full": "414c89bf990aaf9cd26aa77c572932fe89319a53",
   "branch": "codex/qwen-os-lab",
   "blocked_gate": {
     "gate": "L",
@@ -48,20 +48,20 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "eb798a17117eb5ae1bbe877868480ccf043762132ab1055fb1bb288a3a9fd918",
+      "proof_sha256": "8067c862c93439b92b9de1dba22c9df7c9dc347b3c3e03de56b3d01c60d42ad7",
       "stdout_summary": "37 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the main checkout clean."
     },
     {
       "scope": "clean checkout",
       "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
       "exit_code": 0,
-      "worktree": ".oslab\\clean-checkouts\\701ca0e"
+      "worktree": ".oslab\\clean-checkouts\\414c89b"
     },
     {
       "scope": "clean checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "c04c55d1fcf35fb3fd739610aabf7af8a6c97873bb4cc63dc5c01b177081e72e",
+      "proof_sha256": "dd3515ff82a8599d868d28e176b76f08894558ae223f91f7637dcd3560ad29bf",
       "stdout_summary": "37 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
     }
   ],
