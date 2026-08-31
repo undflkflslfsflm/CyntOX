@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import os
@@ -9,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from oslab.model.base import ModelProvider
-from oslab.process_runner import SafeProcessRunner
+from oslab.process_runner import ProcessResult, SafeProcessRunner
 from oslab.schemas import ModelIdentity, ModelResponse, ModelUsage, utc_now
 
 
@@ -19,7 +20,14 @@ class QwenCodeWorker(ModelProvider):
         "mcp__oslab__fixture_explain",
     }
 
-    def __init__(self, project_root: Path, runner: SafeProcessRunner | None = None) -> None:
+    def __init__(
+        self,
+        project_root: Path,
+        runner: SafeProcessRunner | None = None,
+        *,
+        retry_attempts: int = 3,
+        retry_backoff_seconds: float = 1.0,
+    ) -> None:
         self.project_root = project_root.resolve()
         suffix = ".cmd" if os.name == "nt" else ""
         self.executable = self.project_root / "node_modules" / ".bin" / f"qwen{suffix}"
@@ -38,6 +46,8 @@ class QwenCodeWorker(ModelProvider):
             node = str(bundled) if bundled.is_file() else None
         self.node_dir = str(Path(node).parent) if node else None
         self.runner = runner or SafeProcessRunner()
+        self.retry_attempts = retry_attempts
+        self.retry_backoff_seconds = retry_backoff_seconds
         self._identity: ModelIdentity | None = None
         self.last_events: list[dict[str, Any]] = []
 
@@ -82,7 +92,7 @@ class QwenCodeWorker(ModelProvider):
         if schema is not None:
             argv.extend(["--json-schema", json.dumps(schema, separators=(",", ":"))])
         started = utc_now()
-        result = await self.runner.run(
+        result = await self._run_with_retries(
             argv,
             cwd=self.project_root,
             timeout=timeout or 120,
@@ -171,3 +181,41 @@ class QwenCodeWorker(ModelProvider):
         if self.node_dir is None:
             raise FileNotFoundError("node")
         return self.node_dir + os.pathsep + os.environ.get("PATH", "")
+
+    async def _run_with_retries(
+        self,
+        argv: list[str],
+        *,
+        cwd: Path,
+        timeout: float,
+        env: dict[str, str],
+    ) -> ProcessResult:
+        last_result: ProcessResult | None = None
+        for attempt in range(self.retry_attempts):
+            result = await self.runner.run(argv, cwd=cwd, timeout=timeout, env=env)
+            last_result = result
+            if result.returncode == 0 or result.timed_out:
+                return result
+            if attempt + 1 >= self.retry_attempts:
+                return result
+            if not self._is_retryable_process_failure(result):
+                return result
+            if self.retry_backoff_seconds:
+                await asyncio.sleep(self.retry_backoff_seconds * (attempt + 1))
+        if last_result is None:
+            raise AssertionError("Qwen Code retry loop did not execute")
+        return last_result
+
+    @staticmethod
+    def _is_retryable_process_failure(result: ProcessResult) -> bool:
+        output = f"{result.stderr}\n{result.stdout}".lower()
+        retryable_markers = (
+            "fatal error",
+            "internal server error",
+            "econnreset",
+            "econnrefused",
+            "socket hang up",
+            "temporarily",
+            "timed out",
+        )
+        return any(marker in output for marker in retryable_markers)

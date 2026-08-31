@@ -1,0 +1,91 @@
+import asyncio
+import json
+import os
+from pathlib import Path
+
+from oslab.model import QwenCodeWorker
+from oslab.process_runner import ProcessResult, SafeProcessRunner
+from oslab.schemas import utc_now
+
+
+class FlakyQwenRunner(SafeProcessRunner):
+    def __init__(self) -> None:
+        super().__init__()
+        self.prompt_calls = 0
+
+    async def run(
+        self,
+        argv: list[str],
+        *,
+        cwd: Path,
+        timeout: float,
+        env: dict[str, str] | None = None,
+        stdin: bytes | None = None,
+    ) -> ProcessResult:
+        now = utc_now()
+        if "--version" in argv:
+            return ProcessResult(tuple(argv), 0, "0.22.3", "", now, now, 0, False, False)
+        self.prompt_calls += 1
+        if self.prompt_calls == 1:
+            return ProcessResult(
+                tuple(argv),
+                2,
+                "",
+                "# Fatal error in , line 0\n# Check failed",
+                now,
+                now,
+                0,
+                False,
+                False,
+            )
+        events = [
+            {
+                "type": "system",
+                "subtype": "init",
+                "tools": sorted(QwenCodeWorker.allowed_tools),
+                "mcp_servers": [{"name": "oslab", "status": "connected"}],
+            },
+            {
+                "type": "message",
+                "message": {
+                    "content": [
+                        {"type": "tool_use", "name": "mcp__oslab__policy_remaining_budget"}
+                    ]
+                },
+            },
+            {
+                "type": "result",
+                "result": "MCP_BUDGET_OK",
+                "is_error": False,
+                "usage": {"input_tokens": 1, "output_tokens": 1},
+            },
+        ]
+        return ProcessResult(
+            tuple(argv), 0, json.dumps(events), "", now, now, 0, False, False
+        )
+
+
+def test_qwen_code_worker_retries_native_transient_failure(tmp_path: Path) -> None:
+    suffix = ".cmd" if os.name == "nt" else ""
+    executable = tmp_path / "node_modules" / ".bin" / f"qwen{suffix}"
+    executable.parent.mkdir(parents=True)
+    executable.write_text("", encoding="utf-8")
+    runner = FlakyQwenRunner()
+    worker = QwenCodeWorker(
+        tmp_path,
+        runner,
+        retry_attempts=2,
+        retry_backoff_seconds=0,
+    )
+
+    response = asyncio.run(
+        worker.complete(
+            [{"role": "user", "content": "Use the budget tool and answer."}],
+            seed=3,
+            timeout=120,
+        )
+    )
+
+    assert response.content == "MCP_BUDGET_OK"
+    assert worker.tool_calls() == ["mcp__oslab__policy_remaining_budget"]
+    assert runner.prompt_calls == 2
