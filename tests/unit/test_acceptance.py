@@ -558,6 +558,8 @@ def _create_complete_fixture_proof(root: Path) -> None:
         "verified code",
     )
     source_commit = _git(root, "rev-parse", "HEAD")
+    clean_worktree = ".clean"
+    _git(root, "worktree", "add", "--detach", clean_worktree, source_commit)
 
     for relative in REQUIRED_DOCS:
         if relative == "PROOF.json":
@@ -567,7 +569,6 @@ def _create_complete_fixture_proof(root: Path) -> None:
     for relative in REQUIRED_SUPPORT_FILES:
         _write(root / relative, "schema_version = 1\n")
 
-    clean_worktree = ".clean"
     main_proof_sha = _write_selftest_proof_artifact(root / "artifacts", "main")
     clean_proof_sha = _write_selftest_proof_artifact(root / clean_worktree / "artifacts", "clean")
     audit_sha = _write_acceptance_audit_artifact(root / "artifacts")
@@ -735,6 +736,37 @@ def test_acceptance_audit_rejects_selftest_without_dependency_checks(tmp_path: P
 
     assert not result["ok"]
     assert "selftest_proof_artifacts_are_verifiable" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_clean_checkout_at_wrong_commit(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    _write(tmp_path / ".clean" / "drift.txt", "new tracked content\n")
+    _git(tmp_path / ".clean", "add", "drift.txt")
+    _git(
+        tmp_path / ".clean",
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@invalid",
+        "commit",
+        "-m",
+        "move clean checkout",
+    )
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "clean_checkout_matches_verified_source" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_dirty_clean_checkout(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    _write(tmp_path / ".clean" / "dirty.txt", "uncommitted clean-checkout drift\n")
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "clean_checkout_matches_verified_source" in result["failed_checks"]
 
 
 def test_acceptance_audit_rejects_missing_acceptance_audit_artifact(tmp_path: Path) -> None:

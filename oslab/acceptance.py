@@ -114,6 +114,7 @@ ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
     "proof_records_required_commands",
     "proof_records_main_and_clean_selftest_hashes",
     "selftest_proof_artifacts_are_verifiable",
+    "clean_checkout_matches_verified_source",
     "selftest_live_outputs_match_proof",
     "proof_records_live_model_identity",
     "proof_records_constrained_qwen_code_smoke",
@@ -169,6 +170,7 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
     _check_gate_summary(proof, checks)
     _check_proof_commands(proof, checks)
     _check_selftest_proof_artifacts(project_root, proof, checks)
+    _check_clean_checkout_matches_verified_source(project_root, proof, checks)
     _check_selftest_live_outputs_match_proof(project_root, proof, checks)
     _check_acceptance_audit_artifact(project_root, proof, checks)
     _check_model_and_qwen_code(proof, checks)
@@ -1208,6 +1210,115 @@ def _clean_worktree_path(project_root: Path, command_rows: list[dict[str, Any]])
     return None
 
 
+def _check_clean_checkout_matches_verified_source(
+    project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
+) -> None:
+    command_rows = [row for row in proof.get("verified_commands", []) if isinstance(row, dict)]
+    source_commit = proof.get("source_commit_full")
+    clean_worktree = _clean_worktree_path(project_root, command_rows)
+    failures: list[dict[str, Any]] = []
+    if not _is_git_commit_sha(source_commit):
+        failures.append({"reason": "source_commit_full_invalid", "source_commit": source_commit})
+    if clean_worktree is None:
+        failures.append({"reason": "clean_worktree_missing"})
+
+    git = shutil.which("git")
+    if git is None:
+        failures.append({"reason": "git_not_found"})
+
+    if failures or clean_worktree is None or git is None or not isinstance(source_commit, str):
+        _record(
+            checks,
+            "clean_checkout_matches_verified_source",
+            False,
+            {"failures": failures},
+        )
+        return
+
+    try:
+        clean_relative = str(clean_worktree.relative_to(project_root))
+    except ValueError:
+        failures.append(
+            {
+                "reason": "clean_worktree_outside_project",
+                "path": str(clean_worktree),
+            }
+        )
+        clean_relative = str(clean_worktree)
+
+    source_check = subprocess.run(  # noqa: S603 - resolved git binary, fixed command shape
+        [git, "cat-file", "-e", f"{source_commit}^{{commit}}"],
+        cwd=project_root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if source_check.returncode != 0:
+        failures.append(
+            {
+                "reason": "source_commit_missing",
+                "source_commit": source_commit,
+                "stderr": source_check.stderr.strip(),
+            }
+        )
+    if not clean_worktree.is_dir():
+        failures.append({"reason": "clean_worktree_not_directory", "path": str(clean_worktree)})
+    else:
+        head = subprocess.run(  # noqa: S603 - resolved git binary, fixed command shape
+            [git, "rev-parse", "HEAD"],
+            cwd=clean_worktree,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if head.returncode != 0:
+            failures.append(
+                {
+                    "reason": "clean_worktree_head_unreadable",
+                    "path": str(clean_worktree),
+                    "stderr": head.stderr.strip(),
+                }
+            )
+        elif head.stdout.strip() != source_commit:
+            failures.append(
+                {
+                    "reason": "clean_worktree_head_mismatch",
+                    "expected": source_commit,
+                    "actual": head.stdout.strip(),
+                }
+            )
+        status = subprocess.run(  # noqa: S603 - resolved git binary, fixed command shape
+            [git, "status", "--short"],
+            cwd=clean_worktree,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if status.returncode != 0:
+            failures.append(
+                {
+                    "reason": "clean_worktree_status_failed",
+                    "path": str(clean_worktree),
+                    "stderr": status.stderr.strip(),
+                }
+            )
+        else:
+            status_lines = [line for line in status.stdout.splitlines() if line.strip()]
+            if status_lines:
+                failures.append({"reason": "clean_worktree_dirty", "status": status_lines})
+
+    _record(
+        checks,
+        "clean_checkout_matches_verified_source",
+        not failures,
+        {
+            "clean_worktree": clean_relative,
+            "source_commit": source_commit,
+            "failures": failures,
+        },
+    )
+
+
 def _load_artifact_payload(artifact_root: Path, digest: str) -> dict[str, Any]:
     path = artifact_root / "blobs" / "sha256" / digest[:2] / digest
     if not path.is_file():
@@ -1545,5 +1656,13 @@ def _is_sha256(value: object) -> bool:
     return (
         isinstance(value, str)
         and len(value) == 64
+        and all(char in "0123456789abcdef" for char in value)
+    )
+
+
+def _is_git_commit_sha(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 40
         and all(char in "0123456789abcdef" for char in value)
     )
