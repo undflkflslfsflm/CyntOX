@@ -321,10 +321,9 @@
       "ok": true
     },
     "artifacts": {
-      "checked": 102,
       "failures": [],
       "ok": true,
-      "scope": "excludes prior latest-report.json self-artifacts"
+      "scope": "excludes prior latest-report.json self-artifacts and omits volatile artifact counts"
     }
   }
 }

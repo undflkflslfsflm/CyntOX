@@ -863,8 +863,11 @@ def _write_summary_report(config: Any, experiment: str) -> dict[str, Any]:
     artifact_integrity = ArtifactStore(config.artifacts_root).verify(
         exclude_logical_names={json_path.name}
     )
+    artifact_integrity.pop("checked", None)
     artifact_integrity.pop("excluded", None)
-    artifact_integrity["scope"] = f"excludes prior {json_path.name} self-artifacts"
+    artifact_integrity["scope"] = (
+        f"excludes prior {json_path.name} self-artifacts and omits volatile artifact counts"
+    )
     integrity = {
         "database": database.integrity_check(),
         "artifacts": artifact_integrity,
