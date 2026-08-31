@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from oslab.acceptance import (
+    ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS,
     EXPECTED_GATE_SUMMARY,
     REQUIRED_ARTIFACTS,
     REQUIRED_DOCS,
@@ -76,6 +77,27 @@ def _write_selftest_proof_artifact(artifact_root: Path, marker: str) -> str:
     return ArtifactStore(artifact_root).put_json(payload, "selftest-proof.json").sha256
 
 
+def _write_acceptance_audit_artifact(artifact_root: Path) -> str:
+    payload = {
+        "schema_version": 1,
+        "status": "PASS",
+        "ok": True,
+        "failed_checks": [],
+        "gate_summary": EXPECTED_GATE_SUMMARY,
+        "blocked_gate": {
+            "gate": "L",
+            "reason": "No authorized OS source path and build entry point are present.",
+            "minimal_input": "A local path to the authorized OS source plus its existing build entry point.",
+            "resume_command": "oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+        },
+        "checks": [
+            {"name": name, "status": "PASS", "details": {}}
+            for name in ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS
+        ],
+    }
+    return ArtifactStore(artifact_root).put_json(payload, "acceptance-gate-audit.json").sha256
+
+
 def _create_complete_fixture_proof(root: Path) -> None:
     _git(root, "init")
     _write(root / ".gitignore", ".clean/\nartifacts/blobs/\nartifacts/artifact-index.jsonl\n")
@@ -108,6 +130,7 @@ def _create_complete_fixture_proof(root: Path) -> None:
     clean_worktree = ".clean"
     main_proof_sha = _write_selftest_proof_artifact(root / "artifacts", "main")
     clean_proof_sha = _write_selftest_proof_artifact(root / clean_worktree / "artifacts", "clean")
+    audit_sha = _write_acceptance_audit_artifact(root / "artifacts")
 
     proof = {
         "goal_status": "blocked_on_gate_l",
@@ -158,6 +181,12 @@ def _create_complete_fixture_proof(root: Path) -> None:
                 "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
                 "exit_code": 0,
                 "proof_sha256": clean_proof_sha,
+            },
+            {
+                "scope": "main checkout",
+                "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
+                "exit_code": 0,
+                "artifact_sha256": audit_sha,
             },
         ],
         "gate_summary": EXPECTED_GATE_SUMMARY,
@@ -229,3 +258,19 @@ def test_acceptance_audit_rejects_missing_selftest_proof_artifact(tmp_path: Path
 
     assert not result["ok"]
     assert "selftest_proof_artifacts_are_verifiable" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_missing_acceptance_audit_artifact(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    proof_path = tmp_path / "PROOF.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    for row in proof["verified_commands"]:
+        if row.get("command", "").endswith("acceptance audit --save --json"):
+            row["artifact_sha256"] = "d" * 64
+            break
+    _write(proof_path, json.dumps(proof, indent=2) + "\n")
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "acceptance_audit_artifact_is_verifiable" in result["failed_checks"]

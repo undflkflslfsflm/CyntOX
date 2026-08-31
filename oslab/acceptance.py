@@ -65,6 +65,7 @@ REQUIRED_ARTIFACTS = (
 REQUIRED_SUPPORT_FILES = ("config/oslab-target.example.toml",)
 
 SELFTEST_COMMAND = ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json"
+ACCEPTANCE_AUDIT_COMMAND = ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json"
 
 SELFTEST_EXPECTED_ARGV_TAILS = (
     ("-m", "pytest", "-q"),
@@ -78,6 +79,25 @@ SELFTEST_EXPECTED_ARGV_TAILS = (
     ("-m", "oslab.cli", "model", "probe", "--live", "--json"),
     ("-m", "oslab.cli", "model", "qwen-code-smoke", "--json"),
     ("-m", "oslab.cli", "integrity", "check", "--json"),
+)
+
+ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
+    "required_documents_exist",
+    "required_artifacts_exist",
+    "required_support_files_exist",
+    "gate_summary_matches_contract",
+    "gate_l_blocker_is_precise",
+    "proof_records_required_commands",
+    "proof_records_main_and_clean_selftest_hashes",
+    "selftest_proof_artifacts_are_verifiable",
+    "proof_records_live_model_identity",
+    "proof_records_constrained_qwen_code_smoke",
+    "artifact_index_matches_disk",
+    "artifact_index_covers_required_files",
+    "current_target_inspection_matches_gate_l",
+    "post_verified_commit_changes_are_proof_only",
+    "git_worktree_is_clean",
+    "mandatory_paths_have_no_unresolved_placeholders",
 )
 
 PROOF_ONLY_AFTER_VERIFIED_COMMIT_PREFIXES = (
@@ -122,6 +142,7 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
     _check_gate_summary(proof, checks)
     _check_proof_commands(proof, checks)
     _check_selftest_proof_artifacts(project_root, proof, checks)
+    _check_acceptance_audit_artifact(project_root, proof, checks)
     _check_model_and_qwen_code(proof, checks)
     _check_artifact_index(project_root, checks)
     _check_target_gate_l(project_root, checks)
@@ -329,6 +350,56 @@ def _check_selftest_proof_artifacts(
         "selftest_proof_artifacts_are_verifiable",
         len(selftest_rows) >= 2 and not failures,
         {"checked": len(selftest_rows), "failures": failures},
+    )
+
+
+def _check_acceptance_audit_artifact(
+    project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
+) -> None:
+    command_rows = [row for row in proof.get("verified_commands", []) if isinstance(row, dict)]
+    audit_rows = [
+        row
+        for row in command_rows
+        if row.get("command") == ACCEPTANCE_AUDIT_COMMAND and row.get("exit_code") == 0
+    ]
+    failures: list[str] = []
+    if not audit_rows:
+        failures.append("missing_acceptance_audit_command")
+    for row in audit_rows:
+        digest = row.get("artifact_sha256")
+        if not _is_sha256(digest):
+            failures.append("invalid_or_missing_artifact_sha256")
+            continue
+        assert isinstance(digest, str)
+        payload = _load_artifact_payload(project_root / "artifacts", digest)
+        if not payload["ok"]:
+            failures.append(str(payload["reason"]))
+            continue
+        audit_payload = payload["json"]
+        if not isinstance(audit_payload, dict):
+            failures.append("audit_artifact_not_object")
+            continue
+        if audit_payload.get("status") != "PASS" or audit_payload.get("ok") is not True:
+            failures.append("audit_artifact_not_pass")
+        if audit_payload.get("failed_checks") != []:
+            failures.append("audit_artifact_has_failed_checks")
+        checks_by_name = {
+            check.get("name"): check.get("status")
+            for check in audit_payload.get("checks", [])
+            if isinstance(check, dict)
+        }
+        missing = [
+            name
+            for name in ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS
+            if checks_by_name.get(name) != "PASS"
+        ]
+        if missing:
+            failures.append("audit_artifact_missing_passed_checks")
+    _record(
+        checks,
+        "acceptance_audit_artifact_is_verifiable",
+        bool(audit_rows) and not failures,
+        {"checked": len(audit_rows), "failures": failures},
     )
 
 
