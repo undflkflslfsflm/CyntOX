@@ -465,7 +465,7 @@ def training_dry_run(
                         "variant": row.get("variant"),
                         "seed": row.get("seed"),
                         "license": "Apache-2.0",
-                        "provenance": str(evaluation_path),
+                        "provenance": "artifacts/evaluation/seeded-results.json",
                         "patch_accepted": row.get("patch_accepted"),
                         "regression_survived": row.get("regression_survived"),
                     },
