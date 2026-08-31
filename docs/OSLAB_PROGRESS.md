@@ -2,12 +2,12 @@
 
 ## Current position
 
-- Active milestone: 15 — final acceptance audit and proof bundle
+- Active milestone: local fixture/framework proof complete; overall goal blocked at Gate L
 - Branch: `codex/qwen-os-lab`
 - Validated primary model: `huihui-qwen3.8-27b-abliterated:latest`, Qwen3.8 27.3B Q4_K_M through Ollama 0.33.2
 - Validated Qwen Code worker: 0.22.3 with wrapper model `qwen-os-lab-worker:latest`, two read-only MCP tools, and fail-closed tool-set checking
 - Real OS target: absent from the bounded discovery scope; fixture work continues independently
-- Next action: run final verification, produce artifact index, clean-checkout proof, `PROOF.json`, and `FINAL_REPORT.md`
+- Next action: provide an authorized real OS source path and existing build entry point, then run `oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json`
 
 ## Ledger
 
@@ -29,8 +29,9 @@
 | 2026-08-31 | 12 | Pass | Runtime assessment found only Ollama installed/benchmarked; optional runtimes documented from current upstream sources; router/scheduler tests pass. |
 | 2026-08-31 | 13 | Pass | `oslab training dry-run --json` exported 16 verified JSONL/Parquet records and reloaded both formats. Summary artifact `d1ff60f41e8a450d52a5c29fab71c224b727b4cb0bfec59b720ca514d72d631c`. |
 | 2026-08-31 | 14 | Pass | Added `ARCHITECTURE`, `THREAT_MODEL`, `RUNBOOK`, `MODEL_RUNTIME_REPORT`, `REAL_OS_INTEGRATION`, `TRAINING_READINESS`, `KNOWN_LIMITATIONS`, `NEXT_EXPERIMENTS`, demo scripts, and updated README. |
+| 2026-08-31 | 15 | Pass except Gate L | Main checkout selftest proof `bd5c0ef77b44592f39ebac8c72ffa643e29c0d58da359f26111fa5369890fb4e`; clean checkout bootstrap and live selftest proof `fe27968720fc4cdc168e81cbd5a7c931701e81bd85335988a52fcbb9f6fa8342`; artifact index, `PROOF.json`, and `FINAL_REPORT.md` produced. |
 
 ## Remaining acceptance work
 
-- Run final verification and clean-checkout proof bundle.
+- No independently actionable fixture/framework acceptance work remains.
 - Gate L remains externally blocked until a real OS source path/build entry point is supplied.

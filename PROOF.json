@@ -1,0 +1,109 @@
+{
+  "generated_at": "2026-08-31T14:40:00+00:00",
+  "goal_status": "blocked_on_gate_l",
+  "source_commit_verified": "9eeb365",
+  "source_commit_full": "9eeb365254ff1d216105c498bf2d77c4e6fa33dc",
+  "branch": "codex/qwen-os-lab",
+  "blocked_gate": {
+    "gate": "L",
+    "reason": "No authorized real OS source path and build entry point are present in the bounded discovery scope.",
+    "minimal_input": "A local path to the authorized OS source plus its existing build entry point.",
+    "resume_command": "oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json"
+  },
+  "verified_commands": [
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m ruff check .",
+      "exit_code": 0
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m mypy oslab",
+      "exit_code": 0,
+      "stdout": "Success: no issues found in 42 source files"
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m pytest -m \"not live and not qemu\" -q",
+      "exit_code": 0,
+      "stdout": "26 passed, 4 deselected"
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\uv.exe lock --check",
+      "exit_code": 0
+    },
+    {
+      "scope": "main checkout",
+      "command": "pnpm install --frozen-lockfile --offline",
+      "exit_code": 0
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
+      "exit_code": 0,
+      "proof_sha256": "bd5c0ef77b44592f39ebac8c72ffa643e29c0d58da359f26111fa5369890fb4e",
+      "stdout_summary": "30 passed; Ruff passed; mypy passed; target inspect passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed."
+    },
+    {
+      "scope": "clean checkout",
+      "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
+      "exit_code": 0,
+      "worktree": ".oslab\\clean-checkouts\\9eeb365"
+    },
+    {
+      "scope": "clean checkout",
+      "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
+      "exit_code": 0,
+      "proof_sha256": "fe27968720fc4cdc168e81cbd5a7c931701e81bd85335988a52fcbb9f6fa8342",
+      "stdout_summary": "30 passed; Ruff passed; mypy passed; target inspect passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed."
+    }
+  ],
+  "gate_summary": {
+    "A": "PASS",
+    "B": "PASS",
+    "C": "PASS",
+    "D": "PASS",
+    "E": "PASS",
+    "F": "PASS",
+    "G": "PASS",
+    "H": "PASS",
+    "I": "PASS",
+    "J": "PASS",
+    "K": "PASS",
+    "L": "BLOCKED_MISSING_EXTERNAL_INPUT",
+    "M": "PASS",
+    "N": "PASS",
+    "O": "PASS"
+  },
+  "key_artifacts": {
+    "hardware_report": "artifacts/discovery/hardware-report.json",
+    "model_benchmark": "artifacts/discovery/model-benchmark.json",
+    "runtime_assessment": "artifacts/discovery/runtime-assessment.json",
+    "evaluation_json": "artifacts/evaluation/seeded-results.json",
+    "evaluation_csv": "artifacts/evaluation/seeded-results.csv",
+    "evaluation_report": "artifacts/evaluation/EVALUATION_REPORT.md",
+    "training_jsonl": "artifacts/training/dry-run/trajectories.jsonl",
+    "training_parquet": "artifacts/training/dry-run/trajectories.parquet",
+    "artifact_index": "artifacts/ARTIFACT_INDEX.snapshot.json"
+  },
+  "model": {
+    "runtime": "Ollama",
+    "runtime_version": "0.33.2",
+    "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+    "architecture": "qwen35",
+    "parameters": 27320697856,
+    "format": "gguf",
+    "quantization": "Q4_K_M",
+    "average_output_tokens_per_second": 45.371011798668064
+  },
+  "qwen_code": {
+    "version": "0.22.3",
+    "wrapper_model": "qwen-os-lab-worker:latest",
+    "visible_tools": [
+      "mcp__oslab__policy_remaining_budget",
+      "mcp__oslab__fixture_explain"
+    ],
+    "smoke_result": "MCP_BUDGET_OK"
+  }
+}

@@ -32,8 +32,8 @@ Build and verify a local, safety-bounded OS reliability lab driven by the instal
 | 12. Runtime routing | Complete | `docs/MODEL_RUNTIME_REPORT.md`, `artifacts/discovery/runtime-assessment.json`, `ModelRouter`, and `ResourceScheduler` added. |
 | 13. Training readiness | Complete | `oslab training dry-run --json` exported and reloaded 16 JSONL/Parquet records. |
 | 14. Documentation/security | Complete | Architecture, threat model, runbook, real-target, runtime, training, limitations, next experiments, README, and demo scripts added. |
-| 15. Acceptance | In progress | Run full verification, clean-checkout proof, artifact index, `PROOF.json`, and `FINAL_REPORT.md`. |
+| 15. Acceptance | Complete except Gate L | Main checkout and clean checkout live selftests passed; artifact index, `PROOF.json`, and `FINAL_REPORT.md` produced. Overall goal remains blocked until an authorized real OS source path and build entry point are supplied. |
 
 ## Resume
 
-Run `git status --short`, read `docs/OSLAB_PROGRESS.md`, then continue the first incomplete milestone. Never treat the missing real OS target as permission to stop independent fixture/framework work.
+Run `git status --short`, read `docs/OSLAB_PROGRESS.md`, then continue the first incomplete milestone. If no authorized real OS target has been supplied, the fixture/framework work is already complete and the only valid next step is to unlock Gate L with `oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json`.
