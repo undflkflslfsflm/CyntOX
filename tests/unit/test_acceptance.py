@@ -827,6 +827,81 @@ def test_acceptance_audit_rejects_audit_artifact_without_key_evidence_check(
     assert "acceptance_audit_artifact_is_verifiable" in result["failed_checks"]
 
 
+def test_acceptance_audit_rejects_audit_artifact_with_mismatched_gate_summary(
+    tmp_path: Path,
+) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    proof_path = tmp_path / "PROOF.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    mismatched_gate_summary = dict(EXPECTED_GATE_SUMMARY)
+    mismatched_gate_summary["L"] = "PASS"
+    stale_payload = {
+        "schema_version": 1,
+        "status": "PASS",
+        "ok": True,
+        "failed_checks": [],
+        "gate_summary": mismatched_gate_summary,
+        "blocked_gate": proof["blocked_gate"],
+        "checks": [
+            {"name": name, "status": "PASS", "details": {}}
+            for name in ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS
+        ],
+    }
+    stale_sha = (
+        ArtifactStore(tmp_path / "artifacts")
+        .put_json(stale_payload, "acceptance-gate-audit.json")
+        .sha256
+    )
+    for row in proof["verified_commands"]:
+        if row.get("command", "").endswith("acceptance audit --save --json"):
+            row["artifact_sha256"] = stale_sha
+            break
+    _write(proof_path, json.dumps(proof, indent=2) + "\n")
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "acceptance_audit_artifact_is_verifiable" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_audit_artifact_with_mismatched_blocker(
+    tmp_path: Path,
+) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    proof_path = tmp_path / "PROOF.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    stale_payload = {
+        "schema_version": 1,
+        "status": "PASS",
+        "ok": True,
+        "failed_checks": [],
+        "gate_summary": EXPECTED_GATE_SUMMARY,
+        "blocked_gate": {
+            **proof["blocked_gate"],
+            "minimal_input": "anything at all",
+        },
+        "checks": [
+            {"name": name, "status": "PASS", "details": {}}
+            for name in ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS
+        ],
+    }
+    stale_sha = (
+        ArtifactStore(tmp_path / "artifacts")
+        .put_json(stale_payload, "acceptance-gate-audit.json")
+        .sha256
+    )
+    for row in proof["verified_commands"]:
+        if row.get("command", "").endswith("acceptance audit --save --json"):
+            row["artifact_sha256"] = stale_sha
+            break
+    _write(proof_path, json.dumps(proof, indent=2) + "\n")
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "acceptance_audit_artifact_is_verifiable" in result["failed_checks"]
+
+
 def test_acceptance_audit_rejects_live_output_that_disagrees_with_proof(tmp_path: Path) -> None:
     _create_complete_fixture_proof(tmp_path)
     proof_path = tmp_path / "PROOF.json"

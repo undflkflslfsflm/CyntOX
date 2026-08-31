@@ -1102,6 +1102,10 @@ def _check_acceptance_audit_artifact(
             failures.append("audit_artifact_not_pass")
         if audit_payload.get("failed_checks") != []:
             failures.append("audit_artifact_has_failed_checks")
+        if audit_payload.get("gate_summary") != proof.get("gate_summary"):
+            failures.append("audit_artifact_gate_summary_mismatch")
+        if audit_payload.get("blocked_gate") != proof.get("blocked_gate"):
+            failures.append("audit_artifact_blocked_gate_mismatch")
         checks_by_name = {
             check.get("name"): check.get("status")
             for check in audit_payload.get("checks", [])
