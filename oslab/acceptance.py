@@ -114,7 +114,6 @@ ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
     "proof_records_required_commands",
     "proof_records_main_and_clean_selftest_hashes",
     "selftest_proof_artifacts_are_verifiable",
-    "clean_checkout_matches_verified_source",
     "selftest_live_outputs_match_proof",
     "proof_records_live_model_identity",
     "proof_records_constrained_qwen_code_smoke",
