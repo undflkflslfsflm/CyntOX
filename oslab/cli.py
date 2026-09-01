@@ -13,7 +13,11 @@ from typing import Annotated, Any
 
 import typer
 
-from oslab.acceptance import audit_acceptance
+from oslab.acceptance import (
+    GATE_L_BLOCKER_REPORT_PATH,
+    audit_acceptance,
+    build_gate_l_blocker_report,
+)
 from oslab.artifacts import ArtifactStore
 from oslab.campaign import prove_recovery
 from oslab.config import default_config, load_config
@@ -425,6 +429,23 @@ def target_validate_manifest(
     _emit(result, json_output)
     if result["status"] != "ready":
         raise typer.Exit(1)
+
+
+@target_app.command("blocker-report")
+def target_blocker_report(
+    write: Annotated[
+        bool,
+        typer.Option("--write/--no-write", help="Write the report to the tracked artifact path"),
+    ] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    config = load_config()
+    report = build_gate_l_blocker_report(config.project_root)
+    if write:
+        path = config.project_root / GATE_L_BLOCKER_REPORT_PATH
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    _emit(report, json_output)
 
 
 @campaign_app.command("recovery-proof")
@@ -901,6 +922,7 @@ def selftest(
         [sys.executable, "-m", "mypy", "oslab"],
         [sys.executable, "-m", "oslab.cli", "target", "inspect", "--json"],
         [sys.executable, "-m", "oslab.cli", "target", "manifest-template", "--json"],
+        [sys.executable, "-m", "oslab.cli", "target", "blocker-report", "--json"],
         [sys.executable, "-m", "oslab.cli", "training", "dry-run", "--json"],
         [sys.executable, "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
     ]

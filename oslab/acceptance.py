@@ -94,6 +94,7 @@ SELFTEST_EXPECTED_ARGV_TAILS = (
     ("-m", "mypy", "oslab"),
     ("-m", "oslab.cli", "target", "inspect", "--json"),
     ("-m", "oslab.cli", "target", "manifest-template", "--json"),
+    ("-m", "oslab.cli", "target", "blocker-report", "--json"),
     ("-m", "oslab.cli", "training", "dry-run", "--json"),
     ("-m", "oslab.cli", "cleanup", "--dry-run", "--json"),
     ("-m", "oslab.cli", "model", "probe", "--live", "--json"),
@@ -196,6 +197,80 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
     }
 
 
+def build_gate_l_blocker_report(root: Path) -> dict[str, Any]:
+    project_root = root.resolve()
+    proof = _load_json(project_root / "PROOF.json")
+    target = inspect_targets(default_config(project_root))
+    blocked_gate_value = proof.get("blocked_gate", {})
+    blocked_gate = blocked_gate_value if isinstance(blocked_gate_value, dict) else {}
+    command_rows = [row for row in proof.get("verified_commands", []) if isinstance(row, dict)]
+    safe_subset = next(
+        (
+            str(row.get("stdout", "")).strip()
+            for row in command_rows
+            if row.get("scope") == "main checkout"
+            and row.get("command")
+            == '.venv\\Scripts\\python.exe -m pytest -m "not live and not qemu" -q'
+            and row.get("exit_code") == 0
+        ),
+        "",
+    )
+    selftest_hashes = _proof_selftest_hashes(proof)
+    fixture = target.get("fixture", {})
+    real_os = target.get("real_os", {})
+    bounded_candidates = real_os.get("bounded_candidates", []) if isinstance(real_os, dict) else []
+    return {
+        "schema_version": 1,
+        "gate": "L",
+        "status": EXPECTED_GATE_SUMMARY["L"],
+        "proof_blocked_gate": blocked_gate,
+        "minimal_input": blocked_gate.get("minimal_input", ""),
+        "what_was_attempted": [
+            "Bounded target discovery inspected the current repository, immediate parent and children, and saved target configuration without crawling unrelated personal files or the whole disk.",
+            "Main checkout live selftest ran target inspect, manifest-template, training dry-run, cleanup dry-run, live Ollama probe, Qwen Code smoke, integrity checks, pytest, Ruff, mypy, uv lock check, frozen/offline pnpm install, and blocker-report generation.",
+            "Clean checkout live selftest repeated the verification sequence from a detached checkout at the verified source commit.",
+            "Acceptance audit re-checked the recorded Gate L status, proof hashes, clean-checkout source binding, live model outputs, artifact index, and current Git cleanliness.",
+            "The framework side of Gate L was implemented and tested: manifest validation, disposable commit-pinned build worktrees, real-target build, real-target boot, real-target test, QEMU -nic none, loopback QMP, and serial readiness/success pattern matching.",
+        ],
+        "concrete_evidence": {
+            "source_commit_verified": proof.get("source_commit_verified"),
+            "source_commit_full": proof.get("source_commit_full"),
+            "main_selftest_proof_sha256": selftest_hashes.get("main checkout"),
+            "clean_selftest_proof_sha256": selftest_hashes.get("clean checkout"),
+            "main_pytest_summary": _pytest_summary_for_selftest(
+                project_root / "artifacts", selftest_hashes.get("main checkout")
+            ),
+            "clean_pytest_summary": _pytest_summary_for_selftest(
+                _clean_artifact_root(project_root, command_rows),
+                selftest_hashes.get("clean checkout"),
+            ),
+            "safe_subset_summary": safe_subset,
+            "target_inspect": {
+                "fixture_status": fixture.get("status") if isinstance(fixture, dict) else None,
+                "gate_l": target.get("gate_l"),
+                "real_os_status": real_os.get("status") if isinstance(real_os, dict) else None,
+                "bounded_candidates": len(bounded_candidates)
+                if isinstance(bounded_candidates, list)
+                else None,
+                "resume_command": target.get("resume_command"),
+            },
+        },
+        "why_further_progress_is_impossible": [
+            "Gate L requires an actual authorized OS source tree and its existing build entry point.",
+            "No such target is present in the bounded discovery scope, so the lab cannot honestly build, cold-boot, smoke-test, or claim real-target evidence.",
+            "The specification forbids inventing a successful build command, silently changing production build behavior, recursively crawling unrelated personal files, uploading source, or using external systems to fill in the missing target.",
+        ],
+        "resume_commands": [
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli target manifest-template --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli target validate-manifest --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli build --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --profile debug --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli boot --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --profile debug --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli test --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --test smoke --profile debug --json",
+        ],
+    }
+
+
 def _load_json(path: Path) -> dict[str, Any]:
     if not path.is_file():
         return {}
@@ -220,6 +295,34 @@ def _read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8")
     except OSError:
         return ""
+
+
+def _clean_artifact_root(project_root: Path, command_rows: list[dict[str, Any]]) -> Path:
+    clean_worktree = _clean_worktree_path(project_root, command_rows)
+    if clean_worktree is None:
+        return project_root / "artifacts"
+    return clean_worktree / "artifacts"
+
+
+def _pytest_summary_for_selftest(artifact_root: Path, digest: str | None) -> str:
+    if not isinstance(digest, str) or not _is_sha256(digest):
+        return ""
+    payload = _load_artifact_payload(artifact_root, digest)
+    if not payload["ok"] or not isinstance(payload.get("json"), dict):
+        return ""
+    commands = payload["json"].get("commands", [])
+    if not isinstance(commands, list):
+        return ""
+    pytest_command = _command_by_tail(commands, ("-m", "pytest", "-q"))
+    if pytest_command is None:
+        return ""
+    stdout = pytest_command.get("stdout")
+    if not isinstance(stdout, str):
+        return ""
+    for line in reversed(stdout.splitlines()):
+        if " passed" in line:
+            return line.strip()
+    return ""
 
 
 def _positive_int(value: object) -> bool:

@@ -530,6 +530,7 @@ def _write_selftest_proof_artifact(
         ["python", "-m", "mypy", "oslab"],
         ["python", "-m", "oslab.cli", "target", "inspect", "--json"],
         ["python", "-m", "oslab.cli", "target", "manifest-template", "--json"],
+        ["python", "-m", "oslab.cli", "target", "blocker-report", "--json"],
         ["python", "-m", "oslab.cli", "training", "dry-run", "--json"],
         ["python", "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
         ["python", "-m", "oslab.cli", "model", "probe", "--live", "--json"],
