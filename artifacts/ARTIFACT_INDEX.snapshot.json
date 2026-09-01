@@ -1,25 +1,25 @@
 {
-  "generated_at": "2026-09-01T00:34:31Z",
+  "generated_at": "2026-09-01T00:49:27Z",
   "entries": [
     {
-      "bytes": 2214,
+      "bytes": 2397,
       "path": "README.md",
-      "sha256": "912af39f8f878cc6007f14d1f2b314440da9e5b696b54ae30fa565155b3cec97"
+      "sha256": "730ed19b71f774e7143b3c4b08f381f2e8db69e52024d446a723c0a45176bdad"
     },
     {
-      "bytes": 5920,
+      "bytes": 6447,
       "path": "FINAL_REPORT.md",
-      "sha256": "64dac916c96c9ce676ad2e5dd2fb2d97f14b5eff01247216081ca24ee2673d16"
+      "sha256": "d6916af9a2df16b7227fa283b813f19a77c688a0b5a0ba6d02acd00aee523974"
     },
     {
       "bytes": 5847,
       "path": "PROOF.json",
-      "sha256": "a4e4e0c94f208332f43e3d5d12fc117c5ccf3d97bccb124bd59f94386a20d595"
+      "sha256": "f3a522c2191c0d923647a06d6c5eeffa0830c41619bf122f227557bf75694979"
     },
     {
-      "bytes": 4267,
+      "bytes": 4530,
       "path": "docs/ARCHITECTURE.md",
-      "sha256": "4828b5e3768b54cbe99c7057ee98c197ae444762faa92780a86e6b219730a872"
+      "sha256": "d2e15fb8780a3a5f2268702bf1179c7ec678ae99d2c3b02d1a88bae8d8745c46"
     },
     {
       "bytes": 3226,
@@ -27,9 +27,9 @@
       "sha256": "8cb31af83c374c2fbd0d4e0ee7868418c7ec58e96a1cf4fa9a9b5ca429c94c22"
     },
     {
-      "bytes": 4291,
+      "bytes": 4731,
       "path": "docs/RUNBOOK.md",
-      "sha256": "fb1fcfc73f0803773497f6068539eafd0d6c7e9d3668025a53060df8f10572fa"
+      "sha256": "384a252156605b52408495a071debc15d00f8c655f723c0466b6892a950bc17c"
     },
     {
       "bytes": 4171,
@@ -37,9 +37,9 @@
       "sha256": "b656e526b0fc0c7c6217aff0cde9ae780b94781c9ed4664542c63bda0364d7ff"
     },
     {
-      "bytes": 3331,
+      "bytes": 4158,
       "path": "docs/REAL_OS_INTEGRATION.md",
-      "sha256": "c4a659cfaf7c4227b8a929b010cdee2ab980e4eb107c7e95d5f10be9a7a614a0"
+      "sha256": "481be92aadd3482b13f435028259542fd6013871c34f084cebe596acef0184f0"
     },
     {
       "bytes": 1364,
@@ -62,19 +62,19 @@
       "sha256": "2ee52828e3c997202a8e8139d8a473f62d0b2d4ebe0783a489f04627bf63ba59"
     },
     {
-      "bytes": 4045,
+      "bytes": 4133,
       "path": "docs/OSLAB_EXECPLAN.md",
-      "sha256": "f7091d608a893d215b40608b4ea15bf4e2eecb492cd37a01394925a42f21a427"
+      "sha256": "b6b03abc5ad2600e6f32e7a88951259258cd429050822d137872f52aa8a8a3cf"
     },
     {
-      "bytes": 10185,
+      "bytes": 10607,
       "path": "docs/OSLAB_PROGRESS.md",
-      "sha256": "dce02dd5699f859373ef520786b403d62ffa224cf8ccd132690b58d5e927b23f"
+      "sha256": "fa02ba24e0715e66f4eb5420499ac56944f18e859ae6414cf5527c914316ecd6"
     },
     {
-      "bytes": 14391,
+      "bytes": 15023,
       "path": "docs/OSLAB_DECISIONS.md",
-      "sha256": "7156540563a0696f19375d063215dd3b964323fbd2838ed4ea896e00af1fa459"
+      "sha256": "5c59a5d3483dde24148535a0703d646e2c92e03902daa17dcb4ef299de15f3d6"
     },
     {
       "bytes": 7888,
@@ -132,9 +132,9 @@
       "sha256": "ea7ee94ab91ce0deaa672918097e4032076ce9ca2b27bae3e3e8ad73e5affbdc"
     },
     {
-      "bytes": 1107,
+      "bytes": 1147,
       "path": "config/oslab-target.example.toml",
-      "sha256": "d9dc6d9614b6af4e8b8ace2f92b953f4cf47f58cee2ac8ab5853f1e8c06c36f1"
+      "sha256": "a5f1fd95129ed28e867cca617c14ca4612f3db3b132d1a589c6ad0e9e8728ab6"
     }
   ]
 }
