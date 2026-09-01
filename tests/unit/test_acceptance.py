@@ -15,7 +15,9 @@ from oslab.acceptance import (
     REQUIRED_DOCS,
     REQUIRED_KEY_EVIDENCE_ARTIFACTS,
     REQUIRED_SUPPORT_FILES,
+    REQUIREMENTS_TRACE_PATH,
     audit_acceptance,
+    build_requirements_trace,
 )
 from oslab.artifacts import ArtifactStore
 
@@ -531,6 +533,7 @@ def _write_selftest_proof_artifact(
         ["python", "-m", "oslab.cli", "target", "inspect", "--json"],
         ["python", "-m", "oslab.cli", "target", "manifest-template", "--json"],
         ["python", "-m", "oslab.cli", "target", "blocker-report", "--json"],
+        ["python", "-m", "oslab.cli", "acceptance", "trace", "--json"],
         ["python", "-m", "oslab.cli", "training", "dry-run", "--json"],
         ["python", "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
         ["python", "-m", "oslab.cli", "model", "probe", "--live", "--json"],
@@ -688,6 +691,7 @@ def _create_complete_fixture_proof(root: Path) -> None:
             },
         ],
         "gate_summary": EXPECTED_GATE_SUMMARY,
+        "key_artifacts": {"requirements_trace": REQUIREMENTS_TRACE_PATH},
         "model": _test_model_identity(),
         "qwen_code": {
             "version": "0.22.3",
@@ -698,6 +702,10 @@ def _create_complete_fixture_proof(root: Path) -> None:
         "key_evidence_artifacts": key_evidence_artifacts,
     }
     _write(root / "PROOF.json", json.dumps(proof, indent=2) + "\n")
+    _write(
+        root / REQUIREMENTS_TRACE_PATH,
+        json.dumps(build_requirements_trace(root), indent=2) + "\n",
+    )
     _write_artifact_index(root)
     _git(root, "add", ".")
     _git(
@@ -757,6 +765,23 @@ def test_acceptance_audit_rejects_invalid_gate_l_blocker_report(tmp_path: Path) 
 
     assert not result["ok"]
     assert "gate_l_blocker_report_is_verifiable" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_invalid_requirements_trace(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    trace = build_requirements_trace(tmp_path)
+    for row in trace["trace"]:
+        if row["gate"] == "L":
+            row["status"] = "PASS"
+            row["minimal_input_needed"] = "anything"
+            break
+    _write(tmp_path / REQUIREMENTS_TRACE_PATH, json.dumps(trace, indent=2) + "\n")
+    _write_artifact_index(tmp_path)
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "requirements_trace_is_verifiable" in result["failed_checks"]
 
 
 def test_acceptance_audit_rejects_missing_selftest_proof_artifact(tmp_path: Path) -> None:

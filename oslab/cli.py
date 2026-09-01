@@ -15,8 +15,10 @@ import typer
 
 from oslab.acceptance import (
     GATE_L_BLOCKER_REPORT_PATH,
+    REQUIREMENTS_TRACE_PATH,
     audit_acceptance,
     build_gate_l_blocker_report,
+    build_requirements_trace,
 )
 from oslab.artifacts import ArtifactStore
 from oslab.campaign import prove_recovery
@@ -668,6 +670,23 @@ def training_dry_run(
     _emit({**result, "artifact_sha256": record.sha256}, json_output)
 
 
+@acceptance_app.command("trace")
+def acceptance_trace(
+    write: Annotated[
+        bool,
+        typer.Option("--write/--no-write", help="Write the trace to the tracked artifact path"),
+    ] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    config = load_config()
+    result = build_requirements_trace(config.project_root)
+    if write:
+        path = config.project_root / REQUIREMENTS_TRACE_PATH
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    _emit(result, json_output)
+
+
 @acceptance_app.command("audit")
 def acceptance_audit(
     save: Annotated[
@@ -923,6 +942,7 @@ def selftest(
         [sys.executable, "-m", "oslab.cli", "target", "inspect", "--json"],
         [sys.executable, "-m", "oslab.cli", "target", "manifest-template", "--json"],
         [sys.executable, "-m", "oslab.cli", "target", "blocker-report", "--json"],
+        [sys.executable, "-m", "oslab.cli", "acceptance", "trace", "--json"],
         [sys.executable, "-m", "oslab.cli", "training", "dry-run", "--json"],
         [sys.executable, "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
     ]

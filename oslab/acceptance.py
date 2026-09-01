@@ -31,6 +31,7 @@ EXPECTED_GATE_SUMMARY = {
 }
 
 GATE_L_BLOCKER_REPORT_PATH = "artifacts/reports/gate-l-blocker-report.json"
+REQUIREMENTS_TRACE_PATH = "artifacts/reports/requirements-trace.json"
 
 REQUIRED_DOCS = (
     "README.md",
@@ -58,6 +59,7 @@ REQUIRED_ARTIFACTS = (
     "artifacts/evaluation/seeded-results.csv",
     "artifacts/evaluation/EVALUATION_REPORT.md",
     GATE_L_BLOCKER_REPORT_PATH,
+    REQUIREMENTS_TRACE_PATH,
     "artifacts/reports/latest-report.json",
     "artifacts/reports/latest-report.md",
     "artifacts/training/dry-run/trajectories.jsonl",
@@ -95,6 +97,7 @@ SELFTEST_EXPECTED_ARGV_TAILS = (
     ("-m", "oslab.cli", "target", "inspect", "--json"),
     ("-m", "oslab.cli", "target", "manifest-template", "--json"),
     ("-m", "oslab.cli", "target", "blocker-report", "--json"),
+    ("-m", "oslab.cli", "acceptance", "trace", "--json"),
     ("-m", "oslab.cli", "training", "dry-run", "--json"),
     ("-m", "oslab.cli", "cleanup", "--dry-run", "--json"),
     ("-m", "oslab.cli", "model", "probe", "--live", "--json"),
@@ -173,6 +176,7 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
     _check_key_evidence_artifacts(project_root, proof, checks)
     _check_gate_summary(proof, checks)
     _check_gate_l_blocker_report(project_root, proof, checks)
+    _check_requirements_trace(project_root, proof, checks)
     _check_proof_commands(proof, checks)
     _check_selftest_proof_artifacts(project_root, proof, checks)
     _check_clean_checkout_matches_verified_source(project_root, proof, checks)
@@ -269,6 +273,212 @@ def build_gate_l_blocker_report(root: Path) -> dict[str, Any]:
             ".\\.venv\\Scripts\\python.exe -m oslab.cli test --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --test smoke --profile debug --json",
         ],
     }
+
+
+def build_requirements_trace(root: Path) -> dict[str, Any]:
+    project_root = root.resolve()
+    proof = _load_json(project_root / "PROOF.json")
+    selftest_hashes = _proof_selftest_hashes(proof)
+    gate_summary = proof.get("gate_summary", {})
+    statuses = gate_summary if isinstance(gate_summary, dict) else {}
+    blocked_gate = proof.get("blocked_gate", {})
+    minimal_input = blocked_gate.get("minimal_input", "") if isinstance(blocked_gate, dict) else ""
+    return {
+        "schema_version": 1,
+        "generated_at": proof.get("generated_at", ""),
+        "goal_status": proof.get("goal_status", ""),
+        "source_commit_full": proof.get("source_commit_full", ""),
+        "main_selftest_proof_sha256": selftest_hashes.get("main checkout", ""),
+        "clean_selftest_proof_sha256": selftest_hashes.get("clean checkout", ""),
+        "trace": [
+            _trace_row(
+                "A",
+                statuses.get("A"),
+                "Discovery succeeds and records hardware, RAM, disks, virtualization, QEMU/toolchains, actual local model identity/runtime, and target status.",
+                [
+                    "artifacts/discovery/hardware-report.json",
+                    "docs/HARDWARE_REPORT.md",
+                    "config/local.auto.toml",
+                    "acceptance check required_artifact_contents_are_valid",
+                ],
+            ),
+            _trace_row(
+                "B",
+                statuses.get("B"),
+                "Mandatory quality checks pass from the verified source and clean checkout.",
+                [
+                    "PROOF.json verified_commands for ruff format, ruff check, mypy, pytest, uv lock, pnpm frozen offline install",
+                    "main and clean selftest proof artifacts",
+                    "acceptance checks proof_records_required_commands and clean_checkout_matches_verified_source",
+                ],
+            ),
+            _trace_row(
+                "C",
+                statuses.get("C"),
+                "A real local Qwen call validates structured output and records model/runtime/settings.",
+                [
+                    "PROOF.json model identity",
+                    "main and clean selftest live model probe stdout",
+                    "acceptance checks proof_records_live_model_identity and selftest_live_outputs_match_proof",
+                ],
+            ),
+            _trace_row(
+                "D",
+                statuses.get("D"),
+                "Qwen Code is detected/configured and constrained headless smoke evidence is recorded.",
+                [
+                    "PROOF.json qwen_code wrapper model and tool surface",
+                    "main and clean selftest qwen-code-smoke stdout",
+                    "acceptance checks proof_records_constrained_qwen_code_smoke and selftest_live_outputs_match_proof",
+                ],
+            ),
+            _trace_row(
+                "E",
+                statuses.get("E"),
+                "A true QEMU fixture builds from source, cold-boots, emits READY, passes a test, restores a snapshot, and cleans up.",
+                [
+                    "FINAL_REPORT.md confirmed working fixture summary",
+                    "PROOF.json key_evidence_artifacts.fixture_fuzz_campaign",
+                    "acceptance check key_evidence_artifacts_are_verifiable",
+                ],
+            ),
+            _trace_row(
+                "F",
+                statuses.get("F"),
+                "Fixture FAIL, CRASH, HANG, and induced infrastructure error are classified with artifacts and timeouts.",
+                [
+                    "PROOF.json key_evidence_artifacts.fixture_fuzz_campaign",
+                    "artifacts/reports/latest-report.json",
+                    "acceptance check key_evidence_artifacts_are_verifiable",
+                ],
+            ),
+            _trace_row(
+                "G",
+                statuses.get("G"),
+                "Seeded crash reproduces across fresh cold boots with a stable fingerprint and stored reproducer.",
+                [
+                    "PROOF.json key_evidence_artifacts.crash_reproduction",
+                    "PROOF.json key_evidence_artifacts.crash_verification",
+                    "acceptance check key_evidence_artifacts_are_verifiable",
+                ],
+            ),
+            _trace_row(
+                "H",
+                statuses.get("H"),
+                "Live-model agentic loop observes a seeded failure, proposes a patch in a disposable worktree, verifies the targeted fix, and runs regressions.",
+                [
+                    "PROOF.json key_evidence_artifacts.agentic_fix_loop",
+                    "docs/OSLAB_PROGRESS.md agentic fix loop ledger entry",
+                    "acceptance check key_evidence_artifacts_are_verifiable",
+                ],
+            ),
+            _trace_row(
+                "I",
+                statuses.get("I"),
+                "Independent verifier accepts valid evidence and rejects a deliberately invalid solution.",
+                [
+                    "PROOF.json key_evidence_artifacts.agentic_fix_loop",
+                    "PROOF.json key_evidence_artifacts.seeded_evaluation_cas",
+                    "acceptance check key_evidence_artifacts_are_verifiable",
+                ],
+            ),
+            _trace_row(
+                "J",
+                statuses.get("J"),
+                "Supervisor restart/resume is proven without database corruption or duplicate accepted findings.",
+                [
+                    "PROOF.json key_evidence_artifacts.supervisor_recovery",
+                    "docs/OSLAB_PROGRESS.md supervisor recovery ledger entry",
+                    "acceptance check key_evidence_artifacts_are_verifiable",
+                ],
+            ),
+            _trace_row(
+                "K",
+                statuses.get("K"),
+                "Seeded evaluation matrix runs variants A-E over seeds 1,2,3 and produces raw data plus report.",
+                [
+                    "artifacts/evaluation/seeded-results.json",
+                    "artifacts/evaluation/seeded-results.csv",
+                    "artifacts/evaluation/EVALUATION_REPORT.md",
+                    "PROOF.json key_evidence_artifacts.seeded_evaluation_cas",
+                    "acceptance check required_artifact_contents_are_valid",
+                ],
+            ),
+            _trace_row(
+                "L",
+                statuses.get("L"),
+                "Real OS target builds, cold-boots, and smoke-tests when the authorized source and build path are present.",
+                [
+                    GATE_L_BLOCKER_REPORT_PATH,
+                    "docs/REAL_OS_INTEGRATION.md",
+                    "PROOF.json blocked_gate",
+                    "acceptance checks gate_l_blocker_is_precise, gate_l_blocker_report_is_verifiable, and current_target_inspection_matches_gate_l",
+                ],
+                minimal_input_needed=minimal_input,
+            ),
+            _trace_row(
+                "M",
+                statuses.get("M"),
+                "Bounded autonomous campaign against the fixture generates hypotheses/tests, executes, handles errors, deduplicates findings, checkpoints, and reports.",
+                [
+                    "PROOF.json key_evidence_artifacts.bounded_autonomous_campaign",
+                    "PROOF.json key_evidence_artifacts.fixture_fuzz_campaign",
+                    "artifacts/reports/latest-report.json",
+                    "acceptance check key_evidence_artifacts_are_verifiable",
+                ],
+            ),
+            _trace_row(
+                "N",
+                statuses.get("N"),
+                "Security boundary tests cover path restrictions, evaluator immutability, command allowlists, local-only binding, network isolation, redaction, limits, and rollback.",
+                [
+                    "docs/THREAT_MODEL.md",
+                    "PROOF.json verified pytest commands",
+                    "main and clean selftest proofs",
+                    "acceptance checks proof_records_required_commands and mandatory_paths_have_no_unresolved_placeholders",
+                ],
+            ),
+            _trace_row(
+                "O",
+                statuses.get("O"),
+                "Clean setup/runbook documentation, artifact integrity, final report, proof, limitations, next experiments, and artifact hashes are present and verified.",
+                [
+                    "README.md",
+                    "docs/RUNBOOK.md",
+                    "FINAL_REPORT.md",
+                    "PROOF.json",
+                    "docs/KNOWN_LIMITATIONS.md",
+                    "docs/NEXT_EXPERIMENTS.md",
+                    "artifacts/ARTIFACT_INDEX.snapshot.json",
+                    "acceptance checks artifact_index_matches_disk and artifact_index_covers_required_files",
+                ],
+            ),
+        ],
+        "next_required_action": {
+            "gate": "L",
+            "command": ".\\.venv\\Scripts\\python.exe -m oslab.cli target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+            "note": "Completion remains unclaimed until the supplied real OS target is actually built, cold-booted, and smoke-tested.",
+        },
+    }
+
+
+def _trace_row(
+    gate: str,
+    status: object,
+    requirement: str,
+    evidence: list[str],
+    *,
+    minimal_input_needed: str | None = None,
+) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "gate": gate,
+        "status": status,
+        "requirement": requirement,
+        "evidence": evidence,
+    }
+    if minimal_input_needed is not None:
+        row["minimal_input_needed"] = minimal_input_needed
+    return row
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -1133,6 +1343,159 @@ def _check_gate_l_blocker_report(
         "gate_l_blocker_report_is_verifiable",
         not failures,
         {"path": GATE_L_BLOCKER_REPORT_PATH, "failures": failures},
+    )
+
+
+def _check_requirements_trace(
+    project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
+) -> None:
+    trace = _load_json_any(project_root / REQUIREMENTS_TRACE_PATH)
+    failures: list[dict[str, Any]] = []
+    if not isinstance(trace, dict):
+        _record(
+            checks,
+            "requirements_trace_is_verifiable",
+            False,
+            {"failures": [{"path": REQUIREMENTS_TRACE_PATH, "reason": "not_json_object"}]},
+        )
+        return
+
+    proof_key_artifacts = proof.get("key_artifacts", {})
+    if not isinstance(proof_key_artifacts, dict):
+        failures.append({"path": "PROOF.json", "reason": "key_artifacts_missing"})
+    elif proof_key_artifacts.get("requirements_trace") != REQUIREMENTS_TRACE_PATH:
+        failures.append(
+            {
+                "path": "PROOF.json",
+                "reason": "requirements_trace_key_artifact_missing",
+                "actual": proof_key_artifacts.get("requirements_trace"),
+            }
+        )
+
+    if trace.get("schema_version") != 1:
+        failures.append({"path": REQUIREMENTS_TRACE_PATH, "reason": "schema_version_invalid"})
+    if trace.get("goal_status") != proof.get("goal_status"):
+        failures.append({"path": REQUIREMENTS_TRACE_PATH, "reason": "goal_status_mismatch"})
+    if trace.get("source_commit_full") != proof.get("source_commit_full"):
+        failures.append({"path": REQUIREMENTS_TRACE_PATH, "reason": "source_commit_mismatch"})
+
+    expected_selftests = _proof_selftest_hashes(proof)
+    for scope, field in (
+        ("main checkout", "main_selftest_proof_sha256"),
+        ("clean checkout", "clean_selftest_proof_sha256"),
+    ):
+        if trace.get(field) != expected_selftests.get(scope):
+            failures.append(
+                {
+                    "path": REQUIREMENTS_TRACE_PATH,
+                    "reason": f"{field}_mismatch",
+                    "expected": expected_selftests.get(scope),
+                    "actual": trace.get(field),
+                }
+            )
+
+    gate_summary = proof.get("gate_summary", {})
+    gate_statuses = gate_summary if isinstance(gate_summary, dict) else {}
+    blocked_gate = proof.get("blocked_gate", {})
+    expected_minimal_input = (
+        blocked_gate.get("minimal_input") if isinstance(blocked_gate, dict) else None
+    )
+    rows = trace.get("trace")
+    if not isinstance(rows, list):
+        failures.append({"path": REQUIREMENTS_TRACE_PATH, "reason": "trace_rows_missing"})
+    else:
+        seen: set[str] = set()
+        for index, row in enumerate(rows):
+            if not isinstance(row, dict):
+                failures.append(
+                    {
+                        "path": REQUIREMENTS_TRACE_PATH,
+                        "reason": "trace_row_not_object",
+                        "index": index,
+                    }
+                )
+                continue
+            gate = row.get("gate")
+            if not isinstance(gate, str):
+                failures.append(
+                    {
+                        "path": REQUIREMENTS_TRACE_PATH,
+                        "reason": "trace_row_gate_invalid",
+                        "index": index,
+                    }
+                )
+                continue
+            if gate in seen:
+                failures.append(
+                    {"path": REQUIREMENTS_TRACE_PATH, "reason": "duplicate_gate", "gate": gate}
+                )
+            seen.add(gate)
+            expected_status = gate_statuses.get(gate)
+            if row.get("status") != expected_status or expected_status != EXPECTED_GATE_SUMMARY.get(
+                gate
+            ):
+                failures.append(
+                    {
+                        "path": REQUIREMENTS_TRACE_PATH,
+                        "reason": "gate_status_mismatch",
+                        "gate": gate,
+                        "expected": expected_status,
+                        "actual": row.get("status"),
+                    }
+                )
+            if not isinstance(row.get("requirement"), str) or not row["requirement"].strip():
+                failures.append(
+                    {"path": REQUIREMENTS_TRACE_PATH, "reason": "requirement_missing", "gate": gate}
+                )
+            if not _non_empty_string_list(row.get("evidence"), minimum=2):
+                failures.append(
+                    {
+                        "path": REQUIREMENTS_TRACE_PATH,
+                        "reason": "evidence_incomplete",
+                        "gate": gate,
+                    }
+                )
+            if gate == "L" and row.get("minimal_input_needed") != expected_minimal_input:
+                failures.append(
+                    {
+                        "path": REQUIREMENTS_TRACE_PATH,
+                        "reason": "gate_l_minimal_input_mismatch",
+                    }
+                )
+        missing_gates = [gate for gate in EXPECTED_GATE_SUMMARY if gate not in seen]
+        extra_gates = [gate for gate in seen if gate not in EXPECTED_GATE_SUMMARY]
+        if missing_gates:
+            failures.append(
+                {
+                    "path": REQUIREMENTS_TRACE_PATH,
+                    "reason": "missing_gates",
+                    "gates": missing_gates,
+                }
+            )
+        if extra_gates:
+            failures.append(
+                {
+                    "path": REQUIREMENTS_TRACE_PATH,
+                    "reason": "extra_gates",
+                    "gates": sorted(extra_gates),
+                }
+            )
+
+    next_action = trace.get("next_required_action")
+    if not isinstance(next_action, dict):
+        failures.append({"path": REQUIREMENTS_TRACE_PATH, "reason": "next_action_missing"})
+    elif (
+        next_action.get("gate") != "L"
+        or "target inspect" not in str(next_action.get("command", ""))
+        or "AUTHORIZED_OS_SOURCE_PATH" not in str(next_action.get("command", ""))
+    ):
+        failures.append({"path": REQUIREMENTS_TRACE_PATH, "reason": "next_action_invalid"})
+
+    _record(
+        checks,
+        "requirements_trace_is_verifiable",
+        not failures,
+        {"path": REQUIREMENTS_TRACE_PATH, "failures": failures},
     )
 
 
