@@ -237,3 +237,11 @@
 - Context: the CLI already exposed `campaign run` and `eval run`, but the user specification names top-level workflow forms such as `oslab campaign --target ...` and `oslab eval --suite ...`.
 - Decision: keep the existing subcommands and add top-level callback aliases that route `campaign` and `eval` options directly into the same bounded campaign/evaluation payloads.
 - Consequence: runbook commands can match the specification while existing automation and tests that call `campaign run` or `eval run` remain compatible.
+
+## D-031 — Add a one-line launcher
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: using the project by typing its raw Windows path is brittle because the path contains spaces and parentheses, which PowerShell can parse as syntax instead of a location.
+- Decision: add repo-root `oslab.ps1` and `oslab.cmd` launchers that resolve the project root from the script location, bootstrap the local virtual environment when needed, and forward arguments to `python -m oslab.cli`.
+- Consequence: users can run `.\oslab.ps1 ...`, `.\oslab.cmd ...`, or a quoted full-path PowerShell one-liner from any directory; acceptance now treats the launchers as required support files.
