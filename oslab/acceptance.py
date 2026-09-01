@@ -1337,6 +1337,14 @@ def _check_gate_l_blocker_report(
         failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "evidence_missing"})
     else:
         _validate_gate_l_blocker_evidence(evidence, proof, failures)
+    expected_report = build_gate_l_blocker_report(project_root)
+    if report != expected_report:
+        failures.append(
+            {
+                "path": GATE_L_BLOCKER_REPORT_PATH,
+                "reason": "report_not_regenerated_from_current_proof",
+            }
+        )
 
     _record(
         checks,
@@ -1490,6 +1498,15 @@ def _check_requirements_trace(
         or "AUTHORIZED_OS_SOURCE_PATH" not in str(next_action.get("command", ""))
     ):
         failures.append({"path": REQUIREMENTS_TRACE_PATH, "reason": "next_action_invalid"})
+
+    expected_trace = build_requirements_trace(project_root)
+    if trace != expected_trace:
+        failures.append(
+            {
+                "path": REQUIREMENTS_TRACE_PATH,
+                "reason": "trace_not_regenerated_from_current_proof",
+            }
+        )
 
     _record(
         checks,

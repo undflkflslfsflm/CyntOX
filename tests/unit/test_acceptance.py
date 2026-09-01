@@ -17,6 +17,7 @@ from oslab.acceptance import (
     REQUIRED_SUPPORT_FILES,
     REQUIREMENTS_TRACE_PATH,
     audit_acceptance,
+    build_gate_l_blocker_report,
     build_requirements_trace,
 )
 from oslab.artifacts import ArtifactStore
@@ -703,6 +704,10 @@ def _create_complete_fixture_proof(root: Path) -> None:
     }
     _write(root / "PROOF.json", json.dumps(proof, indent=2) + "\n")
     _write(
+        root / GATE_L_BLOCKER_REPORT_PATH,
+        json.dumps(build_gate_l_blocker_report(root), indent=2) + "\n",
+    )
+    _write(
         root / REQUIREMENTS_TRACE_PATH,
         json.dumps(build_requirements_trace(root), indent=2) + "\n",
     )
@@ -767,6 +772,19 @@ def test_acceptance_audit_rejects_invalid_gate_l_blocker_report(tmp_path: Path) 
     assert "gate_l_blocker_report_is_verifiable" in result["failed_checks"]
 
 
+def test_acceptance_audit_rejects_hand_edited_gate_l_blocker_report(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    report = build_gate_l_blocker_report(tmp_path)
+    report["what_was_attempted"][0] = "A different but still non-empty attempted-work claim."
+    _write(tmp_path / GATE_L_BLOCKER_REPORT_PATH, json.dumps(report, indent=2) + "\n")
+    _write_artifact_index(tmp_path)
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "gate_l_blocker_report_is_verifiable" in result["failed_checks"]
+
+
 def test_acceptance_audit_rejects_invalid_requirements_trace(tmp_path: Path) -> None:
     _create_complete_fixture_proof(tmp_path)
     trace = build_requirements_trace(tmp_path)
@@ -775,6 +793,19 @@ def test_acceptance_audit_rejects_invalid_requirements_trace(tmp_path: Path) -> 
             row["status"] = "PASS"
             row["minimal_input_needed"] = "anything"
             break
+    _write(tmp_path / REQUIREMENTS_TRACE_PATH, json.dumps(trace, indent=2) + "\n")
+    _write_artifact_index(tmp_path)
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "requirements_trace_is_verifiable" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_hand_edited_requirements_trace(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    trace = build_requirements_trace(tmp_path)
+    trace["trace"][0]["requirement"] = "A different but still non-empty Gate A claim."
     _write(tmp_path / REQUIREMENTS_TRACE_PATH, json.dumps(trace, indent=2) + "\n")
     _write_artifact_index(tmp_path)
 
