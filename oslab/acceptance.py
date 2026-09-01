@@ -30,6 +30,8 @@ EXPECTED_GATE_SUMMARY = {
     "O": "PASS",
 }
 
+GATE_L_BLOCKER_REPORT_PATH = "artifacts/reports/gate-l-blocker-report.json"
+
 REQUIRED_DOCS = (
     "README.md",
     "FINAL_REPORT.md",
@@ -55,6 +57,7 @@ REQUIRED_ARTIFACTS = (
     "artifacts/evaluation/seeded-results.json",
     "artifacts/evaluation/seeded-results.csv",
     "artifacts/evaluation/EVALUATION_REPORT.md",
+    GATE_L_BLOCKER_REPORT_PATH,
     "artifacts/reports/latest-report.json",
     "artifacts/reports/latest-report.md",
     "artifacts/training/dry-run/trajectories.jsonl",
@@ -111,6 +114,7 @@ ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
     "key_evidence_artifacts_are_verifiable",
     "gate_summary_matches_contract",
     "gate_l_blocker_is_precise",
+    "gate_l_blocker_report_is_verifiable",
     "proof_records_required_commands",
     "proof_records_main_and_clean_selftest_hashes",
     "selftest_proof_artifacts_are_verifiable",
@@ -168,6 +172,7 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
     _check_required_artifact_contents(project_root, proof, checks)
     _check_key_evidence_artifacts(project_root, proof, checks)
     _check_gate_summary(proof, checks)
+    _check_gate_l_blocker_report(project_root, proof, checks)
     _check_proof_commands(proof, checks)
     _check_selftest_proof_artifacts(project_root, proof, checks)
     _check_clean_checkout_matches_verified_source(project_root, proof, checks)
@@ -940,6 +945,156 @@ def _check_gate_summary(proof: dict[str, Any], checks: list[dict[str, Any]]) -> 
         and "AUTHORIZED_OS_SOURCE_PATH" in str(blocked_gate.get("resume_command", ""))
     )
     _record(checks, "gate_l_blocker_is_precise", gate_l_precise, {"blocked_gate": blocked_gate})
+
+
+def _check_gate_l_blocker_report(
+    project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
+) -> None:
+    report = _load_json_any(project_root / GATE_L_BLOCKER_REPORT_PATH)
+    failures: list[dict[str, Any]] = []
+    if not isinstance(report, dict):
+        _record(
+            checks,
+            "gate_l_blocker_report_is_verifiable",
+            False,
+            {"failures": [{"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "not_json_object"}]},
+        )
+        return
+
+    blocked_gate = proof.get("blocked_gate")
+    if not isinstance(blocked_gate, dict):
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "proof_blocker_missing"})
+        blocked_gate = {}
+
+    if report.get("schema_version") != 1:
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "schema_version_invalid"})
+    if report.get("gate") != "L" or report.get("status") != EXPECTED_GATE_SUMMARY["L"]:
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "gate_status_invalid"})
+    if report.get("minimal_input") != blocked_gate.get("minimal_input"):
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "minimal_input_mismatch"})
+    if report.get("proof_blocked_gate") != blocked_gate:
+        failures.append(
+            {"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "proof_blocked_gate_mismatch"}
+        )
+
+    attempts = report.get("what_was_attempted")
+    if not _non_empty_string_list(attempts, minimum=4):
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "attempts_incomplete"})
+    blockers = report.get("why_further_progress_is_impossible")
+    if not _non_empty_string_list(blockers, minimum=3):
+        failures.append(
+            {"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "impossibility_reasons_incomplete"}
+        )
+
+    resume_commands = report.get("resume_commands")
+    if not _non_empty_string_list(resume_commands, minimum=5):
+        failures.append(
+            {"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "resume_commands_incomplete"}
+        )
+    else:
+        assert isinstance(resume_commands, list)
+        command_blob = "\n".join(str(command) for command in resume_commands)
+        required_fragments = (
+            "target inspect",
+            "target validate-manifest",
+            "build --target real",
+            "boot --target real",
+            "test --target real",
+        )
+        missing_fragments = [
+            fragment for fragment in required_fragments if fragment not in command_blob
+        ]
+        if missing_fragments:
+            failures.append(
+                {
+                    "path": GATE_L_BLOCKER_REPORT_PATH,
+                    "reason": "resume_command_fragments_missing",
+                    "missing": missing_fragments,
+                }
+            )
+        if "AUTHORIZED_OS_SOURCE_PATH" not in command_blob:
+            failures.append(
+                {
+                    "path": GATE_L_BLOCKER_REPORT_PATH,
+                    "reason": "resume_command_placeholder_missing",
+                }
+            )
+
+    evidence = report.get("concrete_evidence")
+    if not isinstance(evidence, dict):
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "evidence_missing"})
+    else:
+        _validate_gate_l_blocker_evidence(evidence, proof, failures)
+
+    _record(
+        checks,
+        "gate_l_blocker_report_is_verifiable",
+        not failures,
+        {"path": GATE_L_BLOCKER_REPORT_PATH, "failures": failures},
+    )
+
+
+def _validate_gate_l_blocker_evidence(
+    evidence: dict[str, Any], proof: dict[str, Any], failures: list[dict[str, Any]]
+) -> None:
+    if evidence.get("source_commit_full") != proof.get("source_commit_full"):
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "source_commit_mismatch"})
+
+    expected_selftests = _proof_selftest_hashes(proof)
+    for scope, field in (
+        ("main checkout", "main_selftest_proof_sha256"),
+        ("clean checkout", "clean_selftest_proof_sha256"),
+    ):
+        if evidence.get(field) != expected_selftests.get(scope):
+            failures.append(
+                {
+                    "path": GATE_L_BLOCKER_REPORT_PATH,
+                    "reason": f"{field}_mismatch",
+                    "expected": expected_selftests.get(scope),
+                    "actual": evidence.get(field),
+                }
+            )
+
+    target = evidence.get("target_inspect")
+    if not isinstance(target, dict):
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "target_inspect_missing"})
+        return
+    if target.get("fixture_status") != "ready":
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "fixture_not_ready"})
+    if target.get("gate_l") != "blocked_missing_external_input":
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "target_gate_l_mismatch"})
+    if target.get("real_os_status") != "absent":
+        failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "real_os_status_mismatch"})
+    if target.get("bounded_candidates") != 0:
+        failures.append(
+            {"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "bounded_candidates_not_empty"}
+        )
+
+
+def _proof_selftest_hashes(proof: dict[str, Any]) -> dict[str, str]:
+    hashes: dict[str, str] = {}
+    for row in proof.get("verified_commands", []):
+        if not isinstance(row, dict):
+            continue
+        scope = row.get("scope")
+        digest = row.get("proof_sha256")
+        if (
+            row.get("command") == SELFTEST_COMMAND
+            and row.get("exit_code") == 0
+            and isinstance(scope, str)
+            and _is_sha256(digest)
+        ):
+            assert isinstance(digest, str)
+            hashes[scope] = digest
+    return hashes
+
+
+def _non_empty_string_list(value: object, *, minimum: int) -> bool:
+    return (
+        isinstance(value, list)
+        and len(value) >= minimum
+        and all(isinstance(item, str) and bool(item.strip()) for item in value)
+    )
 
 
 def _check_proof_commands(proof: dict[str, Any], checks: list[dict[str, Any]]) -> None:

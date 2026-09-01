@@ -10,6 +10,7 @@ from oslab.acceptance import (
     ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS,
     EXPECTED_GATE_SUMMARY,
     EXPECTED_QWEN_CODE_TOOLS,
+    GATE_L_BLOCKER_REPORT_PATH,
     REQUIRED_ARTIFACTS,
     REQUIRED_DOCS,
     REQUIRED_KEY_EVIDENCE_ARTIFACTS,
@@ -141,6 +142,15 @@ def _test_model_identity() -> dict[str, object]:
         "model_id": "huihui-qwen3.8-27b-abliterated:latest",
         "parameters": 27320697856,
         "quantization": "Q4_K_M",
+    }
+
+
+def _test_blocked_gate() -> dict[str, object]:
+    return {
+        "gate": "L",
+        "reason": "No authorized OS source path and build entry point are present.",
+        "minimal_input": "A local path to the authorized OS source plus its existing build entry point.",
+        "resume_command": "oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
     }
 
 
@@ -280,7 +290,14 @@ def _write_key_evidence_artifacts(root: Path) -> dict[str, str]:
     return {key: store.put_json(payload, f"{key}.json").sha256 for key, payload in payloads.items()}
 
 
-def _write_required_artifact_payloads(root: Path) -> None:
+def _write_required_artifact_payloads(
+    root: Path,
+    *,
+    source_commit: str,
+    main_selftest_sha: str,
+    clean_selftest_sha: str,
+    blocked_gate: dict[str, object],
+) -> None:
     model = _test_model_identity() | {
         "capabilities": ["tools", "thinking", "completion"],
         "context_limit": 262144,
@@ -355,6 +372,43 @@ def _write_required_artifact_payloads(root: Path) -> None:
         "evaluation": {"rows": 15, "variants": ["A", "B", "C", "D", "E"], "accepted": 15},
         "target": {"gate_l": "blocked_missing_external_input"},
         "integrity": {"database": {"ok": True}, "artifacts": {"ok": True}},
+    }
+    gate_l_blocker_report = {
+        "schema_version": 1,
+        "gate": "L",
+        "status": "BLOCKED_MISSING_EXTERNAL_INPUT",
+        "proof_blocked_gate": blocked_gate,
+        "minimal_input": blocked_gate["minimal_input"],
+        "what_was_attempted": [
+            "Bounded target discovery inspected the allowed local scope.",
+            "Main checkout live selftest ran target inspect.",
+            "Clean checkout live selftest ran target inspect.",
+            "Manifest-backed build, boot, and test paths were implemented.",
+        ],
+        "concrete_evidence": {
+            "source_commit_full": source_commit,
+            "main_selftest_proof_sha256": main_selftest_sha,
+            "clean_selftest_proof_sha256": clean_selftest_sha,
+            "target_inspect": {
+                "fixture_status": "ready",
+                "gate_l": "blocked_missing_external_input",
+                "real_os_status": "absent",
+                "bounded_candidates": 0,
+            },
+        },
+        "why_further_progress_is_impossible": [
+            "Gate L requires a real authorized OS source tree.",
+            "The existing build entry point is not locally present in the allowed scope.",
+            "The lab must not invent build commands or search unrelated personal files.",
+        ],
+        "resume_commands": [
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli target manifest-template --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli target validate-manifest --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli build --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --profile debug --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli boot --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --profile debug --json",
+            ".\\.venv\\Scripts\\python.exe -m oslab.cli test --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --test smoke --profile debug --json",
+        ],
     }
     training_rows = []
     for sequence, row in enumerate(evaluation_rows):
@@ -432,6 +486,10 @@ def _write_required_artifact_payloads(root: Path) -> None:
     )
     _write(root / "artifacts" / "reports" / "latest-report.json", json.dumps(latest_report) + "\n")
     _write(root / "artifacts" / "reports" / "latest-report.md", "# Latest Report\n")
+    _write(
+        root / GATE_L_BLOCKER_REPORT_PATH,
+        json.dumps(gate_l_blocker_report, indent=2, sort_keys=True) + "\n",
+    )
     _write(
         root / "artifacts" / "training" / "dry-run" / "trajectories.jsonl",
         "".join(json.dumps(row, sort_keys=True) + "\n" for row in training_rows),
@@ -527,12 +585,7 @@ def _write_acceptance_audit_artifact(artifact_root: Path) -> str:
         "ok": True,
         "failed_checks": [],
         "gate_summary": EXPECTED_GATE_SUMMARY,
-        "blocked_gate": {
-            "gate": "L",
-            "reason": "No authorized OS source path and build entry point are present.",
-            "minimal_input": "A local path to the authorized OS source plus its existing build entry point.",
-            "resume_command": "oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
-        },
+        "blocked_gate": _test_blocked_gate(),
         "checks": [
             {"name": name, "status": "PASS", "details": {}}
             for name in ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS
@@ -565,7 +618,6 @@ def _create_complete_fixture_proof(root: Path) -> None:
         if relative == "PROOF.json":
             continue
         _write(root / relative, f"# {relative}\nverified evidence\n")
-    _write_required_artifact_payloads(root)
     for relative in REQUIRED_SUPPORT_FILES:
         _write(root / relative, "schema_version = 1\n")
 
@@ -573,18 +625,21 @@ def _create_complete_fixture_proof(root: Path) -> None:
     clean_proof_sha = _write_selftest_proof_artifact(root / clean_worktree / "artifacts", "clean")
     audit_sha = _write_acceptance_audit_artifact(root / "artifacts")
     key_evidence_artifacts = _write_key_evidence_artifacts(root)
+    blocked_gate = _test_blocked_gate()
+    _write_required_artifact_payloads(
+        root,
+        source_commit=source_commit,
+        main_selftest_sha=main_proof_sha,
+        clean_selftest_sha=clean_proof_sha,
+        blocked_gate=blocked_gate,
+    )
 
     proof = {
         "goal_status": "blocked_on_gate_l",
         "source_commit_verified": source_commit[:7],
         "source_commit_full": source_commit,
         "branch": "codex/qwen-os-lab",
-        "blocked_gate": {
-            "gate": "L",
-            "reason": "No authorized OS source path and build entry point are present.",
-            "minimal_input": "A local path to the authorized OS source plus its existing build entry point.",
-            "resume_command": "oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
-        },
+        "blocked_gate": blocked_gate,
         "verified_commands": [
             {
                 "scope": "main checkout",
@@ -677,6 +732,30 @@ def test_acceptance_audit_rejects_weakened_gate_summary(tmp_path: Path) -> None:
 
     assert not result["ok"]
     assert "gate_summary_matches_contract" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_invalid_gate_l_blocker_report(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    _write(
+        tmp_path / GATE_L_BLOCKER_REPORT_PATH,
+        json.dumps(
+            {
+                "schema_version": 1,
+                "gate": "L",
+                "status": "PASS",
+                "minimal_input": "something vague",
+                "resume_commands": [],
+            },
+            indent=2,
+        )
+        + "\n",
+    )
+    _write_artifact_index(tmp_path)
+
+    result = audit_acceptance(tmp_path)
+
+    assert not result["ok"]
+    assert "gate_l_blocker_report_is_verifiable" in result["failed_checks"]
 
 
 def test_acceptance_audit_rejects_missing_selftest_proof_artifact(tmp_path: Path) -> None:
