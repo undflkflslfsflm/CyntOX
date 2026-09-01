@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T02:57:48Z",
+  "generated_at": "2026-09-01T03:07:43Z",
   "goal_status": "blocked_on_gate_l",
   "source_commit_verified": "bfcf1d2",
   "source_commit_full": "bfcf1d26045e4eca48de566ccd7b0aca38b859b9",
@@ -92,6 +92,13 @@
       "exit_code": 0,
       "stdout": "# Qwen OS Lab",
       "stdout_summary": "Human-use launcher started from outside the repository, used the ignored .oslab interactive workspace, left .qwen/settings.json untouched, and read README.md as text instead of invoking display_image."
+    },
+    {
+      "scope": "main checkout",
+      "command": ".\\qwen-code.ps1 --max-wall-time 2m -p \"Reply exactly: QWENTHOS_OK\"",
+      "exit_code": 0,
+      "stdout": "QWENTHOS_OK",
+      "stdout_summary": "Human-use launcher forced the OpenAI-compatible loopback provider and selected the local qwenthos Ollama alias without opening the provider picker."
     },
     {
       "scope": "main checkout",

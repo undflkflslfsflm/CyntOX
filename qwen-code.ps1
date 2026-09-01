@@ -8,6 +8,8 @@ $qwenHome = Join-Path $projectRoot '.oslab\qwen-code-home'
 $interactiveWorkspace = Join-Path $projectRoot '.oslab\qwen-code-workspace'
 $interactiveQwenDir = Join-Path $interactiveWorkspace '.qwen'
 $interactiveSettingsPath = Join-Path $interactiveQwenDir 'settings.json'
+$qwenthosModel = 'qwenthos'
+$ollamaBaseUrl = 'http://127.0.0.1:11434/v1'
 
 function Test-QwenFlag {
     param(
@@ -55,11 +57,37 @@ function Write-InteractiveSettings {
 
     $settings = Get-Content -Raw -LiteralPath $SourcePath | ConvertFrom-Json
     $model = Ensure-SettingObject -Parent $settings -Name 'model'
+    Set-SettingProperty -Object $model -Name 'name' -Value $qwenthosModel
+    Set-SettingProperty -Object $model -Name 'baseUrl' -Value $ollamaBaseUrl
     Set-SettingProperty -Object $model -Name 'maxSessionTurns' -Value -1
     Set-SettingProperty -Object $model -Name 'maxWallTimeSeconds' -Value -1
     Set-SettingProperty -Object $model -Name 'maxToolCalls' -Value -1
     Set-SettingProperty -Object $model -Name 'maxToolCallsPerTurn' -Value 500
     Set-SettingProperty -Object $model -Name 'skipStartupContext' -Value $true
+
+    $modelProviders = Ensure-SettingObject -Parent $settings -Name 'modelProviders'
+    if (-not $modelProviders.PSObject.Properties['openai'] -or $null -eq $modelProviders.openai -or @($modelProviders.openai).Count -eq 0) {
+        Set-SettingProperty -Object $modelProviders -Name 'openai' -Value @([pscustomobject]@{})
+    }
+    $openaiModels = @($modelProviders.openai)
+    $primaryModel = $openaiModels[0]
+    Set-SettingProperty -Object $primaryModel -Name 'id' -Value $qwenthosModel
+    Set-SettingProperty -Object $primaryModel -Name 'name' -Value 'qwenthos'
+    Set-SettingProperty -Object $primaryModel -Name 'description' -Value 'Local Qwenthos model alias backed by qwen-os-lab-worker:latest in Ollama'
+    Set-SettingProperty -Object $primaryModel -Name 'envKey' -Value 'OSLAB_OLLAMA_API_KEY'
+    Set-SettingProperty -Object $primaryModel -Name 'baseUrl' -Value $ollamaBaseUrl
+    Set-SettingProperty -Object $modelProviders -Name 'openai' -Value $openaiModels
+
+    $security = Ensure-SettingObject -Parent $settings -Name 'security'
+    $auth = Ensure-SettingObject -Parent $security -Name 'auth'
+    Set-SettingProperty -Object $auth -Name 'selectedType' -Value 'openai'
+
+    if ($settings.PSObject.Properties['mcpServers']) {
+        $settings.PSObject.Properties.Remove('mcpServers')
+    }
+    if ($settings.PSObject.Properties['mcp']) {
+        $settings.PSObject.Properties.Remove('mcp')
+    }
 
     $tools = Ensure-SettingObject -Parent $settings -Name 'tools'
     Set-SettingProperty -Object $tools -Name 'approvalMode' -Value 'auto-edit'
@@ -128,6 +156,9 @@ $env:PATH = "$nodeDir;$env:PATH"
 if (-not $env:OSLAB_OLLAMA_API_KEY) {
     $env:OSLAB_OLLAMA_API_KEY = 'ollama-local-no-auth'
 }
+$env:OPENAI_API_KEY = $env:OSLAB_OLLAMA_API_KEY
+$env:OPENAI_BASE_URL = $ollamaBaseUrl
+$env:QWEN_MODEL = $qwenthosModel
 $env:QWEN_HOME = $qwenHome
 $env:QWEN_RUNTIME_DIR = $runtimeDir
 $env:QWEN_CODE_SUPPRESS_YOLO_WARNING = '1'
@@ -150,8 +181,24 @@ $hasYolo = Test-QwenFlag -Arguments $QwenArgs -Names @('-y', '--yolo')
 $hasExcludeTools = Test-QwenFlag -Arguments $QwenArgs -Names @('--exclude-tools')
 $hasAppendSystemPrompt = Test-QwenFlag -Arguments $QwenArgs -Names @('--append-system-prompt')
 $hasIncludeDirectories = Test-QwenFlag -Arguments $QwenArgs -Names @('--include-directories', '--add-dir')
+$hasAuthType = Test-QwenFlag -Arguments $QwenArgs -Names @('--auth-type')
+$hasModel = Test-QwenFlag -Arguments $QwenArgs -Names @('-m', '--model')
+$hasOpenAiApiKey = Test-QwenFlag -Arguments $QwenArgs -Names @('--openai-api-key')
+$hasOpenAiBaseUrl = Test-QwenFlag -Arguments $QwenArgs -Names @('--openai-base-url')
 
 $finalArgs = @()
+if (-not $hasAuthType) {
+    $finalArgs += @('--auth-type', 'openai')
+}
+if (-not $hasModel) {
+    $finalArgs += @('--model', $qwenthosModel)
+}
+if (-not $hasOpenAiApiKey) {
+    $finalArgs += @('--openai-api-key', $env:OSLAB_OLLAMA_API_KEY)
+}
+if (-not $hasOpenAiBaseUrl) {
+    $finalArgs += @('--openai-base-url', $ollamaBaseUrl)
+}
 if (-not $hasOutputFormat) {
     $finalArgs += @('--output-format', 'text')
 }
@@ -173,7 +220,7 @@ if (-not $hasIncludeDirectories) {
 if (-not $hasAppendSystemPrompt) {
     $finalArgs += @(
         '--append-system-prompt',
-        "You are running from the repo-local qwen-code.ps1 human-use launcher. The primary project root is: $projectRoot. Keep startup context lean. Treat .md, .json, .py, .ps1, .toml, .yaml, .txt, and similar repository files as text. Use absolute paths under the primary project root with read_file, list_directory, glob, and grep_search for text files. Do not use display_image for text files; display_image is denied in this profile."
+        "You are running from the repo-local qwen-code.ps1 human-use launcher on the local qwenthos model. The primary project root is: $projectRoot. Keep startup context lean. Treat .md, .json, .py, .ps1, .toml, .yaml, .txt, and similar repository files as text. Use absolute paths under the primary project root with read_file, list_directory, glob, and grep_search for text files. Do not use display_image for text files; display_image is denied in this profile."
     )
 }
 $finalArgs += $QwenArgs

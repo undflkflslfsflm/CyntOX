@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-09-01T02:57:48Z",
+  "generated_at": "2026-09-01T03:07:43Z",
   "entries": [
     {
-      "bytes": 3447,
+      "bytes": 3546,
       "path": "README.md",
-      "sha256": "50b8b82c0075505485ef2ce6d84e1cb95ac881e4f04cf5736ad93db313522849"
+      "sha256": "86fe56a7fe6a4d5e924f7934db605d34a8b639e67adb84988e5e33f96848149c"
     },
     {
-      "bytes": 7851,
+      "bytes": 7973,
       "path": "FINAL_REPORT.md",
-      "sha256": "18da98e4d1fe15c2e44a49cf6f7a258abf96d5d05feb1a9f0da3a9595bca3435"
+      "sha256": "921a6f36bca4e59f1092ec45346953dd1f5ac29fc4947a53b2efea6f46777bba"
     },
     {
-      "bytes": 8285,
+      "bytes": 8647,
       "path": "PROOF.json",
-      "sha256": "f880e7c90cb75939cbf1aaa8a0edd78b29edeec2f28dd285bbf46a0f449db21d"
+      "sha256": "13dcbd93046cba6190cd89ac8e88799c26ae6b764d502b3375f0edd4b10faaac"
     },
     {
       "bytes": 4530,
@@ -27,9 +27,9 @@
       "sha256": "8cb31af83c374c2fbd0d4e0ee7868418c7ec58e96a1cf4fa9a9b5ca429c94c22"
     },
     {
-      "bytes": 6151,
+      "bytes": 6291,
       "path": "docs/RUNBOOK.md",
-      "sha256": "9520a0ee209afe642e24e424060423afa777986bdec3722070675e65fce5bc54"
+      "sha256": "a5dc61156ffcf01b5960cd1f1fd4a7b01e27e77bd28cc4046665364f60931b02"
     },
     {
       "bytes": 4171,
@@ -67,14 +67,14 @@
       "sha256": "c9e41390b8d8300826b7cb1503a297956d1907eef1932ab70f9ec572eb8929b3"
     },
     {
-      "bytes": 13439,
+      "bytes": 13492,
       "path": "docs/OSLAB_PROGRESS.md",
-      "sha256": "9026a462d4b52e6712ae86af42ab59facca86a0fc2ba93338e96f837142e6489"
+      "sha256": "405cb19b90a8142451cedce238e5eb503e68639f8e254ffd0362aa6e2e5fa922"
     },
     {
-      "bytes": 21895,
+      "bytes": 22043,
       "path": "docs/OSLAB_DECISIONS.md",
-      "sha256": "952609d5ab040fdc6668feb48e0ca985f8d186df23f5cd0eff2cfe4fd573afbd"
+      "sha256": "64e665384d287b2406cf436e0ae8cec3601f3d985ba82f08598f668353ed39c0"
     },
     {
       "bytes": 7888,
@@ -114,7 +114,7 @@
     {
       "bytes": 7715,
       "path": "artifacts/reports/requirements-trace.json",
-      "sha256": "ff5653bf4a794bfe7f7dc09f4abe07c8355d02e956377dc4c5c567acc992c588"
+      "sha256": "562e3d74233a5f0ccd291b7eabfeed4755fba8b2e2a3fe784879098d46fec05c"
     },
     {
       "bytes": 11087,
@@ -157,9 +157,9 @@
       "sha256": "b2fe8ba8f37f00968e65edcf17a91700450caba7b5f063a978ef2faba44ec8ef"
     },
     {
-      "bytes": 7368,
+      "bytes": 9798,
       "path": "qwen-code.ps1",
-      "sha256": "7e06b07f079ed7c4f0c8aa4423c2daa83a4d60f2b0c268616114e1f19ba1cb3b"
+      "sha256": "7e312ce087c24190655ac5337130ef4c157c635c4e4fdf4e77afaf0a830e0e8c"
     },
     {
       "bytes": 120,

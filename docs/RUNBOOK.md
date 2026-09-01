@@ -16,7 +16,7 @@ One-line interactive Qwen Code launcher from anywhere in PowerShell:
 & "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1"
 ```
 
-This launches the project-local Qwen Code package with bundled Node when system Node is not on `PATH`, uses an ignored `.oslab` interactive workspace, keeps startup context lean, enables normal text-file read/search/edit tools, denies `display_image` for text files, and leaves the audited lab `.qwen/settings.json` untouched. To run a one-shot prompt and stay interactive, add Qwen Code's own `-i` option:
+This launches the project-local Qwen Code package with bundled Node when system Node is not on `PATH`, auto-selects the local Ollama-backed `qwenthos` model through the OpenAI-compatible loopback provider, uses an ignored `.oslab` interactive workspace, keeps startup context lean, enables normal text-file read/search/edit tools, denies `display_image` for text files, removes the lab MCP approval prompt, and leaves the audited lab `.qwen/settings.json` untouched. To run a one-shot prompt and stay interactive, add Qwen Code's own `-i` option:
 
 ```powershell
 & "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1" -i "help me inspect this project"

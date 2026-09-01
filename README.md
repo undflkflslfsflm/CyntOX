@@ -18,7 +18,7 @@ One-line interactive Qwen Code launcher:
 & "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1"
 ```
 
-That opens the project-local Qwen Code 0.22.3 CLI with the local Ollama-backed `qwen-os-lab-worker:latest` model. For human use, the launcher starts Qwen from an ignored `.oslab` workspace, keeps startup context lean, gives it text-file read/search/edit tools, denies `display_image` for text files, and leaves the audited lab `.qwen/settings.json` untouched.
+That opens the project-local Qwen Code 0.22.3 CLI on the local Ollama-backed `qwenthos` model alias. For human use, the launcher starts Qwen from an ignored `.oslab` workspace, forces the OpenAI-compatible loopback provider/model so no provider picker appears, keeps startup context lean, gives it text-file read/search/edit tools, denies `display_image` for text files, removes the lab MCP prompt, and leaves the audited lab `.qwen/settings.json` untouched.
 
 PowerShell:
 
