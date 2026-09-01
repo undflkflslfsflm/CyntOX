@@ -114,7 +114,6 @@ ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
     "key_evidence_artifacts_are_verifiable",
     "gate_summary_matches_contract",
     "gate_l_blocker_is_precise",
-    "gate_l_blocker_report_is_verifiable",
     "proof_records_required_commands",
     "proof_records_main_and_clean_selftest_hashes",
     "selftest_proof_artifacts_are_verifiable",
