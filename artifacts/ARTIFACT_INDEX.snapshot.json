@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T01:36:58Z",
+  "generated_at": "2026-09-01T01:48:13Z",
   "entries": [
     {
       "bytes": 2507,
@@ -9,12 +9,12 @@
     {
       "bytes": 6999,
       "path": "FINAL_REPORT.md",
-      "sha256": "4fa7d3fad3baa47e14543f0381f572a272cd28febcca0c524be93047c815d278"
+      "sha256": "cac5361bf5b7dbceb940374755e664384a05c70dafa5aac8f8718d22d0c9a54e"
     },
     {
       "bytes": 6151,
       "path": "PROOF.json",
-      "sha256": "4a5adf26c2861ab1181bad78cf70d1b2349aec22da60fd6d352637192edcb727"
+      "sha256": "715ac0c353879e6e142bee39cbe9fd3372cb32f33f4a5b05975801642b163c22"
     },
     {
       "bytes": 4530,
@@ -39,7 +39,7 @@
     {
       "bytes": 7272,
       "path": "docs/REAL_OS_INTEGRATION.md",
-      "sha256": "bfa9ad0c33bd0de10a22a44a34cb5d12c183d95f78f84d96b69ba36d259e9d7a"
+      "sha256": "309f0d8a0d1a95e3c00629211a4ce2412b11a8f5de522e13839b8f6c635e0d48"
     },
     {
       "bytes": 1364,
@@ -62,19 +62,19 @@
       "sha256": "2ee52828e3c997202a8e8139d8a473f62d0b2d4ebe0783a489f04627bf63ba59"
     },
     {
-      "bytes": 4413,
+      "bytes": 4427,
       "path": "docs/OSLAB_EXECPLAN.md",
-      "sha256": "60d30c3ec0ee90255c5e7da44004f380984c41ac8201a3f6c37be06cb7d3555e"
+      "sha256": "2a818b33113fe08bd3eaa4606365468743a120392ef9f9c761bc2780addf6fca"
     },
     {
-      "bytes": 12004,
+      "bytes": 12139,
       "path": "docs/OSLAB_PROGRESS.md",
-      "sha256": "89cf6d38a82a12c1fb178526417bf6a75caf824318dd4a08a8b994957087d942"
+      "sha256": "9a3d0dd26f35fa8f19c4f8dfdff1e1409b364060e7a49279c9ecbda4c2e72a14"
     },
     {
-      "bytes": 17855,
+      "bytes": 18629,
       "path": "docs/OSLAB_DECISIONS.md",
-      "sha256": "a51729e83e186c95db94d677cc25d53365d347008c88eb4b7c01e646da3ad01f"
+      "sha256": "3f22cc148b40762ab5b3f04e3c3aad375d071c87b32640d237ddb553a8d1a77e"
     },
     {
       "bytes": 7888,
@@ -109,12 +109,12 @@
     {
       "bytes": 3673,
       "path": "artifacts/reports/gate-l-blocker-report.json",
-      "sha256": "80ae8ebd948e191d031751fe2d2b247759be69e697a6d98c283683fface1de1a"
+      "sha256": "208a44ec1f593eef9a29440f54a28f7fbeebbbf12f9c54edb5adaef65376c77e"
     },
     {
       "bytes": 7715,
       "path": "artifacts/reports/requirements-trace.json",
-      "sha256": "d6cdddfa7075f3d39132846c5699b4f59f5c8eca370b4fbc405b0d201e5b7107"
+      "sha256": "7e2fb6b5d1981070a5d0a4c95be8df6cf3641b2690cbff3c5c09769628f2c15d"
     },
     {
       "bytes": 11087,

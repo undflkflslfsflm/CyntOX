@@ -219,5 +219,13 @@
 - Status: accepted
 - Date: 2026-09-01
 - Context: the proof bundle already records the final gate summary and acceptance audit, but a reviewer still has to mentally connect each acceptance gate to the decisive artifact or command.
-- Decision: add `artifacts/reports/requirements-trace.json`, `oslab acceptance trace --json`/`--write`, and a top-level acceptance check that validates gate coverage, statuses, source commit, selftest hashes, Gate L minimal input, and the authorized-target resume command.
-- Consequence: the handoff is easier to audit without weakening the completion contract; the trace is regenerated during selftest and checked during acceptance, and the next required action remains supplying the authorized real OS source path and build entry point.
+- Decision: add `artifacts/reports/requirements-trace.json`, `oslab acceptance trace --json`/`--write`, and a top-level acceptance check that validates gate coverage, statuses, source commit, selftest hashes, Gate L minimal input, the authorized-target resume command, and exact equivalence with the current proof-derived generator.
+- Consequence: the handoff is easier to audit without weakening the completion contract; the trace is regenerated during selftest, checked during acceptance, and rejected if plausibly hand-edited away from generated evidence. The next required action remains supplying the authorized real OS source path and build entry point.
+
+## D-029 — Reject hand-edited proof reports
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: structural report validation catches malformed reports, but a plausible hand edit could still satisfy the minimum shape while drifting away from current `PROOF.json`.
+- Decision: require both `artifacts/reports/gate-l-blocker-report.json` and `artifacts/reports/requirements-trace.json` to exactly match the report generator output derived from the current proof and bounded target inspection.
+- Consequence: final acceptance fails if either machine report is stale, manually massaged, or disconnected from the currently verified source/selftest evidence.
