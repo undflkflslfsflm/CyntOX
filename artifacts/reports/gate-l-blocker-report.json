@@ -11,18 +11,18 @@
   "minimal_input": "A local path to the authorized OS source plus its existing build entry point.",
   "what_was_attempted": [
     "Bounded target discovery inspected the current repository, immediate parent and children, and saved target configuration without crawling unrelated personal files or the whole disk.",
-    "Main checkout live selftest ran target inspect, manifest-template, training dry-run, cleanup dry-run, live Ollama probe, Qwen Code smoke, integrity checks, pytest, Ruff, mypy, uv lock check, and frozen/offline pnpm install.",
-    "Clean checkout live selftest repeated the same verification sequence from a detached checkout at the verified source commit.",
+    "Main checkout live selftest ran target inspect, manifest-template, training dry-run, cleanup dry-run, live Ollama probe, Qwen Code smoke, integrity checks, pytest, Ruff, mypy, uv lock check, frozen/offline pnpm install, and blocker-report generation.",
+    "Clean checkout live selftest repeated the verification sequence from a detached checkout at the verified source commit.",
     "Acceptance audit re-checked the recorded Gate L status, proof hashes, clean-checkout source binding, live model outputs, artifact index, and current Git cleanliness.",
     "The framework side of Gate L was implemented and tested: manifest validation, disposable commit-pinned build worktrees, real-target build, real-target boot, real-target test, QEMU -nic none, loopback QMP, and serial readiness/success pattern matching."
   ],
   "concrete_evidence": {
-    "source_commit_verified": "4eb230a",
-    "source_commit_full": "4eb230a9d0ef4f97157994374f00b62d7ddae6d7",
-    "main_selftest_proof_sha256": "fe5dda849b12272df0c669b611a76d6709c0d0c6c62d9c0e5a6bfafe455c2530",
-    "clean_selftest_proof_sha256": "0c8131330a0fe7cd2f7a4129de4e48eae3fea1cc4289f3308b0091d364eef0d6",
-    "main_pytest_summary": "68 passed",
-    "clean_pytest_summary": "68 passed",
+    "source_commit_verified": "62a262c",
+    "source_commit_full": "62a262cdfa754dc77479a9b5d7e4adb9a4cfaf73",
+    "main_selftest_proof_sha256": "eb92b290866fde96ce6528778596ee23c59ef4d971f34209bed54dfc0efa261b",
+    "clean_selftest_proof_sha256": "fa57af57e2685038aeb6982301ca54e7e714c03f17dd454d9bb25756f1266f33",
+    "main_pytest_summary": "68 passed in 75.48s (0:01:15)",
+    "clean_pytest_summary": "68 passed in 75.01s (0:01:15)",
     "safe_subset_summary": "63 passed, 5 deselected",
     "target_inspect": {
       "fixture_status": "ready",

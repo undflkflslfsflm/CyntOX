@@ -13,9 +13,9 @@ What was attempted:
 
 Concrete evidence:
 
-- Verified source commit: `4eb230a9d0ef4f97157994374f00b62d7ddae6d7`.
-- Main live selftest proof: `fe5dda849b12272df0c669b611a76d6709c0d0c6c62d9c0e5a6bfafe455c2530` with `68 passed`.
-- Clean-checkout live selftest proof: `0c8131330a0fe7cd2f7a4129de4e48eae3fea1cc4289f3308b0091d364eef0d6` with `68 passed`.
+- Verified source commit: `62a262cdfa754dc77479a9b5d7e4adb9a4cfaf73`.
+- Main live selftest proof: `eb92b290866fde96ce6528778596ee23c59ef4d971f34209bed54dfc0efa261b` with `68 passed`.
+- Clean-checkout live selftest proof: `fa57af57e2685038aeb6982301ca54e7e714c03f17dd454d9bb25756f1266f33` with `68 passed`.
 - Saved acceptance audit proof: `89ef3f89705c1744cd63bf70226e32330e4a5f4344064c6db5ad50a535148218`.
 - Current `target inspect` result: fixture ready, `real_os.status = "absent"`, `gate_l = "blocked_missing_external_input"`, and no bounded candidates.
 - Machine-readable blocker report: `artifacts/reports/gate-l-blocker-report.json`.
@@ -30,6 +30,12 @@ Smallest input needed:
 
 ```powershell
 .\.venv\Scripts\python.exe -m oslab.cli target inspect --repo C:\path\to\authorized-os --json
+```
+
+The blocker report itself can be regenerated from the current proof and target inspection:
+
+```powershell
+.\.venv\Scripts\python.exe -m oslab.cli target blocker-report --json
 ```
 
 The path must point to the OS source the user owns or is authorized to test, and it must expose an existing build entry point. The lab must not invent or weaken the normal build.
@@ -84,6 +90,7 @@ Exact resume sequence after the authorized source path is available:
 ```powershell
 .\.venv\Scripts\python.exe -m oslab.cli target inspect --repo C:\path\to\authorized-os --json
 .\.venv\Scripts\python.exe -m oslab.cli target manifest-template --json
+.\.venv\Scripts\python.exe -m oslab.cli target blocker-report --json
 .\.venv\Scripts\python.exe -m oslab.cli target validate-manifest --repo C:\path\to\authorized-os --json
 .\.venv\Scripts\python.exe -m oslab.cli build --target real --repo C:\path\to\authorized-os --profile debug --json
 .\.venv\Scripts\python.exe -m oslab.cli boot --target real --repo C:\path\to\authorized-os --profile debug --json

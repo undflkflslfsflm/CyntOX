@@ -205,3 +205,11 @@
 - Context: the human blocker report satisfied the written handoff, but final proof is stronger if acceptance can reject a missing or vague blocker report automatically.
 - Decision: add `artifacts/reports/gate-l-blocker-report.json` as a required artifact and have `acceptance audit` validate its status, proof blocker, attempted work list, stable selftest evidence hashes, target-inspect summary, impossibility rationale, and exact resume command fragments.
 - Consequence: the final audit now fails if the Gate L blocker report is absent, malformed, disconnected from `PROOF.json`, or missing the authorized-target resume path.
+
+## D-027 — Regenerate Gate L blocker reports through the CLI
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: a static JSON blocker report can go stale even when acceptance verifies its current contents.
+- Decision: add `oslab target blocker-report --json` and optional `--write`, deriving the report from `PROOF.json` plus bounded `target inspect`, and include the command in `oslab selftest --live --json`.
+- Consequence: future proof refreshes can regenerate the blocker artifact locally, and selftest evidence proves the generator remains runnable.

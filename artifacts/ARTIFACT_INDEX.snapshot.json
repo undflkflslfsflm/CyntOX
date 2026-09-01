@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-09-01T01:10:30Z",
+  "generated_at": "2026-09-01T01:19:01Z",
   "entries": [
     {
-      "bytes": 2397,
+      "bytes": 2507,
       "path": "README.md",
-      "sha256": "730ed19b71f774e7143b3c4b08f381f2e8db69e52024d446a723c0a45176bdad"
+      "sha256": "19940e8c5b8c8686ea181051f56d0a32b2f3850b796b8a7b1109e4d743026de2"
     },
     {
-      "bytes": 6830,
+      "bytes": 6868,
       "path": "FINAL_REPORT.md",
-      "sha256": "c0a7ef0fba85c0d6b80b064a30c11f8c8caa1a703c7cd4cfe823f7a5f30eaf10"
+      "sha256": "8993613427497d5062b00efcd66bf17aa647a51449d36587e37a1299910873ce"
     },
     {
-      "bytes": 5924,
+      "bytes": 5984,
       "path": "PROOF.json",
-      "sha256": "5135fd034b6f7634561d2c90b0998299f9aaddb296716a143ada249fe2794227"
+      "sha256": "c3e3cc9341632e933db9809de3df705b248aa5881684153632d5050398437c2e"
     },
     {
       "bytes": 4530,
@@ -37,9 +37,9 @@
       "sha256": "b656e526b0fc0c7c6217aff0cde9ae780b94781c9ed4664542c63bda0364d7ff"
     },
     {
-      "bytes": 7023,
+      "bytes": 7272,
       "path": "docs/REAL_OS_INTEGRATION.md",
-      "sha256": "a4a8355756afaa4d48b2fcf23a8918ae57b9e27388471f0d2ae55fa31152d0bf"
+      "sha256": "55f4d5d3a8e4c051343630842cc0cd57df024ef0dbf0e9c3d0acf7f56c543421"
     },
     {
       "bytes": 1364,
@@ -62,19 +62,19 @@
       "sha256": "2ee52828e3c997202a8e8139d8a473f62d0b2d4ebe0783a489f04627bf63ba59"
     },
     {
-      "bytes": 4202,
+      "bytes": 4315,
       "path": "docs/OSLAB_EXECPLAN.md",
-      "sha256": "fb44a9460f7f43bd35c3b70c5518cee3c68fc21b7b5f186c32fcb65bc93d5c39"
+      "sha256": "dff9c5ac25b3134332d84fd82673af9248d18bd21fe522927d73a806cdba734d"
     },
     {
-      "bytes": 11235,
+      "bytes": 11518,
       "path": "docs/OSLAB_PROGRESS.md",
-      "sha256": "293483ed1039394470890bb5dead3eb903a3665f55062b9e84b61d61949cc8f3"
+      "sha256": "28bb667d96cd5c409a67127cf34fc176549f633fec45438644932a435af155f8"
     },
     {
-      "bytes": 16476,
+      "bytes": 17033,
       "path": "docs/OSLAB_DECISIONS.md",
-      "sha256": "a9ada97a65ec4744f56c9f4653141b445b3938aed6d78666d2c65d19065b55df"
+      "sha256": "ee6313572fdeaba9f07a492304fd05b5bf97870069485d2df3e94d5b4cacbcf0"
     },
     {
       "bytes": 7888,
@@ -107,9 +107,9 @@
       "sha256": "7125759a7bcb60fb2010d58337a229b9618baec7d813ad20fe35c342cb29806a"
     },
     {
-      "bytes": 3563,
+      "bytes": 3673,
       "path": "artifacts/reports/gate-l-blocker-report.json",
-      "sha256": "87ec2daa9faedd1f669f9c02de69ceb1857293ff9b5cd3bca2cc2a6300403228"
+      "sha256": "dfb04b55e5e114b40c1b672db7c58075280542e0525618bbcddca594382e02ba"
     },
     {
       "bytes": 11087,
