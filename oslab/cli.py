@@ -46,9 +46,17 @@ integrity_app = typer.Typer(no_args_is_help=True, help="Verify database and arti
 target_app = typer.Typer(
     no_args_is_help=True, help="Inspect fixture and authorized real OS targets"
 )
-campaign_app = typer.Typer(no_args_is_help=True, help="Run bounded persistent campaigns")
+campaign_app = typer.Typer(
+    no_args_is_help=True,
+    invoke_without_command=True,
+    help="Run bounded persistent campaigns",
+)
 fuzz_app = typer.Typer(no_args_is_help=True, help="Run and replay bounded fixture fuzzing")
-eval_app = typer.Typer(no_args_is_help=True, help="Run seeded evaluation variants")
+eval_app = typer.Typer(
+    no_args_is_help=True,
+    invoke_without_command=True,
+    help="Run seeded evaluation variants",
+)
 training_app = typer.Typer(no_args_is_help=True, help="Export training-ready trajectories")
 acceptance_app = typer.Typer(no_args_is_help=True, help="Audit final acceptance evidence")
 app.add_typer(model_app, name="model")
@@ -450,6 +458,24 @@ def target_blocker_report(
     _emit(report, json_output)
 
 
+@campaign_app.callback(invoke_without_command=True, no_args_is_help=True)
+def campaign_default(
+    ctx: typer.Context,
+    target: Annotated[str, typer.Option(help="Allowlisted target name")] = "fixture",
+    budget: Annotated[str, typer.Option(help="Bounded wall-clock budget, e.g. 10m")] = "10m",
+    seed: Annotated[int, typer.Option()] = 1,
+    iterations: Annotated[int, typer.Option(min=6, max=64)] = 6,
+    live_fix: Annotated[
+        bool, typer.Option("--live-fix/--no-live-fix", help="Include the live model fix loop")
+    ] = False,
+    base_commit: Annotated[str, typer.Option(help="Immutable source commit for live fix")] = "HEAD",
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    if ctx.invoked_subcommand is not None:
+        return
+    _emit_campaign_workflow(target, budget, seed, iterations, live_fix, base_commit, json_output)
+
+
 @campaign_app.command("recovery-proof")
 def campaign_recovery_proof(
     seed: Annotated[int, typer.Option()] = 17,
@@ -512,18 +538,11 @@ def fuzz_replay(
 @eval_app.command("run")
 def evaluation_run(
     seeds: Annotated[str, typer.Option(help="Comma-separated distinct integer seeds")] = "1,2,3",
+    suite: Annotated[str, typer.Option(help="Evaluation suite name")] = "seeded",
     base_commit: Annotated[str, typer.Option(help="Immutable source commit")] = "HEAD",
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
-    config = load_config()
-    try:
-        parsed = [int(item.strip()) for item in seeds.split(",") if item.strip()]
-        commit = _resolve_commit(config.project_root, base_commit)
-        result = asyncio.run(EvaluationHarness(config).run(parsed, commit))
-    except Exception as exc:
-        typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
-        raise typer.Exit(2) from exc
-    _emit(result, json_output)
+    _emit_evaluation_workflow(suite, seeds, base_commit, json_output)
 
 
 @campaign_app.command("run")
@@ -538,9 +557,68 @@ def campaign_run(
     base_commit: Annotated[str, typer.Option(help="Immutable source commit for live fix")] = "HEAD",
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
+    _emit_campaign_workflow(target, budget, seed, iterations, live_fix, base_commit, json_output)
+
+
+@eval_app.callback(invoke_without_command=True, no_args_is_help=True)
+def eval_default(
+    ctx: typer.Context,
+    suite: Annotated[str, typer.Option(help="Evaluation suite name")] = "seeded",
+    seeds: Annotated[str, typer.Option(help="Comma-separated distinct integer seeds")] = "1,2,3",
+    base_commit: Annotated[str, typer.Option(help="Immutable source commit")] = "HEAD",
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    if ctx.invoked_subcommand is not None:
+        return
+    _emit_evaluation_workflow(suite, seeds, base_commit, json_output)
+
+
+def _emit_evaluation_workflow(suite: str, seeds: str, base_commit: str, json_output: bool) -> None:
+    try:
+        _emit(_run_evaluation_payload(suite, seeds, base_commit), json_output)
+    except Exception as exc:
+        typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
+        raise typer.Exit(2) from exc
+
+
+def _run_evaluation_payload(suite: str, seeds: str, base_commit: str) -> dict[str, Any]:
+    if suite != "seeded":
+        raise ValueError("only the seeded evaluation suite is supported")
+    config = load_config()
+    parsed = [int(item.strip()) for item in seeds.split(",") if item.strip()]
+    commit = _resolve_commit(config.project_root, base_commit)
+    return asyncio.run(EvaluationHarness(config).run(parsed, commit))
+
+
+def _emit_campaign_workflow(
+    target: str,
+    budget: str,
+    seed: int,
+    iterations: int,
+    live_fix: bool,
+    base_commit: str,
+    json_output: bool,
+) -> None:
+    try:
+        _emit(
+            _run_campaign_payload(target, budget, seed, iterations, live_fix, base_commit),
+            json_output,
+        )
+    except Exception as exc:
+        typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
+        raise typer.Exit(2) from exc
+
+
+def _run_campaign_payload(
+    target: str,
+    budget: str,
+    seed: int,
+    iterations: int,
+    live_fix: bool,
+    base_commit: str,
+) -> dict[str, Any]:
     if target != "fixture":
-        typer.echo("only the fixture target has a verified campaign backend", err=True)
-        raise typer.Exit(2)
+        raise ValueError("only the fixture target has a verified campaign backend")
     config = load_config()
     campaign_id = f"bounded-fixture-s{seed}"
     deadline = time.monotonic() + _parse_budget_seconds(budget)
@@ -578,11 +656,7 @@ def campaign_run(
         )
         return {**report, "artifact_sha256": record.sha256}
 
-    try:
-        _emit(asyncio.run(run()), json_output)
-    except Exception as exc:
-        typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
-        raise typer.Exit(2) from exc
+    return asyncio.run(run())
 
 
 @training_app.command("dry-run")
