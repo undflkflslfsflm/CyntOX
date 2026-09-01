@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "gate": "L",
+  "status": "BLOCKED_MISSING_EXTERNAL_INPUT",
+  "proof_blocked_gate": {
+    "gate": "L",
+    "reason": "No authorized real OS source path and build entry point are present in the bounded discovery scope.",
+    "minimal_input": "A local path to the authorized OS source plus its existing build entry point.",
+    "resume_command": "oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json"
+  },
+  "minimal_input": "A local path to the authorized OS source plus its existing build entry point.",
+  "what_was_attempted": [
+    "Bounded target discovery inspected the current repository, immediate parent and children, and saved target configuration without crawling unrelated personal files or the whole disk.",
+    "Main checkout live selftest ran target inspect, manifest-template, training dry-run, cleanup dry-run, live Ollama probe, Qwen Code smoke, integrity checks, pytest, Ruff, mypy, uv lock check, and frozen/offline pnpm install.",
+    "Clean checkout live selftest repeated the same verification sequence from a detached checkout at the verified source commit.",
+    "Acceptance audit re-checked the recorded Gate L status, proof hashes, clean-checkout source binding, live model outputs, artifact index, and current Git cleanliness.",
+    "The framework side of Gate L was implemented and tested: manifest validation, disposable commit-pinned build worktrees, real-target build, real-target boot, real-target test, QEMU -nic none, loopback QMP, and serial readiness/success pattern matching."
+  ],
+  "concrete_evidence": {
+    "source_commit_verified": "4eb230a",
+    "source_commit_full": "4eb230a9d0ef4f97157994374f00b62d7ddae6d7",
+    "main_selftest_proof_sha256": "fe5dda849b12272df0c669b611a76d6709c0d0c6c62d9c0e5a6bfafe455c2530",
+    "clean_selftest_proof_sha256": "0c8131330a0fe7cd2f7a4129de4e48eae3fea1cc4289f3308b0091d364eef0d6",
+    "main_pytest_summary": "68 passed",
+    "clean_pytest_summary": "68 passed",
+    "safe_subset_summary": "63 passed, 5 deselected",
+    "target_inspect": {
+      "fixture_status": "ready",
+      "gate_l": "blocked_missing_external_input",
+      "real_os_status": "absent",
+      "bounded_candidates": 0,
+      "resume_command": "oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json"
+    }
+  },
+  "why_further_progress_is_impossible": [
+    "Gate L requires an actual authorized OS source tree and its existing build entry point.",
+    "No such target is present in the bounded discovery scope, so the lab cannot honestly build, cold-boot, smoke-test, or claim real-target evidence.",
+    "The specification forbids inventing a successful build command, silently changing production build behavior, recursively crawling unrelated personal files, uploading source, or using external systems to fill in the missing target."
+  ],
+  "resume_commands": [
+    ".\\.venv\\Scripts\\python.exe -m oslab.cli target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+    ".\\.venv\\Scripts\\python.exe -m oslab.cli target manifest-template --json",
+    ".\\.venv\\Scripts\\python.exe -m oslab.cli target validate-manifest --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+    ".\\.venv\\Scripts\\python.exe -m oslab.cli build --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --profile debug --json",
+    ".\\.venv\\Scripts\\python.exe -m oslab.cli boot --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --profile debug --json",
+    ".\\.venv\\Scripts\\python.exe -m oslab.cli test --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --test smoke --profile debug --json"
+  ]
+}

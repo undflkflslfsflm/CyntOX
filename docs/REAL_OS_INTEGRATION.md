@@ -13,11 +13,12 @@ What was attempted:
 
 Concrete evidence:
 
-- Verified source commit: `d906e0266e6d81dbac43ce8ea5d89351a64d7b5f`.
-- Main live selftest proof: `469b18968e26406680acb4e2a22f8c2502aa32026640996a5bedd23f541fd268` with `67 passed`.
-- Clean-checkout live selftest proof: `5cd43b53eca7ff42252335a07187c9b58fbee73c988ffb985afa9afa5caf8437` with `67 passed`.
+- Verified source commit: `4eb230a9d0ef4f97157994374f00b62d7ddae6d7`.
+- Main live selftest proof: `fe5dda849b12272df0c669b611a76d6709c0d0c6c62d9c0e5a6bfafe455c2530` with `68 passed`.
+- Clean-checkout live selftest proof: `0c8131330a0fe7cd2f7a4129de4e48eae3fea1cc4289f3308b0091d364eef0d6` with `68 passed`.
 - Saved acceptance audit proof: `f11410a4fa383a26cd94ae4be40398769a1da25edd0121cfa09612981967e08d`.
 - Current `target inspect` result: fixture ready, `real_os.status = "absent"`, `gate_l = "blocked_missing_external_input"`, and no bounded candidates.
+- Machine-readable blocker report: `artifacts/reports/gate-l-blocker-report.json`.
 
 Why further local progress is impossible:
 

@@ -18,7 +18,7 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Live agentic fix loop repaired the seeded fixture in a disposable worktree and rejected an invalid evaluator edit.
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
-- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `d906e02`, including `uv lock --check`, frozen/offline `pnpm install`, `67 passed`, and `ruff format --check .`.
+- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `4eb230a`, including `uv lock --check`, frozen/offline `pnpm install`, `68 passed`, and `ruff format --check .`.
 - `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, real selftest proof artifacts, clean-checkout source commit, live Ollama/Qwen Code stdout, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. The recorded audit-artifact check rejects stale or inconsistent audit blobs, and the key-evidence check rejects missing/corrupt/semantically invalid decisive artifacts. Saved audit artifact: `f11410a4fa383a26cd94ae4be40398769a1da25edd0121cfa09612981967e08d`.
 - Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, a `target validate-manifest` command, manifest-backed real-target build execution, and manifest-backed QEMU serial smoke boot/test execution. The validator rejects path traversal, source-root escapes, missing smoke tests, serial PASS smoke tests without success patterns, non-isolated QEMU networking, QEMU network devices, branch-like or unresolved base commits, inherited parent Git repositories, and shell-eval command wrappers before any real target build is attempted. Manifest-backed builds run from detached disposable Git worktrees at `source.base_commit`, pass only the declared environment allowlist, and hash declared build artifacts. Manifest-backed smoke runs boot the disposable-worktree artifacts through Docker-backed QEMU with `-nic none`, loopback QMP, declared serial readiness/success pattern checks, and serial/stderr artifact capture.
 
@@ -50,14 +50,14 @@ Gate L requires the real OS target. The smallest unlocking input is:
 .\.venv\Scripts\python.exe -m oslab.cli boot --target real --repo C:\path\to\authorized-os --profile debug --json
 ```
 
-What was attempted: bounded target discovery, main and clean live selftests, current `target inspect`, and final acceptance audits. Evidence shows the fixture is ready, the manifest-backed real-target framework is implemented, and `real_os.status = "absent"` with no bounded candidates. The path must point to the authorized OS source and its existing build entry point. The lab must then build from the declarative manifest, cold-boot, and smoke-test that target.
+What was attempted: bounded target discovery, main and clean live selftests, current `target inspect`, and final acceptance audits. Evidence shows the fixture is ready, the manifest-backed real-target framework is implemented, and `real_os.status = "absent"` with no bounded candidates. The machine-readable blocker report is `artifacts/reports/gate-l-blocker-report.json`. The path must point to the authorized OS source and its existing build entry point. The lab must then build from the declarative manifest, cold-boot, and smoke-test that target.
 
 ## Final Verification
 
-- Main checkout selftest at `d906e02`: PASS, proof artifact `469b18968e26406680acb4e2a22f8c2502aa32026640996a5bedd23f541fd268`; checkout remained clean afterward.
-- Main checkout safe subset: PASS, `62 passed, 5 deselected`.
-- Clean checkout bootstrap at `d906e02`: PASS
-- Clean checkout selftest: PASS, proof artifact `5cd43b53eca7ff42252335a07187c9b58fbee73c988ffb985afa9afa5caf8437`; checkout remained clean afterward.
+- Main checkout selftest at `4eb230a`: PASS, proof artifact `fe5dda849b12272df0c669b611a76d6709c0d0c6c62d9c0e5a6bfafe455c2530`; checkout remained clean afterward.
+- Main checkout safe subset: PASS, `63 passed, 5 deselected`.
+- Clean checkout bootstrap at `4eb230a`: PASS
+- Clean checkout selftest: PASS, proof artifact `0c8131330a0fe7cd2f7a4129de4e48eae3fea1cc4289f3308b0091d364eef0d6`; checkout remained clean afterward.
 - Acceptance audit: PASS, artifact `f11410a4fa383a26cd94ae4be40398769a1da25edd0121cfa09612981967e08d`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Machine proof: `PROOF.json`

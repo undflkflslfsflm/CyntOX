@@ -197,3 +197,11 @@
 - Context: final audits prove the local fixture/framework, manifest-backed real-target machinery, and QEMU isolation, but bounded discovery still finds no authorized real OS source or build entry point.
 - Decision: record a precise blocker report instead of expanding the search beyond the permitted scope, inventing a build command, or treating a throwaway test candidate as the user's real OS.
 - Consequence: the next valid action is the documented local resume sequence against `C:\path\to\authorized-os`; completion still requires actual build, cold boot, and smoke evidence from that supplied target.
+
+## D-026 — Make the Gate L blocker report machine-verifiable
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: the human blocker report satisfied the written handoff, but final proof is stronger if acceptance can reject a missing or vague blocker report automatically.
+- Decision: add `artifacts/reports/gate-l-blocker-report.json` as a required artifact and have `acceptance audit` validate its status, proof blocker, attempted work list, stable selftest evidence hashes, target-inspect summary, impossibility rationale, and exact resume command fragments.
+- Consequence: the final audit now fails if the Gate L blocker report is absent, malformed, disconnected from `PROOF.json`, or missing the authorized-target resume path.
