@@ -72,6 +72,8 @@ REQUIRED_SUPPORT_FILES = (
     "config/oslab-target.example.toml",
     "oslab.ps1",
     "oslab.cmd",
+    "qwen-code.ps1",
+    "qwen-code.cmd",
 )
 
 REQUIRED_KEY_EVIDENCE_ARTIFACTS = (
@@ -149,6 +151,8 @@ PROOF_ONLY_AFTER_VERIFIED_COMMIT_FILES = {
     "README.md",
     "oslab.cmd",
     "oslab.ps1",
+    "qwen-code.cmd",
+    "qwen-code.ps1",
 }
 
 PLACEHOLDER_PATTERNS = (

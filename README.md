@@ -12,12 +12,21 @@ One-line local launcher from PowerShell:
 & "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\oslab.ps1" --help
 ```
 
+One-line interactive Qwen Code launcher:
+
+```powershell
+& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1"
+```
+
+That opens the project-local Qwen Code 0.22.3 CLI with the local Ollama-backed `qwen-os-lab-worker:latest` model and this repository's `.qwen/settings.json`.
+
 PowerShell:
 
 ```powershell
 .\scripts\bootstrap.ps1
 .\oslab.ps1 doctor --json
 .\oslab.cmd doctor --json
+.\qwen-code.ps1 --version
 .\.venv\Scripts\uv.exe run oslab doctor --json
 .\scripts\demo.ps1
 ```

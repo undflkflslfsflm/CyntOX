@@ -10,12 +10,25 @@ One-line launcher from anywhere in PowerShell:
 & "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\oslab.ps1" --help
 ```
 
+One-line interactive Qwen Code launcher from anywhere in PowerShell:
+
+```powershell
+& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1"
+```
+
+This launches the project-local Qwen Code package with bundled Node when system Node is not on `PATH`, uses `.qwen/settings.json`, and defaults to human-readable interactive output. To run a one-shot prompt and stay interactive, add Qwen Code's own `-i` option:
+
+```powershell
+& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1" -i "help me inspect this project"
+```
+
 PowerShell:
 
 ```powershell
 .\scripts\bootstrap.ps1
 .\oslab.ps1 init --json
 .\oslab.ps1 doctor --json
+.\qwen-code.ps1 --version
 .\.venv\Scripts\python.exe -m oslab.cli init --json
 .\.venv\Scripts\python.exe -m oslab.cli doctor --json
 ```
