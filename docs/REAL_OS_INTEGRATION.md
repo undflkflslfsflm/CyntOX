@@ -16,7 +16,7 @@ Concrete evidence:
 - Verified source commit: `d906e0266e6d81dbac43ce8ea5d89351a64d7b5f`.
 - Main live selftest proof: `469b18968e26406680acb4e2a22f8c2502aa32026640996a5bedd23f541fd268` with `67 passed`.
 - Clean-checkout live selftest proof: `5cd43b53eca7ff42252335a07187c9b58fbee73c988ffb985afa9afa5caf8437` with `67 passed`.
-- Saved acceptance audit proof: `12308345a40365bcaa8b25e7a22561fba8f8378112b49d5c6f66f4db6a14fff6`.
+- Saved acceptance audit proof: `f11410a4fa383a26cd94ae4be40398769a1da25edd0121cfa09612981967e08d`.
 - Current `target inspect` result: fixture ready, `real_os.status = "absent"`, `gate_l = "blocked_missing_external_input"`, and no bounded candidates.
 
 Why further local progress is impossible:
