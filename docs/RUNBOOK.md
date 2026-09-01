@@ -4,10 +4,18 @@ All commands are local. They do not push, publish, install services, or modify g
 
 ## Setup
 
+One-line launcher from anywhere in PowerShell:
+
+```powershell
+& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\oslab.ps1" --help
+```
+
 PowerShell:
 
 ```powershell
 .\scripts\bootstrap.ps1
+.\oslab.ps1 init --json
+.\oslab.ps1 doctor --json
 .\.venv\Scripts\python.exe -m oslab.cli init --json
 .\.venv\Scripts\python.exe -m oslab.cli doctor --json
 ```
@@ -23,6 +31,10 @@ python -m oslab.cli doctor --json
 ## Common Workflows
 
 ```powershell
+.\oslab.ps1 model probe --live --json
+.\oslab.ps1 campaign --target fixture --budget 10m --seed 1 --iterations 6 --json
+.\oslab.ps1 eval --suite seeded --seeds 1,2,3 --base-commit HEAD --json
+.\oslab.ps1 acceptance audit --json
 .\.venv\Scripts\python.exe -m oslab.cli model probe --live --json
 .\.venv\Scripts\python.exe -m oslab.cli model benchmark --json
 .\.venv\Scripts\python.exe -m oslab.cli model qwen-code-smoke --json

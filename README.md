@@ -6,10 +6,18 @@ The detected primary worker is the local Ollama model `huihui-qwen3.8-27b-ablite
 
 ## Bootstrap
 
+One-line local launcher from PowerShell:
+
+```powershell
+& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\oslab.ps1" --help
+```
+
 PowerShell:
 
 ```powershell
 .\scripts\bootstrap.ps1
+.\oslab.ps1 doctor --json
+.\oslab.cmd doctor --json
 .\.venv\Scripts\uv.exe run oslab doctor --json
 .\scripts\demo.ps1
 ```
@@ -34,6 +42,6 @@ The bootstrap creates a project-local environment and does not install a service
 ## Proof command
 
 ```powershell
-.\.venv\Scripts\python.exe -m oslab.cli selftest --live --json
-.\.venv\Scripts\python.exe -m oslab.cli acceptance audit --save --json
+.\oslab.ps1 selftest --live --json
+.\oslab.ps1 acceptance audit --save --json
 ```

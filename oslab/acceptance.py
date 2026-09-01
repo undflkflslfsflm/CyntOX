@@ -68,7 +68,11 @@ REQUIRED_ARTIFACTS = (
     "artifacts/ARTIFACT_INDEX.snapshot.json",
 )
 
-REQUIRED_SUPPORT_FILES = ("config/oslab-target.example.toml",)
+REQUIRED_SUPPORT_FILES = (
+    "config/oslab-target.example.toml",
+    "oslab.ps1",
+    "oslab.cmd",
+)
 
 REQUIRED_KEY_EVIDENCE_ARTIFACTS = (
     "agentic_fix_loop",
@@ -143,6 +147,8 @@ PROOF_ONLY_AFTER_VERIFIED_COMMIT_FILES = {
     "FINAL_REPORT.md",
     "PROOF.json",
     "README.md",
+    "oslab.cmd",
+    "oslab.ps1",
 }
 
 PLACEHOLDER_PATTERNS = (
