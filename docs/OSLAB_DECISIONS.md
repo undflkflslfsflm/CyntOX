@@ -157,3 +157,11 @@
 - Context: a clean selftest artifact is only strong evidence if the clean checkout was actually created from the same commit named by `PROOF.json`.
 - Decision: have `acceptance audit` verify `source_commit_full` exists, resolve the recorded clean-checkout path, compare its Git `HEAD` to the verified commit, and reject dirty clean checkouts.
 - Consequence: final acceptance fails if the clean proof came from a stale checkout, a wrong commit, an outside path, or a worktree with post-verification drift.
+
+## D-021 — Require clean-checkout binding in saved audit artifacts
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: after producing a saved PASS audit artifact with the clean-checkout source-binding check, stale saved audit blobs could still be accepted if the freshness contract did not require that check.
+- Decision: include `clean_checkout_matches_verified_source` in the recorded-audit required-check list.
+- Consequence: final acceptance fails if `PROOF.json` points at an older saved audit artifact that predates clean-checkout source binding.
