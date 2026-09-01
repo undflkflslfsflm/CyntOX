@@ -16,7 +16,7 @@ Concrete evidence:
 - Verified source commit: `bfcf1d26045e4eca48de566ccd7b0aca38b859b9`.
 - Main live selftest proof: `947f56f30971854e00e0e581f903c83060023d133106f6786750ee9678d4e630` with `73 passed`.
 - Clean-checkout live selftest proof: `c3dc0486ff5619f4fa01c0d73ac9a48a1fc0510453e76a1d1c1d263d2815c8f7` with `73 passed`.
-- Saved acceptance audit proof: `350a4915ab7a76431761e1ddee2668b04545948acb6937531512bae1e424df94`.
+- Saved acceptance audit proof: `b9c29c30afddddae75db78439c296d82e1c9b07f50445203bd7c826ae3244f2b`.
 - Current `target inspect` result: fixture ready, `real_os.status = "absent"`, `gate_l = "blocked_missing_external_input"`, and no bounded candidates.
 - Machine-readable blocker report: `artifacts/reports/gate-l-blocker-report.json`.
 
