@@ -49,6 +49,7 @@
 | 2026-09-01 | Gate L blocker report | Pass | `docs/REAL_OS_INTEGRATION.md` now records what was attempted, the exact proof hashes, the current bounded-discovery result, why further local progress is impossible without the real OS source/build entry point, and the exact resume sequence for `inspect`, `validate-manifest`, `build`, `boot`, and `test`. |
 | 2026-09-01 | Machine-readable Gate L blocker report | Pass | Added `artifacts/reports/gate-l-blocker-report.json` and acceptance validation that rejects missing, malformed, vague, or proof-mismatched blocker reports. Unit tests prove a weakened report fails acceptance. |
 | 2026-09-01 | Regenerable Gate L blocker report | Pass | Added `oslab target blocker-report --json`/`--write` and included the JSON command in `oslab selftest --live --json`; main and clean selftests at `62a262c` both exercised the command. |
+| 2026-09-01 | Requirements traceability | Pass | Added `artifacts/reports/requirements-trace.json`, a gate-by-gate machine-readable map from Gates A-O to the concrete proof artifacts, commands, and acceptance checks that currently support each status. Gate L remains explicitly `BLOCKED_MISSING_EXTERNAL_INPUT` with the minimal required user input. |
 
 ## Remaining acceptance work
 

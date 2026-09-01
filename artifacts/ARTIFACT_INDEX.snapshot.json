@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T01:21:14Z",
+  "generated_at": "2026-09-01T01:35:00Z",
   "entries": [
     {
       "bytes": 2507,
@@ -7,14 +7,14 @@
       "sha256": "19940e8c5b8c8686ea181051f56d0a32b2f3850b796b8a7b1109e4d743026de2"
     },
     {
-      "bytes": 6868,
+      "bytes": 6934,
       "path": "FINAL_REPORT.md",
-      "sha256": "3c159824b8949cebce2ec94a75f7bf8ca7173d98f0c725342f60e09188e874ce"
+      "sha256": "f6261a3a9f4a545d910ab065b3efa4dc21c664b5ea186cba84d197512b84ec4d"
     },
     {
-      "bytes": 5984,
+      "bytes": 6055,
       "path": "PROOF.json",
-      "sha256": "a35d6d867f943cbb5a5818a2331cdfe2112a7478bac9e728408c8026f982fcd3"
+      "sha256": "06bc9f5bfa9eb9ed7800e5c534bdc5b1c30616d28da9d185f6cbf6d153b1ef21"
     },
     {
       "bytes": 4530,
@@ -67,14 +67,14 @@
       "sha256": "dff9c5ac25b3134332d84fd82673af9248d18bd21fe522927d73a806cdba734d"
     },
     {
-      "bytes": 11518,
+      "bytes": 11870,
       "path": "docs/OSLAB_PROGRESS.md",
-      "sha256": "83edf1f4b1b2d337c63fd0473782766d73e2ead85a7caa3aac9d9f7c403ffbe8"
+      "sha256": "ca3c2baf53c9093c33bc632bbceef6d3f547e0574747623514960aa97914857a"
     },
     {
-      "bytes": 17033,
+      "bytes": 17728,
       "path": "docs/OSLAB_DECISIONS.md",
-      "sha256": "ee6313572fdeaba9f07a492304fd05b5bf97870069485d2df3e94d5b4cacbcf0"
+      "sha256": "a7e25c884038b3e8e10ac77a0b64b9c1926327fb0bc5b8de03ff83296ec7b0bb"
     },
     {
       "bytes": 7888,
@@ -110,6 +110,11 @@
       "bytes": 3673,
       "path": "artifacts/reports/gate-l-blocker-report.json",
       "sha256": "dfb04b55e5e114b40c1b672db7c58075280542e0525618bbcddca594382e02ba"
+    },
+    {
+      "bytes": 7844,
+      "path": "artifacts/reports/requirements-trace.json",
+      "sha256": "a63df503944039fb2ad1e6eba72a2e1d088325f8ec749c4d22fe3ebf40079b2c"
     },
     {
       "bytes": 11087,

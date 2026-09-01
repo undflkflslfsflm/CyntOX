@@ -60,6 +60,7 @@ What was attempted: bounded target discovery, main and clean live selftests, cur
 - Clean checkout selftest: PASS, proof artifact `fa57af57e2685038aeb6982301ca54e7e714c03f17dd454d9bb25756f1266f33`; checkout remained clean afterward.
 - Acceptance audit: PASS, artifact `e84659c271403b79cd1bbed9de884b1b6d62e58c73fd595d09559b81d305e80a`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
+- Requirements trace: `artifacts/reports/requirements-trace.json`
 - Machine proof: `PROOF.json`
 
 ## Future Research

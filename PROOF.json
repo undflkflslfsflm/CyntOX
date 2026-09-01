@@ -99,6 +99,7 @@
     "training_jsonl": "artifacts/training/dry-run/trajectories.jsonl",
     "training_parquet": "artifacts/training/dry-run/trajectories.parquet",
     "gate_l_blocker_report": "artifacts/reports/gate-l-blocker-report.json",
+    "requirements_trace": "artifacts/reports/requirements-trace.json",
     "artifact_index": "artifacts/ARTIFACT_INDEX.snapshot.json"
   },
   "key_evidence_artifacts": {

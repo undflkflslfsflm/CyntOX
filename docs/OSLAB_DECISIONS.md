@@ -213,3 +213,11 @@
 - Context: a static JSON blocker report can go stale even when acceptance verifies its current contents.
 - Decision: add `oslab target blocker-report --json` and optional `--write`, deriving the report from `PROOF.json` plus bounded `target inspect`, and include the command in `oslab selftest --live --json`.
 - Consequence: future proof refreshes can regenerate the blocker artifact locally, and selftest evidence proves the generator remains runnable.
+
+## D-028 — Add a gate-by-gate requirements trace
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: the proof bundle already records the final gate summary and acceptance audit, but a reviewer still has to mentally connect each acceptance gate to the decisive artifact or command.
+- Decision: add `artifacts/reports/requirements-trace.json` as a machine-readable trace from Gates A-O to concrete evidence, keeping Gate L explicitly blocked rather than treating framework readiness as real-target proof.
+- Consequence: the handoff is easier to audit without weakening the completion contract; the next required action remains supplying the authorized real OS source path and build entry point.

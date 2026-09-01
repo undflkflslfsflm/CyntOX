@@ -1,0 +1,179 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-01T01:35:00Z",
+  "goal_status": "blocked_on_gate_l",
+  "source_commit_full": "62a262cdfa754dc77479a9b5d7e4adb9a4cfaf73",
+  "acceptance_audit_artifact_sha256": "e84659c271403b79cd1bbed9de884b1b6d62e58c73fd595d09559b81d305e80a",
+  "main_selftest_proof_sha256": "eb92b290866fde96ce6528778596ee23c59ef4d971f34209bed54dfc0efa261b",
+  "clean_selftest_proof_sha256": "fa57af57e2685038aeb6982301ca54e7e714c03f17dd454d9bb25756f1266f33",
+  "trace": [
+    {
+      "gate": "A",
+      "status": "PASS",
+      "requirement": "Discovery succeeds and records hardware, RAM, disks, virtualization, QEMU/toolchains, actual local model identity/runtime, and target status.",
+      "evidence": [
+        "artifacts/discovery/hardware-report.json",
+        "docs/HARDWARE_REPORT.md",
+        "config/local.auto.toml",
+        "acceptance check required_artifact_contents_are_valid"
+      ]
+    },
+    {
+      "gate": "B",
+      "status": "PASS",
+      "requirement": "Mandatory quality checks pass from the verified source and clean checkout.",
+      "evidence": [
+        "PROOF.json verified_commands for ruff format, ruff check, mypy, pytest, uv lock, pnpm frozen offline install",
+        "main selftest proof eb92b290866fde96ce6528778596ee23c59ef4d971f34209bed54dfc0efa261b",
+        "clean selftest proof fa57af57e2685038aeb6982301ca54e7e714c03f17dd454d9bb25756f1266f33",
+        "acceptance checks proof_records_required_commands and clean_checkout_matches_verified_source"
+      ]
+    },
+    {
+      "gate": "C",
+      "status": "PASS",
+      "requirement": "A real local Qwen call validates structured output and records model/runtime/settings.",
+      "evidence": [
+        "PROOF.json model identity for Ollama huihui-qwen3.8-27b-abliterated:latest",
+        "main and clean selftest live model probe stdout",
+        "acceptance checks proof_records_live_model_identity and selftest_live_outputs_match_proof"
+      ]
+    },
+    {
+      "gate": "D",
+      "status": "PASS",
+      "requirement": "Qwen Code is detected/configured and constrained headless smoke evidence is recorded.",
+      "evidence": [
+        "PROOF.json qwen_code wrapper_model qwen-os-lab-worker:latest",
+        "main and clean selftest qwen-code-smoke stdout",
+        "acceptance checks proof_records_constrained_qwen_code_smoke and selftest_live_outputs_match_proof"
+      ]
+    },
+    {
+      "gate": "E",
+      "status": "PASS",
+      "requirement": "A true QEMU fixture builds from source, cold-boots, emits READY, passes a test, restores a snapshot, and cleans up.",
+      "evidence": [
+        "FINAL_REPORT.md confirmed working fixture summary",
+        "PROOF.json key_evidence_artifacts.fixture_fuzz_campaign",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "F",
+      "status": "PASS",
+      "requirement": "Fixture FAIL, CRASH, HANG, and induced infrastructure error are classified with artifacts and timeouts.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.fixture_fuzz_campaign",
+        "artifacts/reports/latest-report.json",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "G",
+      "status": "PASS",
+      "requirement": "Seeded crash reproduces across fresh cold boots with a stable fingerprint and stored reproducer.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.crash_reproduction",
+        "PROOF.json key_evidence_artifacts.crash_verification",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "H",
+      "status": "PASS",
+      "requirement": "Live-model agentic loop observes a seeded failure, proposes a patch in a disposable worktree, verifies the targeted fix, and runs regressions.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.agentic_fix_loop",
+        "docs/OSLAB_PROGRESS.md agentic fix loop ledger entry",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "I",
+      "status": "PASS",
+      "requirement": "Independent verifier accepts valid evidence and rejects a deliberately invalid solution.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.agentic_fix_loop",
+        "PROOF.json key_evidence_artifacts.seeded_evaluation_cas",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "J",
+      "status": "PASS",
+      "requirement": "Supervisor restart/resume is proven without database corruption or duplicate accepted findings.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.supervisor_recovery",
+        "docs/OSLAB_PROGRESS.md supervisor recovery ledger entry",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "K",
+      "status": "PASS",
+      "requirement": "Seeded evaluation matrix runs variants A-E over seeds 1,2,3 and produces raw data plus report.",
+      "evidence": [
+        "artifacts/evaluation/seeded-results.json",
+        "artifacts/evaluation/seeded-results.csv",
+        "artifacts/evaluation/EVALUATION_REPORT.md",
+        "PROOF.json key_evidence_artifacts.seeded_evaluation_cas",
+        "acceptance check required_artifact_contents_are_valid"
+      ]
+    },
+    {
+      "gate": "L",
+      "status": "BLOCKED_MISSING_EXTERNAL_INPUT",
+      "requirement": "Real OS target builds, cold-boots, and smoke-tests when the authorized source and build path are present.",
+      "evidence": [
+        "artifacts/reports/gate-l-blocker-report.json",
+        "docs/REAL_OS_INTEGRATION.md",
+        "PROOF.json blocked_gate",
+        "acceptance checks gate_l_blocker_is_precise, gate_l_blocker_report_is_verifiable, and current_target_inspection_matches_gate_l"
+      ],
+      "minimal_input_needed": "A local path to the authorized OS source plus its existing build entry point."
+    },
+    {
+      "gate": "M",
+      "status": "PASS",
+      "requirement": "Bounded autonomous campaign against the fixture generates hypotheses/tests, executes, handles errors, deduplicates findings, checkpoints, and reports.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.bounded_autonomous_campaign",
+        "PROOF.json key_evidence_artifacts.fixture_fuzz_campaign",
+        "artifacts/reports/latest-report.json",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "N",
+      "status": "PASS",
+      "requirement": "Security boundary tests cover path restrictions, evaluator immutability, command allowlists, local-only binding, network isolation, redaction, limits, and rollback.",
+      "evidence": [
+        "docs/THREAT_MODEL.md",
+        "PROOF.json verified pytest commands",
+        "main and clean selftest proofs",
+        "acceptance checks proof_records_required_commands and mandatory_paths_have_no_unresolved_placeholders"
+      ]
+    },
+    {
+      "gate": "O",
+      "status": "PASS",
+      "requirement": "Clean setup/runbook documentation, artifact integrity, final report, proof, limitations, next experiments, and artifact hashes are present and verified.",
+      "evidence": [
+        "README.md",
+        "docs/RUNBOOK.md",
+        "FINAL_REPORT.md",
+        "PROOF.json",
+        "docs/KNOWN_LIMITATIONS.md",
+        "docs/NEXT_EXPERIMENTS.md",
+        "artifacts/ARTIFACT_INDEX.snapshot.json",
+        "acceptance checks artifact_index_matches_disk and artifact_index_covers_required_files"
+      ]
+    }
+  ],
+  "next_required_action": {
+    "gate": "L",
+    "command": ".\\.venv\\Scripts\\python.exe -m oslab.cli target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+    "note": "Completion remains unclaimed until the supplied real OS target is actually built, cold-booted, and smoke-tested."
+  }
+}
