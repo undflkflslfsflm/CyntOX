@@ -18,7 +18,7 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Live agentic fix loop repaired the seeded fixture in a disposable worktree and rejected an invalid evaluator edit.
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
-- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `14acdaf`, including `uv lock --check`, frozen/offline `pnpm install`, and `ruff format --check .`.
+- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `65aaf77`, including `uv lock --check`, frozen/offline `pnpm install`, and `ruff format --check .`.
 - `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, semantic artifact contents, key evidence CAS artifacts, artifact-index hashes, real selftest proof artifacts, clean-checkout source commit, live Ollama/Qwen Code stdout, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. The recorded audit-artifact check rejects stale or inconsistent audit blobs, and the key-evidence check rejects missing/corrupt/semantically invalid decisive artifacts. Saved audit artifact: `ed1d60ace69f7308556c2b90d9a16c3ca7b1b387650832dc25248a9a94fea7b7`.
 - Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, and a `target validate-manifest` command. The validator rejects path traversal, source-root escapes, missing smoke tests, non-isolated QEMU networking, branch-like or unresolved base commits, inherited parent Git repositories, and shell-eval command wrappers before any real target build is attempted.
 
@@ -52,9 +52,9 @@ The path must point to the authorized OS source and its existing build entry poi
 
 ## Final Verification
 
-- Main checkout selftest at `14acdaf`: PASS, proof artifact `a0087b8f9a5a5bf768edc3f42c36a1a30e1b975027dd9eaa63ccc80b3385d33e`; checkout remained clean afterward.
-- Clean checkout bootstrap at `14acdaf`: PASS
-- Clean checkout selftest: PASS, proof artifact `353fd708e8e86e190eb0fb0b482622b95120e475c8f7cb93e4db9d28c40069ac`; checkout remained clean afterward.
+- Main checkout selftest at `65aaf77`: PASS, proof artifact `340ef3c38f918f3118318e280ed7c28d252f82b3e5c774693e48386a45c8f468`; checkout remained clean afterward.
+- Clean checkout bootstrap at `65aaf77`: PASS
+- Clean checkout selftest: PASS, proof artifact `daf7a14f99b00902887703c0adfb8dd803a4080eab7cf5601cde531df8f82b3a`; checkout remained clean afterward.
 - Acceptance audit: PASS, artifact `ed1d60ace69f7308556c2b90d9a16c3ca7b1b387650832dc25248a9a94fea7b7`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Machine proof: `PROOF.json`
