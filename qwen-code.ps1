@@ -9,7 +9,7 @@ $interactiveWorkspace = Join-Path $projectRoot '.oslab\qwen-code-workspace'
 $interactiveQwenDir = Join-Path $interactiveWorkspace '.qwen'
 $interactiveSettingsPath = Join-Path $interactiveQwenDir 'settings.json'
 $qwenthosModel = 'qwenthos'
-$ollamaBaseUrl = 'http://127.0.0.1:11434/v1'
+$ollamaBaseUrl = if ($env:OSLAB_OLLAMA_BASE_URL) { $env:OSLAB_OLLAMA_BASE_URL } else { 'http://127.0.0.1:11434/v1' }
 
 function Test-QwenFlag {
     param(
@@ -89,22 +89,23 @@ function Write-InteractiveSettings {
         $settings.PSObject.Properties.Remove('mcp')
     }
 
-    $tools = Ensure-SettingObject -Parent $settings -Name 'tools'
-    Set-SettingProperty -Object $tools -Name 'approvalMode' -Value 'auto-edit'
-    if ($tools.PSObject.Properties['disabled']) {
-        $tools.PSObject.Properties.Remove('disabled')
-    }
-    if ($tools.PSObject.Properties['visible']) {
-        $tools.PSObject.Properties.Remove('visible')
-    }
-    Set-SettingProperty -Object $tools -Name 'eager' -Value @(
+    $interactiveTools = @(
         'read_file',
         'list_directory',
         'grep_search',
         'glob',
         'edit',
-        'write_file'
+        'write_file',
+        'tool_search'
     )
+
+    $tools = Ensure-SettingObject -Parent $settings -Name 'tools'
+    Set-SettingProperty -Object $tools -Name 'approvalMode' -Value 'auto-edit'
+    if ($tools.PSObject.Properties['disabled']) {
+        $tools.PSObject.Properties.Remove('disabled')
+    }
+    Set-SettingProperty -Object $tools -Name 'visible' -Value $interactiveTools
+    Set-SettingProperty -Object $tools -Name 'eager' -Value $interactiveTools
     $toolSearch = Ensure-SettingObject -Parent $tools -Name 'toolSearch'
     Set-SettingProperty -Object $toolSearch -Name 'enabled' -Value $true
 
@@ -118,7 +119,15 @@ function Write-InteractiveSettings {
     if ($permissions.PSObject.Properties['deny'] -and $null -ne $permissions.deny) {
         $existingDeny = @($permissions.deny)
     }
-    $deny = @($existingDeny + 'display_image' | Where-Object { $_ } | Select-Object -Unique)
+    $deny = @(
+        $existingDeny
+        'display_image'
+        'zoom_image'
+        'notebook_edit'
+        'ask_user_question'
+        'enter_plan_mode'
+        'exit_plan_mode'
+    ) | Where-Object { $_ } | Select-Object -Unique
     Set-SettingProperty -Object $permissions -Name 'deny' -Value $deny
 
     $output = Ensure-SettingObject -Parent $settings -Name 'output'
