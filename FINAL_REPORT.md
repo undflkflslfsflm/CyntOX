@@ -18,7 +18,8 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Live agentic fix loop repaired the seeded fixture in a disposable worktree and rejected an invalid evaluator edit.
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
-- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `1aa77e1`, including `uv lock --check`, frozen/offline `pnpm install`, `oslab target blocker-report --json`, `oslab acceptance trace --json`, `71 passed`, and `ruff format --check .`.
+- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `cc90bab`, including `uv lock --check`, frozen/offline `pnpm install`, `oslab target blocker-report --json`, `oslab acceptance trace --json`, `73 passed`, and `ruff format --check .`.
+- The CLI accepts both subcommand-style and spec-style campaign/evaluation workflows, including `oslab campaign --target fixture --budget 10m --seed 7 --iterations 6 --base-commit HEAD --json` and `oslab eval --suite seeded --seeds 1,2,3 --base-commit HEAD --json`.
 - `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, real selftest proof artifacts, clean-checkout source commit, live Ollama/Qwen Code stdout, the current requirements trace, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. The recorded audit-artifact check rejects stale or inconsistent audit blobs, and the key-evidence check rejects missing/corrupt/semantically invalid decisive artifacts. Saved audit artifact: `7104edbccbce39519f0678059149b83c5793cc558a0bb9abb03386ab5c9e3b3d`.
 - Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, a `target validate-manifest` command, manifest-backed real-target build execution, and manifest-backed QEMU serial smoke boot/test execution. The validator rejects path traversal, source-root escapes, missing smoke tests, serial PASS smoke tests without success patterns, non-isolated QEMU networking, QEMU network devices, branch-like or unresolved base commits, inherited parent Git repositories, and shell-eval command wrappers before any real target build is attempted. Manifest-backed builds run from detached disposable Git worktrees at `source.base_commit`, pass only the declared environment allowlist, and hash declared build artifacts. Manifest-backed smoke runs boot the disposable-worktree artifacts through Docker-backed QEMU with `-nic none`, loopback QMP, declared serial readiness/success pattern checks, and serial/stderr artifact capture.
 
@@ -54,10 +55,10 @@ What was attempted: bounded target discovery, main and clean live selftests, cur
 
 ## Final Verification
 
-- Main checkout selftest at `1aa77e1`: PASS, proof artifact `249506f408f2d2aa5c727c945cbf16765b0c1fd6770c326ed8765a74fd737b39`; checkout remained clean afterward.
-- Main checkout safe subset: PASS, `66 passed, 5 deselected`.
-- Clean checkout bootstrap at `1aa77e1`: PASS
-- Clean checkout selftest: PASS, proof artifact `84bc09e136aded5964e7858ad995aeb6f7fac100dba5dd2ee387a817a3a6178c`; checkout remained clean afterward.
+- Main checkout selftest at `cc90babc191552780a67f06c4f66e62983672af3`: PASS, proof artifact `8051517cd653eeb1ace6fba55cb53ffd29b2b06e5f8d8e49927440768d707fa4`; checkout remained clean afterward.
+- Main checkout safe subset: PASS, `68 passed, 5 deselected`.
+- Clean checkout bootstrap at `cc90babc191552780a67f06c4f66e62983672af3`: PASS
+- Clean checkout selftest: PASS, proof artifact `62a3f4884d2804f3466926371ef299ed89ef7336e34645d9ae496fcf13878013`; checkout remained clean afterward.
 - Acceptance audit: PASS, artifact `7104edbccbce39519f0678059149b83c5793cc558a0bb9abb03386ab5c9e3b3d`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Requirements trace: `artifacts/reports/requirements-trace.json`

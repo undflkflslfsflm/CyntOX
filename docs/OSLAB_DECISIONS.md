@@ -229,3 +229,11 @@
 - Context: structural report validation catches malformed reports, but a plausible hand edit could still satisfy the minimum shape while drifting away from current `PROOF.json`.
 - Decision: require both `artifacts/reports/gate-l-blocker-report.json` and `artifacts/reports/requirements-trace.json` to exactly match the report generator output derived from the current proof and bounded target inspection.
 - Consequence: final acceptance fails if either machine report is stale, manually massaged, or disconnected from the currently verified source/selftest evidence.
+
+## D-030 — Preserve spec-style workflow spelling
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: the CLI already exposed `campaign run` and `eval run`, but the user specification names top-level workflow forms such as `oslab campaign --target ...` and `oslab eval --suite ...`.
+- Decision: keep the existing subcommands and add top-level callback aliases that route `campaign` and `eval` options directly into the same bounded campaign/evaluation payloads.
+- Consequence: runbook commands can match the specification while existing automation and tests that call `campaign run` or `eval run` remain compatible.

@@ -38,7 +38,9 @@ python -m oslab.cli doctor --json
 .\.venv\Scripts\python.exe -m oslab.cli campaign recovery-proof --json
 .\.venv\Scripts\python.exe -m oslab.cli campaign agentic-fix --base-commit HEAD --seed 1 --json
 .\.venv\Scripts\python.exe -m oslab.cli campaign run --target fixture --budget 10m --seed 1 --iterations 6 --json
+.\.venv\Scripts\python.exe -m oslab.cli campaign --target fixture --budget 10m --seed 1 --iterations 6 --base-commit HEAD --json
 .\.venv\Scripts\python.exe -m oslab.cli eval run --seeds 1,2,3 --base-commit HEAD --json
+.\.venv\Scripts\python.exe -m oslab.cli eval --suite seeded --seeds 1,2,3 --base-commit HEAD --json
 .\.venv\Scripts\python.exe -m oslab.cli training dry-run --json
 .\.venv\Scripts\python.exe -m oslab.cli report --experiment latest --json
 .\.venv\Scripts\python.exe -m oslab.cli cleanup --dry-run --json
