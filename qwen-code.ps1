@@ -9,7 +9,10 @@ $interactiveWorkspace = Join-Path $projectRoot '.oslab\qwen-code-workspace'
 $interactiveQwenDir = Join-Path $interactiveWorkspace '.qwen'
 $interactiveSettingsPath = Join-Path $interactiveQwenDir 'settings.json'
 $qwenthosModel = 'qwenthos'
-$ollamaBaseUrl = if ($env:OSLAB_OLLAMA_BASE_URL) { $env:OSLAB_OLLAMA_BASE_URL } else { 'http://127.0.0.1:11434/v1' }
+$upstreamOllamaBaseUrl = if ($env:OSLAB_OLLAMA_BASE_URL) { $env:OSLAB_OLLAMA_BASE_URL } else { 'http://127.0.0.1:11434/v1' }
+$qwenBaseUrl = $upstreamOllamaBaseUrl
+$qwenthosProxyPort = if ($env:OSLAB_QWENTHOS_PROXY_PORT) { [int]$env:OSLAB_QWENTHOS_PROXY_PORT } else { 11435 }
+$qwenthosProxyBaseUrl = "http://127.0.0.1:$qwenthosProxyPort/v1"
 
 function Test-QwenFlag {
     param(
@@ -49,6 +52,90 @@ function Set-SettingProperty {
     $Object | Add-Member -MemberType NoteProperty -Name $Name -Value $Value -Force
 }
 
+function ConvertTo-OpenAIOrigin {
+    param([Parameter(Mandatory = $true)][string]$BaseUrl)
+
+    $normalized = $BaseUrl.TrimEnd('/')
+    if ($normalized.ToLowerInvariant().EndsWith('/v1')) {
+        return $normalized.Substring(0, $normalized.Length - 3)
+    }
+    return $normalized
+}
+
+function Test-QwenthosProxyHealth {
+    param([Parameter(Mandatory = $true)][string]$HealthUrl)
+
+    try {
+        $response = Invoke-RestMethod -Method Get -Uri $HealthUrl -TimeoutSec 1
+        return ($response.ok -eq $true)
+    } catch {
+        return $false
+    }
+}
+
+function Get-QwenthosProxyPython {
+    $venvPython = Join-Path $projectRoot '.venv\Scripts\python.exe'
+    if (Test-Path -LiteralPath $venvPython) {
+        return $venvPython
+    }
+
+    $pythonCommand = Get-Command python.exe -ErrorAction SilentlyContinue
+    if ($pythonCommand) {
+        return $pythonCommand.Source
+    }
+
+    return $null
+}
+
+function Start-QwenthosProxyIfAvailable {
+    param([Parameter(Mandatory = $true)][string]$TargetBaseUrl)
+
+    if ($env:OSLAB_QWENTHOS_DISABLE_PROXY) {
+        return $TargetBaseUrl
+    }
+
+    $proxyScript = Join-Path $projectRoot 'scripts\qwenthos_openai_proxy.py'
+    if (-not (Test-Path -LiteralPath $proxyScript)) {
+        return $TargetBaseUrl
+    }
+
+    $healthUrl = "http://127.0.0.1:$qwenthosProxyPort/__qwenthos_proxy_health"
+    if (Test-QwenthosProxyHealth -HealthUrl $healthUrl) {
+        return $qwenthosProxyBaseUrl
+    }
+
+    $pythonPath = Get-QwenthosProxyPython
+    if (-not $pythonPath) {
+        return $TargetBaseUrl
+    }
+
+    New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
+    $targetOrigin = ConvertTo-OpenAIOrigin -BaseUrl $TargetBaseUrl
+    $proxyLogPath = Join-Path $runtimeDir 'qwenthos-openai-proxy.log'
+    $proxyErrPath = Join-Path $runtimeDir 'qwenthos-openai-proxy.err.log'
+    Start-Process -FilePath $pythonPath -ArgumentList @(
+        "`"$proxyScript`"",
+        '--listen-host',
+        '127.0.0.1',
+        '--listen-port',
+        [string]$qwenthosProxyPort,
+        '--target-base',
+        "`"$targetOrigin`"",
+        '--retries',
+        '3'
+    ) -WindowStyle Hidden -RedirectStandardOutput $proxyLogPath -RedirectStandardError $proxyErrPath | Out-Null
+
+    for ($attempt = 0; $attempt -lt 50; $attempt++) {
+        if (Test-QwenthosProxyHealth -HealthUrl $healthUrl) {
+            return $qwenthosProxyBaseUrl
+        }
+        Start-Sleep -Milliseconds 100
+    }
+
+    Write-Warning "Qwenthos compatibility proxy did not start; falling back to direct Ollama endpoint $TargetBaseUrl."
+    return $TargetBaseUrl
+}
+
 function Write-InteractiveSettings {
     param(
         [Parameter(Mandatory = $true)][string]$SourcePath,
@@ -58,7 +145,7 @@ function Write-InteractiveSettings {
     $settings = Get-Content -Raw -LiteralPath $SourcePath | ConvertFrom-Json
     $model = Ensure-SettingObject -Parent $settings -Name 'model'
     Set-SettingProperty -Object $model -Name 'name' -Value $qwenthosModel
-    Set-SettingProperty -Object $model -Name 'baseUrl' -Value $ollamaBaseUrl
+    Set-SettingProperty -Object $model -Name 'baseUrl' -Value $qwenBaseUrl
     Set-SettingProperty -Object $model -Name 'maxSessionTurns' -Value -1
     Set-SettingProperty -Object $model -Name 'maxWallTimeSeconds' -Value -1
     Set-SettingProperty -Object $model -Name 'maxToolCalls' -Value -1
@@ -75,7 +162,7 @@ function Write-InteractiveSettings {
     Set-SettingProperty -Object $primaryModel -Name 'name' -Value 'qwenthos'
     Set-SettingProperty -Object $primaryModel -Name 'description' -Value 'Local Qwenthos model alias backed by qwen-os-lab-worker:latest in Ollama'
     Set-SettingProperty -Object $primaryModel -Name 'envKey' -Value 'OSLAB_OLLAMA_API_KEY'
-    Set-SettingProperty -Object $primaryModel -Name 'baseUrl' -Value $ollamaBaseUrl
+    Set-SettingProperty -Object $primaryModel -Name 'baseUrl' -Value $qwenBaseUrl
     Set-SettingProperty -Object $modelProviders -Name 'openai' -Value $openaiModels
 
     $security = Ensure-SettingObject -Parent $settings -Name 'security'
@@ -89,23 +176,22 @@ function Write-InteractiveSettings {
         $settings.PSObject.Properties.Remove('mcp')
     }
 
-    $interactiveTools = @(
-        'read_file',
-        'list_directory',
-        'grep_search',
-        'glob',
-        'edit',
-        'write_file',
-        'tool_search'
-    )
-
     $tools = Ensure-SettingObject -Parent $settings -Name 'tools'
     Set-SettingProperty -Object $tools -Name 'approvalMode' -Value 'auto-edit'
     if ($tools.PSObject.Properties['disabled']) {
         $tools.PSObject.Properties.Remove('disabled')
     }
-    Set-SettingProperty -Object $tools -Name 'visible' -Value $interactiveTools
-    Set-SettingProperty -Object $tools -Name 'eager' -Value $interactiveTools
+    if ($tools.PSObject.Properties['visible']) {
+        $tools.PSObject.Properties.Remove('visible')
+    }
+    Set-SettingProperty -Object $tools -Name 'eager' -Value @(
+        'read_file',
+        'list_directory',
+        'grep_search',
+        'glob',
+        'edit',
+        'write_file'
+    )
     $toolSearch = Ensure-SettingObject -Parent $tools -Name 'toolSearch'
     Set-SettingProperty -Object $toolSearch -Name 'enabled' -Value $true
 
@@ -119,15 +205,7 @@ function Write-InteractiveSettings {
     if ($permissions.PSObject.Properties['deny'] -and $null -ne $permissions.deny) {
         $existingDeny = @($permissions.deny)
     }
-    $deny = @(
-        $existingDeny
-        'display_image'
-        'zoom_image'
-        'notebook_edit'
-        'ask_user_question'
-        'enter_plan_mode'
-        'exit_plan_mode'
-    ) | Where-Object { $_ } | Select-Object -Unique
+    $deny = @($existingDeny + 'display_image' | Where-Object { $_ } | Select-Object -Unique)
     Set-SettingProperty -Object $permissions -Name 'deny' -Value $deny
 
     $output = Ensure-SettingObject -Parent $settings -Name 'output'
@@ -166,7 +244,8 @@ if (-not $env:OSLAB_OLLAMA_API_KEY) {
     $env:OSLAB_OLLAMA_API_KEY = 'ollama-local-no-auth'
 }
 $env:OPENAI_API_KEY = $env:OSLAB_OLLAMA_API_KEY
-$env:OPENAI_BASE_URL = $ollamaBaseUrl
+$qwenBaseUrl = Start-QwenthosProxyIfAvailable -TargetBaseUrl $upstreamOllamaBaseUrl
+$env:OPENAI_BASE_URL = $qwenBaseUrl
 $env:QWEN_MODEL = $qwenthosModel
 $env:QWEN_HOME = $qwenHome
 $env:QWEN_RUNTIME_DIR = $runtimeDir
@@ -206,7 +285,7 @@ if (-not $hasOpenAiApiKey) {
     $finalArgs += @('--openai-api-key', $env:OSLAB_OLLAMA_API_KEY)
 }
 if (-not $hasOpenAiBaseUrl) {
-    $finalArgs += @('--openai-base-url', $ollamaBaseUrl)
+    $finalArgs += @('--openai-base-url', $qwenBaseUrl)
 }
 if (-not $hasOutputFormat) {
     $finalArgs += @('--output-format', 'text')
