@@ -40,6 +40,7 @@ class SafeProcessRunner:
         timeout: float,
         env: dict[str, str] | None = None,
         stdin: bytes | None = None,
+        inherit_safe_env: bool = True,
     ) -> ProcessResult:
         if not argv or any("\x00" in item for item in argv):
             raise ValueError("invalid argv")
@@ -51,7 +52,7 @@ class SafeProcessRunner:
         process = await asyncio.create_subprocess_exec(
             *argv,
             cwd=cwd,
-            env=safe_subprocess_env(env),
+            env=safe_subprocess_env(env) if inherit_safe_env else (env or {}),
             stdin=asyncio.subprocess.PIPE if stdin is not None else asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,

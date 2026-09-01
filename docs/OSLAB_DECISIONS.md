@@ -173,3 +173,11 @@
 - Context: the real-target manifest required an immutable-looking commit string, but a syntactically valid SHA that did not exist in the target repository could still make onboarding appear stronger than it was.
 - Decision: require `source.root` to be the target Git repository root and verify `source.base_commit` with Git before a manifest can become ready.
 - Consequence: Gate L cannot proceed on a made-up base commit or on a target directory that accidentally inherits an unrelated parent repository.
+
+## D-023 — Build real targets only from disposable manifest worktrees
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: a validated real-target manifest is not enough if the first build runs directly in the user's production checkout or inherits undeclared environment variables.
+- Decision: have manifest-backed real-target builds create a detached disposable Git worktree at `source.base_commit`, run only the selected profile's declared argv vector, pass only the profile's declared environment allowlist, and hash the declared build artifacts.
+- Consequence: Gate L build evidence is tied to an immutable source commit and cannot dirty the original target checkout.

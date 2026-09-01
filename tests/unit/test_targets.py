@@ -1,9 +1,15 @@
+import asyncio
+import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
+from oslab.artifacts import ArtifactStore
 from oslab.config import default_config
+from oslab.process_runner import SafeProcessRunner
 from oslab.targets import inspect_target_manifest, inspect_targets, manifest_template_json
+from oslab.targets.runner import run_manifest_build
 
 FULL_SHA = "abcdef1234567890abcdef1234567890abcdef12"
 
@@ -31,6 +37,46 @@ def _marked_git_target(root: Path) -> str:
     _git(root, "add", "Makefile", "kernel", "boot")
     _git(root, "commit", "-m", "seed target")
     return _git(root, "rev-parse", "HEAD")
+
+
+def _marked_buildable_git_target(root: Path) -> str:
+    (root / "Makefile").write_text("all:\n\t@echo build\n", encoding="utf-8")
+    (root / "kernel").mkdir()
+    (root / "kernel" / ".keep").write_text("", encoding="utf-8")
+    (root / "boot").mkdir()
+    (root / "boot" / ".keep").write_text("", encoding="utf-8")
+    (root / "scripts").mkdir()
+    (root / "scripts" / "build_target.py").write_text(
+        "\n".join(
+            [
+                "import os",
+                "from pathlib import Path",
+                "Path('build').mkdir(exist_ok=True)",
+                "Path('build/kernel.bin').write_bytes(b'kernel')",
+                "Path('build/env.txt').write_text(str('USERPROFILE' in os.environ), encoding='utf-8')",
+                "print('real-target-build-ok')",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _git(root, "init")
+    _git(root, "config", "user.email", "oslab@example.invalid")
+    _git(root, "config", "user.name", "OS Lab Test")
+    _git(root, "add", ".")
+    _git(root, "commit", "-m", "seed buildable target")
+    return _git(root, "rev-parse", "HEAD")
+
+
+def _manifest_for_python_build(base_commit: str) -> str:
+    return (
+        manifest_template_json()["content"]
+        .replace("<immutable git commit sha>", base_commit)
+        .replace(
+            'argv = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/build.ps1", "-Configuration", "Debug"]',
+            f'argv = [{json.dumps(sys.executable)}, "scripts/build_target.py"]',
+        )
+    )
 
 
 def test_target_registry_reports_fixture_and_precise_real_os_blocker(tmp_path: Path) -> None:
@@ -120,6 +166,65 @@ def test_target_manifest_rejects_non_git_source_root(tmp_path: Path) -> None:
 
     assert manifest["status"] == "invalid"
     assert "Git repository root" in str(manifest["errors"])
+
+
+def test_manifest_build_runs_in_disposable_worktree_and_hashes_artifacts(
+    tmp_path: Path, monkeypatch: object
+) -> None:
+    repo = tmp_path / "target"
+    repo.mkdir()
+    base_commit = _marked_buildable_git_target(repo)
+    (repo / "oslab-target.toml").write_text(
+        _manifest_for_python_build(base_commit), encoding="utf-8"
+    )
+    monkeypatch.setenv("USERPROFILE", "should-not-leak")  # type: ignore[attr-defined]
+
+    result = asyncio.run(
+        run_manifest_build(
+            repo,
+            "debug",
+            SafeProcessRunner(),
+            ArtifactStore(tmp_path / "artifacts"),
+            worktrees_root=tmp_path / "runtime" / "worktrees",
+            timeout=30,
+        )
+    )
+
+    build_worktree = Path(result["build_worktree"])
+    assert result["ok"] is True
+    assert result["worktree_head"] == base_commit
+    assert result["commands"][0]["exit_code"] == 0
+    assert (
+        result["artifacts"][0]["sha256"]
+        == "6923dd1bc0460082c5d55a831908c24a282860b7f1cd6c2b79cf1bc8857c639c"
+    )
+    assert not (repo / "build").exists()
+    assert (build_worktree / "build" / "kernel.bin").read_bytes() == b"kernel"
+    assert (build_worktree / "build" / "env.txt").read_text(encoding="utf-8") == "False"
+
+
+def test_manifest_build_reports_missing_declared_artifacts(tmp_path: Path) -> None:
+    repo = tmp_path / "target"
+    repo.mkdir()
+    base_commit = _marked_buildable_git_target(repo)
+    manifest = _manifest_for_python_build(base_commit).replace(
+        'path = "build/kernel.bin"', 'path = "build/missing.bin"', 1
+    )
+    (repo / "oslab-target.toml").write_text(manifest, encoding="utf-8")
+
+    result = asyncio.run(
+        run_manifest_build(
+            repo,
+            "debug",
+            SafeProcessRunner(),
+            ArtifactStore(tmp_path / "artifacts"),
+            worktrees_root=tmp_path / "runtime" / "worktrees",
+            timeout=30,
+        )
+    )
+
+    assert result["ok"] is False
+    assert result["missing_artifacts"] == [{"path": "build/missing.bin", "kind": "kernel"}]
 
 
 def test_target_manifest_rejects_non_immutable_base_commit(tmp_path: Path) -> None:

@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import tomllib
+from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
@@ -86,6 +87,14 @@ coverage = []
 [cleanup]
 paths = ["build/tmp", ".oslab-target"]
 """
+
+
+@dataclass(frozen=True)
+class LoadedTargetManifest:
+    manifest: TargetManifest
+    manifest_path: Path
+    source_root: Path
+    git: dict[str, Any]
 
 
 class SourceSpec(BaseModel):
@@ -300,45 +309,62 @@ class TargetManifest(BaseModel):
 
 def inspect_target_manifest(root: Path) -> dict[str, Any]:
     manifest_path = root / MANIFEST_NAME
-    if not manifest_path.is_file():
-        return {"status": "missing", "path": str(manifest_path)}
     try:
-        raw = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+        loaded = load_target_manifest(root)
+    except FileNotFoundError:
+        return {"status": "missing", "path": str(manifest_path)}
     except tomllib.TOMLDecodeError as exc:
         return {"status": "invalid", "path": str(manifest_path), "errors": [str(exc)]}
-    try:
-        manifest = TargetManifest.model_validate(raw)
     except ValidationError as exc:
         return {
             "status": "invalid",
             "path": str(manifest_path),
             "errors": exc.errors(include_url=False),
         }
+    except TargetManifestError as exc:
+        return {"status": "invalid", "path": str(manifest_path), "errors": exc.errors}
 
-    path_errors = _validate_manifest_paths(root.resolve(), manifest)
-    if path_errors:
-        return {"status": "invalid", "path": str(manifest_path), "errors": path_errors}
-
-    source_root = _resolve_within(root.resolve(), manifest.source.root)
-    git_info, git_errors = _inspect_source_git(source_root, manifest.source.base_commit)
-    if git_errors:
-        return {"status": "invalid", "path": str(manifest_path), "errors": git_errors}
-
+    manifest = loaded.manifest
     return {
         "status": "ready",
-        "path": str(manifest_path),
+        "path": str(loaded.manifest_path),
         "name": manifest.name,
-        "source_root": str(source_root),
+        "source_root": str(loaded.source_root),
         "base_commit": manifest.source.base_commit,
-        "git": git_info,
+        "git": loaded.git,
         "build_profiles": sorted(manifest.build.profiles),
         "boot_method": manifest.boot.method,
         "qemu": manifest.boot.qemu.model_dump(),
         "readiness_patterns": manifest.boot.readiness_patterns,
         "smoke_tests": [test.id for test in manifest.tests if test.kind == "smoke"],
         "test_count": len(manifest.tests),
-        "sha256": hashlib_file(manifest_path),
+        "sha256": hashlib_file(loaded.manifest_path),
     }
+
+
+class TargetManifestError(ValueError):
+    def __init__(self, errors: list[dict[str, Any]]) -> None:
+        super().__init__(json.dumps(errors, default=str))
+        self.errors = errors
+
+
+def load_target_manifest(root: Path) -> LoadedTargetManifest:
+    resolved_root = root.resolve()
+    manifest_path = root / MANIFEST_NAME
+    if not manifest_path.is_file():
+        raise FileNotFoundError(manifest_path)
+    raw = tomllib.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = TargetManifest.model_validate(raw)
+
+    path_errors = _validate_manifest_paths(resolved_root, manifest)
+    if path_errors:
+        raise TargetManifestError(path_errors)
+
+    source_root = _resolve_within(resolved_root, manifest.source.root)
+    git_info, git_errors = _inspect_source_git(source_root, manifest.source.base_commit)
+    if git_errors:
+        raise TargetManifestError(git_errors)
+    return LoadedTargetManifest(manifest, manifest_path.resolve(), source_root, git_info)
 
 
 def manifest_template_json() -> dict[str, Any]:

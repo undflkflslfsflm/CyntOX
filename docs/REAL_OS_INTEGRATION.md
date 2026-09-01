@@ -15,6 +15,7 @@ The lab now includes a machine-validated manifest front door:
 ```powershell
 .\.venv\Scripts\python.exe -m oslab.cli target manifest-template --json
 .\.venv\Scripts\python.exe -m oslab.cli target validate-manifest --repo C:\path\to\authorized-os --json
+.\.venv\Scripts\python.exe -m oslab.cli build --target real --repo C:\path\to\authorized-os --profile debug --json
 ```
 
 The tracked starter file is `config/oslab-target.example.toml`.
@@ -35,6 +36,10 @@ The validator rejects path traversal, paths escaping the target source root, non
 
 Unsupported profiles must be reported as unsupported. They must not be silently mapped to a weaker profile.
 
+## Manifest-Backed Build Execution
+
+When `oslab build --target real --repo ...` is used, the lab validates `oslab-target.toml`, creates a detached disposable Git worktree at `source.base_commit`, runs only the selected profile's declared argv-vector commands, passes only the selected profile's `env_allowlist`, and stores declared build artifacts in the content-addressed artifact store. The original target checkout is not used as the build directory.
+
 ## Safety Requirements
 
 - Guest networking remains `none` unless a separate isolated virtual network is explicitly configured.
@@ -45,4 +50,4 @@ Unsupported profiles must be reported as unsupported. They must not be silently 
 
 ## Unlocking Gate L
 
-Gate L can pass only after the real target is present and the lab has actually built it, cold-booted it through the target adapter, and run at least one smoke test without modifying normal production build behavior.
+Gate L can pass only after the real target is present and the lab has actually built it from a disposable manifest worktree, cold-booted it through the target adapter, and run at least one smoke test without modifying normal production build behavior.

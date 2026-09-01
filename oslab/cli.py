@@ -22,9 +22,15 @@ from oslab.doctor import collect_report, write_report
 from oslab.eval import AgenticFixLoop, EvaluationHarness
 from oslab.fuzz import replay_fixture_input, run_fixture_fuzz
 from oslab.model import OllamaProvider, QwenCodeWorker
+from oslab.process_runner import SafeProcessRunner
 from oslab.qemu import DockerQemuBackend
 from oslab.schemas import Outcome, TrajectoryEvent
-from oslab.targets import inspect_target_manifest, inspect_targets, manifest_template_json
+from oslab.targets import (
+    inspect_target_manifest,
+    inspect_targets,
+    manifest_template_json,
+    run_manifest_build,
+)
 from oslab.training import export_trajectories
 
 app = typer.Typer(no_args_is_help=True, help="Qwen OS Lab safety-bounded reliability supervisor")
@@ -94,12 +100,43 @@ def doctor(
 def build(
     target: Annotated[str, typer.Option(help="Allowlisted target name")] = "fixture",
     profile: Annotated[str, typer.Option(help="Declarative build profile")] = "debug",
+    repo: Annotated[
+        Path | None, typer.Option(help="Explicit authorized OS source path for real target")
+    ] = None,
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
-    if target != "fixture" or profile not in {"debug", "release"}:
+    config = load_config()
+    if target != "fixture":
+        if repo is None:
+            typer.echo("real target builds require --repo <AUTHORIZED_OS_SOURCE_PATH>", err=True)
+            raise typer.Exit(2)
+        try:
+            result = asyncio.run(
+                run_manifest_build(
+                    repo.resolve(),
+                    profile,
+                    SafeProcessRunner(),
+                    ArtifactStore(config.artifacts_root),
+                    worktrees_root=config.runtime_root / "worktrees",
+                    timeout=config.budget.wall_seconds,
+                )
+            )
+        except Exception as exc:
+            typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
+            raise typer.Exit(2) from exc
+        if target not in {"real", result["target"]}:
+            typer.echo(
+                f"target {target!r} does not match manifest target {result['target']!r}",
+                err=True,
+            )
+            raise typer.Exit(2)
+        _emit(result, json_output)
+        if not result["ok"]:
+            raise typer.Exit(1)
+        return
+    if profile not in {"debug", "release"}:
         typer.echo("unsupported target/profile; available: fixture debug|release", err=True)
         raise typer.Exit(2)
-    config = load_config()
     backend = DockerQemuBackend(config.project_root, ArtifactStore(config.artifacts_root))
     result = asyncio.run(backend.build_fixture())
     _emit({"target": target, "profile": profile, **result}, json_output)

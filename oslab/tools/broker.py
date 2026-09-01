@@ -25,7 +25,7 @@ from oslab.policy import PathPolicy, PolicyDenied, detect_evaluator_exploit
 from oslab.process_runner import SafeProcessRunner
 from oslab.qemu import DockerQemuBackend, FixtureResult
 from oslab.schemas import ClassifiedError, ErrorKind, Outcome, ResultEnvelope, utc_now
-from oslab.targets import inspect_targets
+from oslab.targets import inspect_targets, list_manifest_build_profiles, run_manifest_build
 
 REQUIRED_TOOLS = frozenset(
     {
@@ -109,6 +109,12 @@ class ToolContext:
 
 
 Handler = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
+
+
+class BuildRunFailed(RuntimeError):
+    def __init__(self, result: dict[str, Any]) -> None:
+        super().__init__("build failed")
+        self.result = result
 
 
 class CapabilityBroker:
@@ -226,6 +232,15 @@ class CapabilityBroker:
                 str(exc),
                 {"rule": exc.rule, "denial_id": denial_id},
             )
+        except BuildRunFailed as exc:
+            return self._error(
+                tool,
+                started,
+                Outcome.BUILD_ERROR,
+                ErrorKind.BUILD,
+                "build failed",
+                exc.result,
+            )
         except (FileNotFoundError, ValueError, OSError) as exc:
             return self._error(
                 tool,
@@ -303,6 +318,19 @@ class CapabilityBroker:
             )
         return target
 
+    def _manifest_target_root(self, arguments: dict[str, Any]) -> tuple[str, Path]:
+        target = str(arguments.get("target", "fixture"))
+        if target == "fixture":
+            raise ValueError("manifest target helper requires a non-fixture target")
+        raw_root = arguments.get("repo", arguments.get("root"))
+        if not isinstance(raw_root, str) or not raw_root:
+            raise ValueError("real target requires repo/root")
+        return target, self._authorized_root(raw_root)
+
+    @staticmethod
+    def _target_matches_manifest(requested: str, actual: str) -> bool:
+        return requested in {"real", actual}
+
     def _fixture_mode(self, arguments: dict[str, Any], default: str = "pass") -> str:
         mode = str(arguments.get("test_id", arguments.get("mode", default)))
         if mode not in {"pass", "fail", "crash", "hang", "snapshot", "seeded", "infra"}:
@@ -338,6 +366,13 @@ class CapabilityBroker:
         timeout = float(arguments.get(key, default))
         if timeout <= 0 or timeout > 60:
             raise ValueError(f"{key} must be between 0 and 60 seconds")
+        return timeout
+
+    def _bounded_build_timeout(self, arguments: dict[str, Any], key: str, default: float) -> float:
+        timeout = float(arguments.get(key, default))
+        maximum = min(self.context.config.budget.wall_seconds, 3600.0)
+        if timeout <= 0 or timeout > maximum:
+            raise ValueError(f"{key} must be between 0 and {maximum:g} seconds")
         return timeout
 
     async def _repo_status(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -515,7 +550,22 @@ class CapabilityBroker:
         return result
 
     async def _build_list_profiles(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        self._fixture_target(arguments)
+        target = str(arguments.get("target", "fixture"))
+        if target != "fixture":
+            requested, root = self._manifest_target_root(arguments)
+            summary = await list_manifest_build_profiles(root)
+            if not self._target_matches_manifest(requested, str(summary["target"])):
+                raise ValueError(
+                    f"target {requested!r} does not match manifest target {summary['target']!r}"
+                )
+            return {
+                "targets": inspect_targets(self.context.config, root),
+                "profiles": summary["profiles"],
+                "target": summary["target"],
+                "source_root": summary["source_root"],
+                "base_commit": summary["base_commit"],
+                "git": summary["git"],
+            }
         targets = inspect_targets(self.context.config)
         return {
             "targets": targets,
@@ -538,7 +588,25 @@ class CapabilityBroker:
         }
 
     async def _build_run(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        self._fixture_target(arguments)
+        target = str(arguments.get("target", "fixture"))
+        if target != "fixture":
+            requested, root = self._manifest_target_root(arguments)
+            profile = str(arguments.get("profile", "debug"))
+            result = await run_manifest_build(
+                root,
+                profile,
+                self.context.runner,
+                self.context.artifacts,
+                worktrees_root=self.worktrees_root,
+                timeout=self._bounded_build_timeout(arguments, "timeout", 300),
+            )
+            if not self._target_matches_manifest(requested, str(result["target"])):
+                raise ValueError(
+                    f"target {requested!r} does not match manifest target {result['target']!r}"
+                )
+            if not result["ok"]:
+                raise BuildRunFailed(result)
+            return result
         profile = str(arguments.get("profile", "debug"))
         if profile not in {"debug", "release"}:
             raise ValueError("fixture build profile must be debug or release")

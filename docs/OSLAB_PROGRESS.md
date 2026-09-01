@@ -44,6 +44,7 @@
 | 2026-09-01 | Clean checkout source binding | Pass | `acceptance audit` now verifies that `source_commit_full` exists, the recorded clean checkout resolves inside the project, the clean checkout `HEAD` equals the verified source commit, and the clean checkout has no uncommitted drift. Regression tests reject wrong-commit and dirty clean checkouts. |
 | 2026-09-01 | Audit artifact freshness for clean checkout binding | Pass | The recorded acceptance-audit artifact must itself contain `clean_checkout_matches_verified_source=PASS`. Regression tests reject saved audit blobs that predate the clean-checkout source-binding contract. |
 | 2026-09-01 | Real target base-commit binding | Pass | `target validate-manifest` now requires `source.root` to be the target Git repository root and verifies that `source.base_commit` resolves to an actual commit there. Regression tests reject unknown commits and target directories that inherit an unrelated parent repository. |
+| 2026-09-01 | Manifest-backed real-target builds | Pass | `oslab build --target real --repo ...` and broker `build.run` can now validate a real-target manifest, create a detached disposable Git worktree at `source.base_commit`, run the selected allowlisted argv-vector build profile with exact env allowlist, hash declared artifacts, and classify missing artifacts as build errors. Regression tests use a local throwaway Git OS candidate. |
 
 ## Remaining acceptance work
 

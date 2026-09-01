@@ -20,7 +20,7 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
 - `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `65aaf77`, including `uv lock --check`, frozen/offline `pnpm install`, and `ruff format --check .`.
 - `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, semantic artifact contents, key evidence CAS artifacts, artifact-index hashes, real selftest proof artifacts, clean-checkout source commit, live Ollama/Qwen Code stdout, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. The recorded audit-artifact check rejects stale or inconsistent audit blobs, and the key-evidence check rejects missing/corrupt/semantically invalid decisive artifacts. Saved audit artifact: `054173c7cc4d514eb2eb651a3ea3a61648aa31458f60f75ba39665c2693f8aca`.
-- Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, and a `target validate-manifest` command. The validator rejects path traversal, source-root escapes, missing smoke tests, non-isolated QEMU networking, branch-like or unresolved base commits, inherited parent Git repositories, and shell-eval command wrappers before any real target build is attempted.
+- Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, a `target validate-manifest` command, and manifest-backed real-target build execution. The validator rejects path traversal, source-root escapes, missing smoke tests, non-isolated QEMU networking, branch-like or unresolved base commits, inherited parent Git repositories, and shell-eval command wrappers before any real target build is attempted. Manifest-backed builds run from detached disposable Git worktrees at `source.base_commit`, pass only the declared environment allowlist, and hash declared build artifacts.
 
 ## Tested but Limited
 
@@ -46,9 +46,10 @@ Gate L requires the real OS target. The smallest unlocking input is:
 
 ```powershell
 .\.venv\Scripts\python.exe -m oslab.cli target inspect --repo C:\path\to\authorized-os --json
+.\.venv\Scripts\python.exe -m oslab.cli build --target real --repo C:\path\to\authorized-os --profile debug --json
 ```
 
-The path must point to the authorized OS source and its existing build entry point. The lab must then build, cold-boot, and smoke-test that target through a declarative target manifest.
+The path must point to the authorized OS source and its existing build entry point. The lab must then build from the declarative manifest, cold-boot, and smoke-test that target.
 
 ## Final Verification
 

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -14,6 +16,7 @@ from oslab.database import LabDatabase
 from oslab.memory import MemoryIndex
 from oslab.process_runner import SafeProcessRunner
 from oslab.schemas import Outcome
+from oslab.targets import manifest_template_json
 from oslab.tools import CapabilityBroker, ToolContext
 from oslab.tools.broker import REQUIRED_TOOLS
 
@@ -25,6 +28,44 @@ def _git(root: Path, *args: str) -> str:
         [git, *args], cwd=root, capture_output=True, text=True, check=True
     )
     return result.stdout.strip()
+
+
+def _buildable_manifest_repo(root: Path) -> tuple[Path, str]:
+    root.mkdir()
+    (root / "Makefile").write_text("all:\n\t@echo build\n", encoding="utf-8")
+    (root / "kernel").mkdir()
+    (root / "kernel" / ".keep").write_text("", encoding="utf-8")
+    (root / "boot").mkdir()
+    (root / "boot" / ".keep").write_text("", encoding="utf-8")
+    (root / "scripts").mkdir()
+    (root / "scripts" / "build_target.py").write_text(
+        "\n".join(
+            [
+                "from pathlib import Path",
+                "Path('build').mkdir(exist_ok=True)",
+                "Path('build/kernel.bin').write_bytes(b'kernel')",
+                "print('broker-real-build-ok')",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    _git(root, "init")
+    _git(root, "config", "user.email", "test@invalid")
+    _git(root, "config", "user.name", "Test")
+    _git(root, "add", ".")
+    _git(root, "commit", "-m", "base")
+    commit = _git(root, "rev-parse", "HEAD")
+    template = (
+        manifest_template_json()["content"]
+        .replace("<immutable git commit sha>", commit)
+        .replace(
+            'argv = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/build.ps1", "-Configuration", "Debug"]',
+            f'argv = [{json.dumps(sys.executable)}, "scripts/build_target.py"]',
+        )
+    )
+    (root / "oslab-target.toml").write_text(template, encoding="utf-8")
+    return root, commit
 
 
 @pytest.fixture
@@ -166,3 +207,75 @@ def test_lightweight_broker_tools_are_functional(
     assert memory.data["hits"][0]["source"] == "value.txt:1"
     assert prior.data["hypotheses"][0]["entity_type"] == "hypothesis"
     assert '"type":"match"' in symbol.data["matches_jsonl"]
+
+
+def test_broker_runs_manifest_backed_real_target_build(tmp_path: Path) -> None:
+    repo, commit = _buildable_manifest_repo(tmp_path / "real-target")
+    config = default_config(repo)
+    config.runtime_root = tmp_path / "runtime"
+    config.artifacts_root = tmp_path / "artifacts"
+    config.allowed_roots = [repo, config.runtime_root]
+    context = ToolContext(
+        config,
+        LabDatabase(config.runtime_root / "lab.sqlite3"),
+        ArtifactStore(config.artifacts_root),
+        SafeProcessRunner(),
+        "run-real-build",
+        100,
+    )
+    broker = CapabilityBroker(context)
+
+    profiles = asyncio.run(
+        broker.invoke("build.list_profiles", {"target": "real", "repo": str(repo)})
+    )
+    built = asyncio.run(
+        broker.invoke(
+            "build.run",
+            {"target": "real", "repo": str(repo), "profile": "debug", "timeout": 30},
+        )
+    )
+
+    assert profiles.status == Outcome.PASS
+    assert profiles.data["target"] == "authorized-os"
+    assert built.status == Outcome.PASS
+    assert built.data["ok"] is True
+    assert built.data["worktree_head"] == commit
+    assert Path(built.data["build_worktree"]).is_dir()
+    assert not (repo / "build").exists()
+
+
+def test_broker_classifies_manifest_build_failures(tmp_path: Path) -> None:
+    repo, _commit = _buildable_manifest_repo(tmp_path / "real-target")
+    manifest = (
+        (repo / "oslab-target.toml")
+        .read_text(encoding="utf-8")
+        .replace('path = "build/kernel.bin"', 'path = "build/missing.bin"', 1)
+    )
+    (repo / "oslab-target.toml").write_text(manifest, encoding="utf-8")
+    config = default_config(repo)
+    config.runtime_root = tmp_path / "runtime"
+    config.artifacts_root = tmp_path / "artifacts"
+    config.allowed_roots = [repo, config.runtime_root]
+    context = ToolContext(
+        config,
+        LabDatabase(config.runtime_root / "lab.sqlite3"),
+        ArtifactStore(config.artifacts_root),
+        SafeProcessRunner(),
+        "run-real-build-failure",
+        100,
+    )
+    broker = CapabilityBroker(context)
+
+    built = asyncio.run(
+        broker.invoke(
+            "build.run",
+            {"target": "real", "repo": str(repo), "profile": "debug", "timeout": 30},
+        )
+    )
+
+    assert built.status == Outcome.BUILD_ERROR
+    assert built.error is not None
+    assert built.error.kind == "build"
+    assert built.error.details["missing_artifacts"] == [
+        {"path": "build/missing.bin", "kind": "kernel"}
+    ]
