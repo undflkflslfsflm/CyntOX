@@ -1,11 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-01T01:35:00Z",
+  "generated_at": "2026-09-01T01:36:58Z",
   "goal_status": "blocked_on_gate_l",
-  "source_commit_full": "62a262cdfa754dc77479a9b5d7e4adb9a4cfaf73",
-  "acceptance_audit_artifact_sha256": "e84659c271403b79cd1bbed9de884b1b6d62e58c73fd595d09559b81d305e80a",
-  "main_selftest_proof_sha256": "eb92b290866fde96ce6528778596ee23c59ef4d971f34209bed54dfc0efa261b",
-  "clean_selftest_proof_sha256": "fa57af57e2685038aeb6982301ca54e7e714c03f17dd454d9bb25756f1266f33",
+  "source_commit_full": "66fc905f7cdc414cbe176cf409e11c7f4f5db495",
+  "main_selftest_proof_sha256": "222abfd5ced50d1173ac15edc8df3bbb5c0491e5b823668e7be9794365845c69",
+  "clean_selftest_proof_sha256": "a30310e2dbb8c4f53077d962ead4b0ea68b81f1ed893ae0e00746396db2476fd",
   "trace": [
     {
       "gate": "A",
@@ -24,8 +23,7 @@
       "requirement": "Mandatory quality checks pass from the verified source and clean checkout.",
       "evidence": [
         "PROOF.json verified_commands for ruff format, ruff check, mypy, pytest, uv lock, pnpm frozen offline install",
-        "main selftest proof eb92b290866fde96ce6528778596ee23c59ef4d971f34209bed54dfc0efa261b",
-        "clean selftest proof fa57af57e2685038aeb6982301ca54e7e714c03f17dd454d9bb25756f1266f33",
+        "main and clean selftest proof artifacts",
         "acceptance checks proof_records_required_commands and clean_checkout_matches_verified_source"
       ]
     },
@@ -34,7 +32,7 @@
       "status": "PASS",
       "requirement": "A real local Qwen call validates structured output and records model/runtime/settings.",
       "evidence": [
-        "PROOF.json model identity for Ollama huihui-qwen3.8-27b-abliterated:latest",
+        "PROOF.json model identity",
         "main and clean selftest live model probe stdout",
         "acceptance checks proof_records_live_model_identity and selftest_live_outputs_match_proof"
       ]
@@ -44,7 +42,7 @@
       "status": "PASS",
       "requirement": "Qwen Code is detected/configured and constrained headless smoke evidence is recorded.",
       "evidence": [
-        "PROOF.json qwen_code wrapper_model qwen-os-lab-worker:latest",
+        "PROOF.json qwen_code wrapper model and tool surface",
         "main and clean selftest qwen-code-smoke stdout",
         "acceptance checks proof_records_constrained_qwen_code_smoke and selftest_live_outputs_match_proof"
       ]

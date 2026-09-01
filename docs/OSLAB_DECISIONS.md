@@ -219,5 +219,5 @@
 - Status: accepted
 - Date: 2026-09-01
 - Context: the proof bundle already records the final gate summary and acceptance audit, but a reviewer still has to mentally connect each acceptance gate to the decisive artifact or command.
-- Decision: add `artifacts/reports/requirements-trace.json` as a machine-readable trace from Gates A-O to concrete evidence, keeping Gate L explicitly blocked rather than treating framework readiness as real-target proof.
-- Consequence: the handoff is easier to audit without weakening the completion contract; the next required action remains supplying the authorized real OS source path and build entry point.
+- Decision: add `artifacts/reports/requirements-trace.json`, `oslab acceptance trace --json`/`--write`, and a top-level acceptance check that validates gate coverage, statuses, source commit, selftest hashes, Gate L minimal input, and the authorized-target resume command.
+- Consequence: the handoff is easier to audit without weakening the completion contract; the trace is regenerated during selftest and checked during acceptance, and the next required action remains supplying the authorized real OS source path and build entry point.
