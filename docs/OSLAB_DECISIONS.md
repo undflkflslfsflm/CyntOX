@@ -149,3 +149,11 @@
 - Context: a saved acceptance-audit blob can contain all required PASS checks while still embedding an obsolete or inconsistent gate summary.
 - Decision: require the recorded audit artifact's gate summary and Gate L blocker to exactly match `PROOF.json`.
 - Consequence: final acceptance fails if the machine proof and saved audit artifact disagree about any gate status or the minimal external input needed for Gate L.
+
+## D-020 — Bind clean-checkout selftest evidence to the verified source commit
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: a clean selftest artifact is only strong evidence if the clean checkout was actually created from the same commit named by `PROOF.json`.
+- Decision: have `acceptance audit` verify `source_commit_full` exists, resolve the recorded clean-checkout path, compare its Git `HEAD` to the verified commit, and reject dirty clean checkouts.
+- Consequence: final acceptance fails if the clean proof came from a stale checkout, a wrong commit, an outside path, or a worktree with post-verification drift.
