@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import hashlib
 import os
 import shutil
+import socket
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from oslab.artifacts import ArtifactStore
+from oslab.policy import validate_qemu_network
 from oslab.process_runner import ProcessResult, SafeProcessRunner
+from oslab.qemu.backend import IMAGE, DockerQemuBackend
+from oslab.qemu.qmp import QmpClient, QmpError
+from oslab.schemas import Outcome, utc_now
 from oslab.targets.manifest import LoadedTargetManifest, load_target_manifest
 
 
@@ -121,6 +129,235 @@ async def run_manifest_build(
     }
 
 
+def plan_manifest_qemu_args(loaded: LoadedTargetManifest, build_root: Path) -> list[str]:
+    boot = loaded.manifest.boot
+    if boot.qemu.accelerator not in {"auto", "tcg"}:
+        raise ValueError("Docker-backed manifest QEMU smoke supports accelerator auto/tcg")
+    machine = boot.qemu.machine
+    if "accel=" in machine.lower():
+        raise ValueError("QEMU accelerator must be declared with boot.qemu.accelerator")
+    args = [
+        "qemu-system-x86_64",
+        "-machine",
+        f"{machine},accel=tcg",
+        "-cpu",
+        boot.qemu.cpu,
+        "-m",
+        f"{boot.qemu.memory_mb}M",
+        "-display",
+        "none",
+        "-monitor",
+        "none",
+        "-serial",
+        "stdio",
+        "-no-reboot",
+        "-no-shutdown",
+        "-snapshot",
+        "-nic",
+        "none",
+    ]
+    bootable = False
+    initrd: str | None = None
+    for artifact in boot.artifacts:
+        path = _resolve_within(build_root, artifact.path)
+        if not path.is_file():
+            raise FileNotFoundError(path)
+        container_path = _container_path(artifact.path)
+        if artifact.kind == "kernel":
+            args.extend(["-kernel", container_path])
+            bootable = True
+        elif artifact.kind == "initrd":
+            initrd = container_path
+        elif artifact.kind == "disk":
+            args.extend(
+                ["-drive", f"file={container_path},format={_qemu_image_format(path)},if=ide"]
+            )
+            bootable = True
+        elif artifact.kind == "iso":
+            args.extend(["-cdrom", container_path, "-boot", "d"])
+            bootable = True
+        elif artifact.kind == "firmware":
+            args.extend(["-bios", container_path])
+    if initrd is not None:
+        args.extend(["-initrd", initrd])
+    for device in boot.qemu.devices:
+        args.extend(["-device", device])
+    if not bootable:
+        raise ValueError("manifest boot artifacts must include a kernel, disk, or iso")
+    validate_qemu_network(args)
+    return args
+
+
+async def run_manifest_smoke(
+    repo: Path,
+    profile_name: str,
+    test_id: str,
+    runner: SafeProcessRunner,
+    artifacts: ArtifactStore,
+    *,
+    worktrees_root: Path,
+    lab_root: Path,
+    timeout: float = 180.0,
+) -> dict[str, Any]:
+    loaded = load_target_manifest(repo)
+    selected = next((test for test in loaded.manifest.tests if test.id == test_id), None)
+    if selected is None:
+        raise ValueError(f"unknown target test: {test_id}")
+    if selected.kind != "smoke" or selected.transport != "serial":
+        raise ValueError("manifest QEMU smoke currently supports serial smoke tests")
+
+    build = await run_manifest_build(
+        repo,
+        profile_name,
+        runner,
+        artifacts,
+        worktrees_root=worktrees_root,
+        timeout=timeout,
+    )
+    if not build["ok"]:
+        return {
+            "target": loaded.manifest.name,
+            "profile": profile_name,
+            "test_id": test_id,
+            "ok": False,
+            "outcome": Outcome.BUILD_ERROR,
+            "build": build,
+        }
+
+    build_worktree = Path(str(build["build_worktree"]))
+    qemu_args = plan_manifest_qemu_args(loaded, build_worktree)
+    result = await _run_manifest_qemu_smoke(
+        loaded,
+        qemu_args,
+        build_worktree,
+        selected.input,
+        selected.success_patterns,
+        artifacts,
+        lab_root.resolve(),
+        timeout=min(timeout, 120.0),
+    )
+    return {
+        "target": loaded.manifest.name,
+        "profile": profile_name,
+        "test_id": test_id,
+        "build": build,
+        **result,
+    }
+
+
+async def _run_manifest_qemu_smoke(
+    loaded: LoadedTargetManifest,
+    qemu_args: list[str],
+    build_worktree: Path,
+    serial_input: str,
+    success_patterns: list[str],
+    artifacts: ArtifactStore,
+    lab_root: Path,
+    timeout: float,
+) -> dict[str, Any]:
+    await DockerQemuBackend(lab_root, artifacts).ensure_toolchain()
+    docker = shutil.which("docker")
+    if docker is None:
+        raise FileNotFoundError("docker")
+    port = _free_port()
+    run_id = str(uuid4())
+    container_name = f"oslab-real-{run_id[:8]}-{uuid4().hex[:6]}"
+    qmp_args = [*qemu_args, "-qmp", "tcp:0.0.0.0:4444,server=on,wait=off"]
+    validate_qemu_network(qmp_args)
+    argv = [
+        docker,
+        "run",
+        "--rm",
+        "-i",
+        "--name",
+        container_name,
+        "--mount",
+        f"type=bind,source={build_worktree},target=/target",
+        "--publish",
+        f"127.0.0.1:{port}:4444",
+        IMAGE,
+        *qmp_args,
+    ]
+    started = utc_now()
+    serial = bytearray()
+    stderr = bytearray()
+    qmp: QmpClient | None = None
+    process = await asyncio.create_subprocess_exec(
+        *argv,
+        cwd=lab_root,
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+        creationflags=0x00000200 if os.name == "nt" else 0,
+        start_new_session=os.name != "nt",
+    )
+    serial_task = asyncio.create_task(_drain(process.stdout, serial))
+    stderr_task = asyncio.create_task(_drain(process.stderr, stderr))
+    outcome = Outcome.INFRA_ERROR
+    ok = False
+    phase = "boot"
+    try:
+        qmp = QmpClient("127.0.0.1", port)
+        await qmp.connect(min(timeout, 15.0))
+        for pattern in loaded.manifest.boot.readiness_patterns:
+            await _wait_for_serial(serial, process, pattern, min(timeout, 30.0))
+        phase = "test"
+        if serial_input and process.stdin is not None:
+            process.stdin.write(serial_input.encode())
+            await process.stdin.drain()
+        for pattern in success_patterns:
+            await _wait_for_serial(serial, process, pattern, min(timeout, 30.0))
+        ok = True
+        outcome = Outcome.PASS
+    except TimeoutError as exc:
+        outcome = Outcome.HANG if phase == "test" else Outcome.BOOT_ERROR
+        stderr.extend(f"\n{type(exc).__name__}: {exc}\n".encode())
+    except (OSError, QmpError, ValueError) as exc:
+        outcome = Outcome.INFRA_ERROR
+        stderr.extend(f"\n{type(exc).__name__}: {exc}\n".encode())
+    finally:
+        if qmp is not None:
+            with contextlib.suppress(QmpError, TimeoutError, OSError):
+                await qmp.execute("quit", timeout=3)
+            with contextlib.suppress(QmpError, OSError):
+                await qmp.close()
+        try:
+            await asyncio.wait_for(process.wait(), 5)
+        except TimeoutError:
+            await _kill_docker_container(docker, container_name)
+            process.kill()
+            await process.wait()
+        await serial_task
+        await stderr_task
+
+    ended = utc_now()
+    serial_text = serial.decode("utf-8", errors="replace")
+    stderr_text = stderr.decode("utf-8", errors="replace")
+    serial_record = artifacts.put_bytes(
+        serial_text.encode(), f"manifest-qemu-{run_id}-serial.log", "text/plain"
+    )
+    stderr_record = artifacts.put_bytes(
+        stderr_text.encode(), f"manifest-qemu-{run_id}-stderr.log", "text/plain"
+    )
+    qemu_argv_hash = hashlib.sha256(" ".join(qemu_args).encode()).hexdigest()
+    return {
+        "ok": ok,
+        "outcome": outcome,
+        "run_id": run_id,
+        "started_at": started.isoformat(),
+        "ended_at": ended.isoformat(),
+        "duration_ms": int((ended - started).total_seconds() * 1000),
+        "build_worktree": str(build_worktree),
+        "qemu_argv_hash": qemu_argv_hash,
+        "network": "none",
+        "readiness_patterns": loaded.manifest.boot.readiness_patterns,
+        "success_patterns": success_patterns,
+        "serial_excerpt": serial_text[-4000:],
+        "stderr_excerpt": stderr_text[-4000:],
+        "artifacts": {"serial": serial_record.sha256, "stderr": stderr_record.sha256},
+    }
+
+
 async def _create_build_worktree(
     loaded: LoadedTargetManifest, runner: SafeProcessRunner, worktrees_root: Path
 ) -> Path:
@@ -159,6 +396,56 @@ async def _git(runner: SafeProcessRunner, cwd: Path, *args: str, timeout: float)
     if result.returncode != 0:
         raise OSError(result.stderr or result.stdout)
     return result
+
+
+async def _wait_for_serial(
+    serial: bytearray, process: asyncio.subprocess.Process, pattern: str, timeout: float
+) -> None:
+    deadline = asyncio.get_running_loop().time() + timeout
+    while asyncio.get_running_loop().time() < deadline:
+        if pattern in serial.decode("utf-8", errors="replace"):
+            return
+        if process.returncode is not None:
+            raise OSError(f"QEMU exited before serial pattern {pattern!r}")
+        await asyncio.sleep(0.02)
+    raise TimeoutError(f"serial pattern not observed: {pattern}")
+
+
+async def _drain(stream: asyncio.StreamReader | None, target: bytearray) -> None:
+    if stream is None:
+        return
+    while True:
+        chunk = await stream.read(4096)
+        if not chunk:
+            return
+        target.extend(chunk)
+        if len(target) > 2_000_000:
+            del target[0 : len(target) - 2_000_000]
+
+
+async def _kill_docker_container(docker: str, name: str) -> None:
+    process = await asyncio.create_subprocess_exec(
+        docker,
+        "kill",
+        name,
+        stdout=asyncio.subprocess.DEVNULL,
+        stderr=asyncio.subprocess.DEVNULL,
+    )
+    await process.wait()
+
+
+def _container_path(relative_path: str) -> str:
+    return "/target/" + relative_path.replace("\\", "/")
+
+
+def _qemu_image_format(path: Path) -> str:
+    return "qcow2" if path.suffix.lower() == ".qcow2" else "raw"
+
+
+def _free_port() -> int:
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return int(probe.getsockname()[1])
 
 
 def _resolve_within(root: Path, value: str) -> Path:

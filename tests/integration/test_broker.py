@@ -279,3 +279,55 @@ def test_broker_classifies_manifest_build_failures(tmp_path: Path) -> None:
     assert built.error.details["missing_artifacts"] == [
         {"path": "build/missing.bin", "kind": "kernel"}
     ]
+
+
+def test_broker_routes_manifest_backed_real_target_smoke(
+    source_repo: tuple[Path, str], tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source, _commit = source_repo
+    config = default_config(source)
+    config.runtime_root = tmp_path / "runtime"
+    config.artifacts_root = tmp_path / "artifacts"
+    config.allowed_roots = [source, config.runtime_root]
+    context = ToolContext(
+        config,
+        LabDatabase(config.runtime_root / "lab.sqlite3"),
+        ArtifactStore(config.artifacts_root),
+        SafeProcessRunner(),
+        "run-real-smoke",
+        100,
+    )
+    broker = CapabilityBroker(context)
+
+    async def fake_smoke(
+        repo: Path,
+        profile_name: str,
+        test_id: str,
+        runner: SafeProcessRunner,
+        artifacts: ArtifactStore,
+        *,
+        worktrees_root: Path,
+        lab_root: Path,
+        timeout: float,
+    ) -> dict[str, object]:
+        assert repo == source.resolve()
+        assert profile_name == "debug"
+        assert test_id == "smoke"
+        assert isinstance(runner, SafeProcessRunner)
+        assert isinstance(artifacts, ArtifactStore)
+        assert worktrees_root == config.runtime_root / "worktrees"
+        assert lab_root == config.project_root
+        assert timeout == 30
+        return {"target": "authorized-os", "ok": True, "outcome": Outcome.PASS}
+
+    monkeypatch.setattr("oslab.tools.broker.run_manifest_smoke", fake_smoke)
+
+    result = asyncio.run(
+        broker.invoke(
+            "test.run",
+            {"target": "real", "repo": str(source), "test_id": "smoke", "timeout": 30},
+        )
+    )
+
+    assert result.status == Outcome.PASS
+    assert result.data["target"] == "authorized-os"

@@ -30,6 +30,7 @@ from oslab.targets import (
     inspect_targets,
     manifest_template_json,
     run_manifest_build,
+    run_manifest_smoke,
 )
 from oslab.training import export_trajectories
 
@@ -111,7 +112,7 @@ def build(
             typer.echo("real target builds require --repo <AUTHORIZED_OS_SOURCE_PATH>", err=True)
             raise typer.Exit(2)
         try:
-            result = asyncio.run(
+            manifest_result = asyncio.run(
                 run_manifest_build(
                     repo.resolve(),
                     profile,
@@ -124,38 +125,69 @@ def build(
         except Exception as exc:
             typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
             raise typer.Exit(2) from exc
-        if target not in {"real", result["target"]}:
+        if target not in {"real", manifest_result["target"]}:
             typer.echo(
-                f"target {target!r} does not match manifest target {result['target']!r}",
+                f"target {target!r} does not match manifest target {manifest_result['target']!r}",
                 err=True,
             )
             raise typer.Exit(2)
-        _emit(result, json_output)
-        if not result["ok"]:
+        _emit(manifest_result, json_output)
+        if not manifest_result["ok"]:
             raise typer.Exit(1)
         return
     if profile not in {"debug", "release"}:
         typer.echo("unsupported target/profile; available: fixture debug|release", err=True)
         raise typer.Exit(2)
     backend = DockerQemuBackend(config.project_root, ArtifactStore(config.artifacts_root))
-    result = asyncio.run(backend.build_fixture())
-    _emit({"target": target, "profile": profile, **result}, json_output)
+    fixture_build = asyncio.run(backend.build_fixture())
+    _emit({"target": target, "profile": profile, **fixture_build}, json_output)
 
 
 @app.command()
 def boot(
     target: Annotated[str, typer.Option(help="Allowlisted target name")] = "fixture",
     seed: Annotated[int, typer.Option()] = 1,
+    repo: Annotated[
+        Path | None, typer.Option(help="Explicit authorized OS source path for real target")
+    ] = None,
+    profile: Annotated[str, typer.Option(help="Declarative build profile")] = "debug",
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
-    if target != "fixture":
-        typer.echo("only the discovered fixture target is available", err=True)
-        raise typer.Exit(2)
     config = load_config()
+    if target != "fixture":
+        if repo is None:
+            typer.echo("real target boot requires --repo <AUTHORIZED_OS_SOURCE_PATH>", err=True)
+            raise typer.Exit(2)
+        try:
+            manifest_result = asyncio.run(
+                run_manifest_smoke(
+                    repo.resolve(),
+                    profile,
+                    "smoke",
+                    SafeProcessRunner(),
+                    ArtifactStore(config.artifacts_root),
+                    worktrees_root=config.runtime_root / "worktrees",
+                    lab_root=config.project_root,
+                    timeout=config.budget.wall_seconds,
+                )
+            )
+        except Exception as exc:
+            typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
+            raise typer.Exit(2) from exc
+        if target not in {"real", manifest_result["target"]}:
+            typer.echo(
+                f"target {target!r} does not match manifest target {manifest_result['target']!r}",
+                err=True,
+            )
+            raise typer.Exit(2)
+        _emit(manifest_result, json_output)
+        if not manifest_result["ok"]:
+            raise typer.Exit(1)
+        return
     backend = DockerQemuBackend(config.project_root, ArtifactStore(config.artifacts_root))
-    result = asyncio.run(backend.exercise("pass", seed=seed))
-    _emit(result.__dict__, json_output)
-    if result.outcome.value != "PASS":
+    fixture_result = asyncio.run(backend.exercise("pass", seed=seed))
+    _emit(fixture_result.__dict__, json_output)
+    if fixture_result.outcome.value != "PASS":
         raise typer.Exit(1)
 
 
@@ -166,9 +198,44 @@ def run_test(
         str, typer.Option("--test", help="pass|fail|crash|hang|snapshot|seeded")
     ] = "pass",
     seed: Annotated[int, typer.Option()] = 1,
+    repo: Annotated[
+        Path | None, typer.Option(help="Explicit authorized OS source path for real target")
+    ] = None,
+    profile: Annotated[str, typer.Option(help="Declarative build profile")] = "debug",
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
-    if target != "fixture" or test_id not in {
+    config = load_config()
+    if target != "fixture":
+        if repo is None:
+            typer.echo("real target tests require --repo <AUTHORIZED_OS_SOURCE_PATH>", err=True)
+            raise typer.Exit(2)
+        try:
+            manifest_result = asyncio.run(
+                run_manifest_smoke(
+                    repo.resolve(),
+                    profile,
+                    test_id,
+                    SafeProcessRunner(),
+                    ArtifactStore(config.artifacts_root),
+                    worktrees_root=config.runtime_root / "worktrees",
+                    lab_root=config.project_root,
+                    timeout=config.budget.wall_seconds,
+                )
+            )
+        except Exception as exc:
+            typer.echo(json.dumps({"error": type(exc).__name__, "message": str(exc)}), err=True)
+            raise typer.Exit(2) from exc
+        if target not in {"real", manifest_result["target"]}:
+            typer.echo(
+                f"target {target!r} does not match manifest target {manifest_result['target']!r}",
+                err=True,
+            )
+            raise typer.Exit(2)
+        _emit(manifest_result, json_output)
+        if not manifest_result["ok"]:
+            raise typer.Exit(1)
+        return
+    if test_id not in {
         "pass",
         "fail",
         "crash",
@@ -178,10 +245,9 @@ def run_test(
     }:
         typer.echo("unsupported fixture test", err=True)
         raise typer.Exit(2)
-    config = load_config()
     backend = DockerQemuBackend(config.project_root, ArtifactStore(config.artifacts_root))
-    result = asyncio.run(backend.exercise(test_id, seed=seed))
-    _emit(result.__dict__, json_output)
+    fixture_result = asyncio.run(backend.exercise(test_id, seed=seed))
+    _emit(fixture_result.__dict__, json_output)
     expected = {
         "pass": "PASS",
         "fail": "FAIL",
@@ -190,7 +256,7 @@ def run_test(
         "snapshot": "PASS",
         "seeded": "FAIL",
     }[test_id]
-    if result.outcome.value != expected:
+    if fixture_result.outcome.value != expected:
         raise typer.Exit(1)
 
 

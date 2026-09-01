@@ -16,6 +16,7 @@ The lab now includes a machine-validated manifest front door:
 .\.venv\Scripts\python.exe -m oslab.cli target manifest-template --json
 .\.venv\Scripts\python.exe -m oslab.cli target validate-manifest --repo C:\path\to\authorized-os --json
 .\.venv\Scripts\python.exe -m oslab.cli build --target real --repo C:\path\to\authorized-os --profile debug --json
+.\.venv\Scripts\python.exe -m oslab.cli boot --target real --repo C:\path\to\authorized-os --profile debug --json
 ```
 
 The tracked starter file is `config/oslab-target.example.toml`.
@@ -29,16 +30,18 @@ Create `oslab-target.toml` in the real OS root once the source is present. The v
 - at least one named build profile with argv-vector commands, cwd, environment allowlist, and artifacts
 - QEMU boot metadata with `network = "none"`
 - at least one boot artifact and one readiness pattern
-- at least one smoke test
+- at least one smoke test; serial PASS smoke tests must declare exact `success_patterns`
 - optional debugger symbols, sanitizer/coverage labels, and cleanup paths
 
-The validator rejects path traversal, paths escaping the target source root, non-immutable base commit names such as branches, base commits that Git cannot resolve in the target repository, target directories that accidentally inherit an unrelated parent Git repository, shell-eval command forms such as `bash -c` or `powershell -Command`, malformed profile/test identifiers, missing smoke tests, and public/NAT/bridged QEMU networking.
+The validator rejects path traversal, paths escaping the target source root, non-immutable base commit names such as branches, base commits that Git cannot resolve in the target repository, target directories that accidentally inherit an unrelated parent Git repository, shell-eval command forms such as `bash -c` or `powershell -Command`, malformed profile/test identifiers, serial PASS smoke tests without success patterns, missing smoke tests, QEMU network devices, and public/NAT/bridged QEMU networking.
 
 Unsupported profiles must be reported as unsupported. They must not be silently mapped to a weaker profile.
 
 ## Manifest-Backed Build Execution
 
 When `oslab build --target real --repo ...` is used, the lab validates `oslab-target.toml`, creates a detached disposable Git worktree at `source.base_commit`, runs only the selected profile's declared argv-vector commands, passes only the selected profile's `env_allowlist`, and stores declared build artifacts in the content-addressed artifact store. The original target checkout is not used as the build directory.
+
+When `oslab boot --target real --repo ...` or `oslab test --target real --test smoke --repo ...` is used, the lab builds the selected profile in a fresh manifest worktree, constructs a QEMU command from the manifest's boot artifacts, forces `-nic none`, exposes QMP only through loopback, waits for declared readiness and success serial patterns, saves serial/stderr artifacts, and shuts the VM down through QMP. The current Docker-backed smoke path supports `disk`, `iso`, `kernel`, `initrd`, and `firmware` boot artifacts and honestly rejects unsupported boot shapes.
 
 ## Safety Requirements
 
@@ -50,4 +53,4 @@ When `oslab build --target real --repo ...` is used, the lab validates `oslab-ta
 
 ## Unlocking Gate L
 
-Gate L can pass only after the real target is present and the lab has actually built it from a disposable manifest worktree, cold-booted it through the target adapter, and run at least one smoke test without modifying normal production build behavior.
+Gate L can pass only after the real target is present and the lab has actually built it from a disposable manifest worktree, cold-booted it through the manifest QEMU adapter, and run at least one smoke test without modifying normal production build behavior.

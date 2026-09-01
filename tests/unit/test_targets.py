@@ -8,7 +8,13 @@ from pathlib import Path
 from oslab.artifacts import ArtifactStore
 from oslab.config import default_config
 from oslab.process_runner import SafeProcessRunner
-from oslab.targets import inspect_target_manifest, inspect_targets, manifest_template_json
+from oslab.targets import (
+    inspect_target_manifest,
+    inspect_targets,
+    load_target_manifest,
+    manifest_template_json,
+    plan_manifest_qemu_args,
+)
 from oslab.targets.runner import run_manifest_build
 
 FULL_SHA = "abcdef1234567890abcdef1234567890abcdef12"
@@ -258,6 +264,58 @@ def test_target_manifest_rejects_shell_eval_commands(tmp_path: Path) -> None:
 
     assert manifest["status"] == "invalid"
     assert "shell eval" in str(manifest["errors"])
+
+
+def test_target_manifest_rejects_serial_smoke_without_success_pattern(tmp_path: Path) -> None:
+    base_commit = _marked_git_target(tmp_path)
+    bad = (
+        manifest_template_json()["content"]
+        .replace("<immutable git commit sha>", base_commit)
+        .replace('success_patterns = ["OSLAB_SMOKE_PASS"]\n', "")
+    )
+    (tmp_path / "oslab-target.toml").write_text(bad, encoding="utf-8")
+
+    manifest = inspect_target_manifest(tmp_path)
+
+    assert manifest["status"] == "invalid"
+    assert "success_patterns" in str(manifest["errors"])
+
+
+def test_target_manifest_rejects_qemu_network_devices(tmp_path: Path) -> None:
+    base_commit = _marked_git_target(tmp_path)
+    bad = (
+        manifest_template_json()["content"]
+        .replace("<immutable git commit sha>", base_commit)
+        .replace("devices = []", 'devices = ["e1000"]')
+    )
+    (tmp_path / "oslab-target.toml").write_text(bad, encoding="utf-8")
+
+    manifest = inspect_target_manifest(tmp_path)
+
+    assert manifest["status"] == "invalid"
+    assert "network devices are forbidden" in str(manifest["errors"])
+
+
+def test_manifest_qemu_plan_uses_declared_disk_and_no_network(tmp_path: Path) -> None:
+    repo = tmp_path / "target"
+    repo.mkdir()
+    base_commit = _marked_buildable_git_target(repo)
+    manifest = (
+        _manifest_for_python_build(base_commit)
+        .replace('path = "build/kernel.bin"', 'path = "build/disk.raw"')
+        .replace('kind = "kernel"', 'kind = "disk"')
+    )
+    (repo / "oslab-target.toml").write_text(manifest, encoding="utf-8")
+    build_root = tmp_path / "build-root"
+    (build_root / "build").mkdir(parents=True)
+    (build_root / "build" / "disk.raw").write_bytes(b"boot")
+
+    args = plan_manifest_qemu_args(load_target_manifest(repo), build_root)
+
+    assert "-nic" in args
+    assert "none" in args
+    assert "-drive" in args
+    assert any(item == "file=/target/build/disk.raw,format=raw,if=ide" for item in args)
 
 
 def test_tracked_manifest_example_matches_cli_template() -> None:

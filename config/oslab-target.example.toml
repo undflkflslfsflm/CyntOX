@@ -40,6 +40,7 @@ id = "smoke"
 kind = "smoke"
 transport = "serial"
 input = "smoke"
+success_patterns = ["OSLAB_SMOKE_PASS"]
 expected_outcome = "PASS"
 
 [debug]

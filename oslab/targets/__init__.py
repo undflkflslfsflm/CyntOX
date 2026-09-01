@@ -4,7 +4,12 @@ from oslab.targets.manifest import (
     manifest_template_json,
 )
 from oslab.targets.registry import inspect_targets
-from oslab.targets.runner import list_manifest_build_profiles, run_manifest_build
+from oslab.targets.runner import (
+    list_manifest_build_profiles,
+    plan_manifest_qemu_args,
+    run_manifest_build,
+    run_manifest_smoke,
+)
 
 __all__ = [
     "inspect_target_manifest",
@@ -12,5 +17,7 @@ __all__ = [
     "list_manifest_build_profiles",
     "load_target_manifest",
     "manifest_template_json",
+    "plan_manifest_qemu_args",
     "run_manifest_build",
+    "run_manifest_smoke",
 ]

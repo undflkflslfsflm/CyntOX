@@ -25,7 +25,12 @@ from oslab.policy import PathPolicy, PolicyDenied, detect_evaluator_exploit
 from oslab.process_runner import SafeProcessRunner
 from oslab.qemu import DockerQemuBackend, FixtureResult
 from oslab.schemas import ClassifiedError, ErrorKind, Outcome, ResultEnvelope, utc_now
-from oslab.targets import inspect_targets, list_manifest_build_profiles, run_manifest_build
+from oslab.targets import (
+    inspect_targets,
+    list_manifest_build_profiles,
+    run_manifest_build,
+    run_manifest_smoke,
+)
 
 REQUIRED_TOOLS = frozenset(
     {
@@ -114,6 +119,12 @@ Handler = Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]
 class BuildRunFailed(RuntimeError):
     def __init__(self, result: dict[str, Any]) -> None:
         super().__init__("build failed")
+        self.result = result
+
+
+class TestRunFailed(RuntimeError):
+    def __init__(self, result: dict[str, Any]) -> None:
+        super().__init__("test failed")
         self.result = result
 
 
@@ -239,6 +250,20 @@ class CapabilityBroker:
                 Outcome.BUILD_ERROR,
                 ErrorKind.BUILD,
                 "build failed",
+                exc.result,
+            )
+        except TestRunFailed as exc:
+            raw_outcome = str(exc.result.get("outcome", Outcome.TEST_ERROR))
+            try:
+                outcome = Outcome(raw_outcome)
+            except ValueError:
+                outcome = Outcome.TEST_ERROR
+            return self._error(
+                tool,
+                started,
+                outcome,
+                ErrorKind.VM if outcome == Outcome.BOOT_ERROR else ErrorKind.PROCESS,
+                "test failed",
                 exc.result,
             )
         except (FileNotFoundError, ValueError, OSError) as exc:
@@ -797,11 +822,30 @@ class CapabilityBroker:
         return {**payload, "artifact_sha256": record.sha256}
 
     async def _test_run(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        self._fixture_target(arguments)
+        target = str(arguments.get("target", "fixture"))
+        if target != "fixture":
+            requested, root = self._manifest_target_root(arguments)
+            manifest_result = await run_manifest_smoke(
+                root,
+                str(arguments.get("profile", "debug")),
+                str(arguments.get("test_id", arguments.get("mode", "smoke"))),
+                self.context.runner,
+                self.context.artifacts,
+                worktrees_root=self.worktrees_root,
+                lab_root=self.context.config.project_root,
+                timeout=self._bounded_build_timeout(arguments, "timeout", 300),
+            )
+            if not self._target_matches_manifest(requested, str(manifest_result["target"])):
+                raise ValueError(
+                    f"target {requested!r} does not match manifest target {manifest_result['target']!r}"
+                )
+            if not manifest_result["ok"]:
+                raise TestRunFailed(manifest_result)
+            return manifest_result
         mode = self._fixture_mode(arguments)
         seed = int(arguments.get("seed", 1))
-        result = await self._fixture_backend(arguments).exercise(mode, seed=seed)
-        return self._result_data(result)
+        fixture_result = await self._fixture_backend(arguments).exercise(mode, seed=seed)
+        return self._result_data(fixture_result)
 
     async def _test_replay(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self._fixture_target(arguments)

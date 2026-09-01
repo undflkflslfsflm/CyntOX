@@ -45,6 +45,7 @@
 | 2026-09-01 | Audit artifact freshness for clean checkout binding | Pass | The recorded acceptance-audit artifact must itself contain `clean_checkout_matches_verified_source=PASS`. Regression tests reject saved audit blobs that predate the clean-checkout source-binding contract. |
 | 2026-09-01 | Real target base-commit binding | Pass | `target validate-manifest` now requires `source.root` to be the target Git repository root and verifies that `source.base_commit` resolves to an actual commit there. Regression tests reject unknown commits and target directories that inherit an unrelated parent repository. |
 | 2026-09-01 | Manifest-backed real-target builds | Pass | `oslab build --target real --repo ...` and broker `build.run` can now validate a real-target manifest, create a detached disposable Git worktree at `source.base_commit`, run the selected allowlisted argv-vector build profile with exact env allowlist, hash declared artifacts, and classify missing artifacts as build errors. Regression tests use a local throwaway Git OS candidate. |
+| 2026-09-01 | Manifest-backed real-target QEMU smoke | Pass | `oslab boot/test --target real --repo ...` and broker `test.run` can now build from a manifest worktree, construct QEMU from declared boot artifacts, force `-nic none`, use loopback QMP, wait for declared serial readiness/success patterns, and save serial/stderr artifacts. A QEMU-marked e2e test boots a throwaway Git OS candidate through this exact path. |
 
 ## Remaining acceptance work
 

@@ -74,6 +74,7 @@ id = "smoke"
 kind = "smoke"
 transport = "serial"
 input = "smoke"
+success_patterns = ["OSLAB_SMOKE_PASS"]
 expected_outcome = "PASS"
 
 [debug]
@@ -209,9 +210,12 @@ class QemuSpec(BaseModel):
     @field_validator("devices")
     @classmethod
     def devices_are_data_not_options(cls, value: list[str]) -> list[str]:
+        network_tokens = ("net", "e1000", "rtl8139", "virtio-net", "vmxnet", "pcnet", "ne2k")
         for device in value:
             if not device.strip() or "\x00" in device or "\n" in device or "\r" in device:
                 raise ValueError("QEMU devices must be non-empty single-line strings")
+            if any(token in device.lower() for token in network_tokens):
+                raise ValueError("QEMU network devices are forbidden in v1")
         return value
 
 
@@ -240,6 +244,7 @@ class TestSpec(BaseModel):
     kind: Literal["smoke", "regression", "replay", "fuzz"]
     transport: Literal["serial", "qmp", "script"]
     input: str = ""
+    success_patterns: list[str] = Field(default_factory=list)
     expected_outcome: Outcome = Outcome.PASS
 
     @field_validator("id")
@@ -248,6 +253,32 @@ class TestSpec(BaseModel):
         if not PROFILE_NAME.fullmatch(value):
             raise ValueError("test id must contain only stable identifier characters")
         return value
+
+    @field_validator("input")
+    @classmethod
+    def input_is_single_line(cls, value: str) -> str:
+        if "\x00" in value or "\n" in value or "\r" in value:
+            raise ValueError("test input must be a single-line serial payload")
+        return value
+
+    @field_validator("success_patterns")
+    @classmethod
+    def success_patterns_are_single_line(cls, value: list[str]) -> list[str]:
+        for pattern in value:
+            if not pattern or "\x00" in pattern or "\n" in pattern or "\r" in pattern:
+                raise ValueError("success patterns must be non-empty single-line strings")
+        return value
+
+    @model_validator(mode="after")
+    def serial_smoke_has_success_pattern(self) -> TestSpec:
+        if (
+            self.kind == "smoke"
+            and self.transport == "serial"
+            and self.expected_outcome == Outcome.PASS
+            and not self.success_patterns
+        ):
+            raise ValueError("serial PASS smoke tests must declare success_patterns")
+        return self
 
 
 class DebugSpec(BaseModel):

@@ -181,3 +181,11 @@
 - Context: a validated real-target manifest is not enough if the first build runs directly in the user's production checkout or inherits undeclared environment variables.
 - Decision: have manifest-backed real-target builds create a detached disposable Git worktree at `source.base_commit`, run only the selected profile's declared argv vector, pass only the profile's declared environment allowlist, and hash the declared build artifacts.
 - Consequence: Gate L build evidence is tied to an immutable source commit and cannot dirty the original target checkout.
+
+## D-024 — Require explicit serial success patterns for real-target smoke
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: a real-target boot command should not guess that a serial log is successful merely because QEMU started or emitted a readiness line.
+- Decision: require serial PASS smoke tests to declare exact success patterns and make manifest-backed real-target boot/test wait for declared readiness and success patterns under Docker-backed QEMU with `-nic none` and loopback QMP.
+- Consequence: Gate L smoke evidence must include actual serial proof and cannot be satisfied by a boot process that merely stayed alive.
