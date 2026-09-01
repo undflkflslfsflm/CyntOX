@@ -245,3 +245,11 @@
 - Context: using the project by typing its raw Windows path is brittle because the path contains spaces and parentheses, which PowerShell can parse as syntax instead of a location.
 - Decision: add repo-root `oslab.ps1` and `oslab.cmd` launchers that resolve the project root from the script location, bootstrap the local virtual environment when needed, and forward arguments to `python -m oslab.cli`.
 - Consequence: users can run `.\oslab.ps1 ...`, `.\oslab.cmd ...`, or a quoted full-path PowerShell one-liner from any directory; acceptance now treats the launchers as required support files.
+
+## D-032 — Add an interactive Qwen Code launcher
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: the lab CLI launcher is useful for workflows, but the user also needs one command that opens Qwen Code itself for interactive use. The generated `node_modules\.bin\qwen.ps1` assumes `node.exe` is on `PATH`, which is not always true in the Codex desktop runtime.
+- Decision: add repo-root `qwen-code.ps1` and `qwen-code.cmd` launchers that resolve the project root, bootstrap dependencies if needed, locate bundled Node when system Node is absent, set project-local runtime environment, default to text output, and forward arbitrary Qwen Code flags such as `-i` or `-p`.
+- Consequence: Qwen Code can be opened with a single quoted PowerShell command from any directory while still using this repository's project-local `.qwen/settings.json` and local Ollama-backed worker model.

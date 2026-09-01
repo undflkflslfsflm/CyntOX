@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-09-01T02:22:05Z",
+  "generated_at": "2026-09-01T02:33:19Z",
   "goal_status": "blocked_on_gate_l",
-  "source_commit_verified": "207d47c",
-  "source_commit_full": "207d47c0dd6a9597991ca7ad2444b8aee23132b9",
+  "source_commit_verified": "bfcf1d2",
+  "source_commit_full": "bfcf1d26045e4eca48de566ccd7b0aca38b859b9",
   "branch": "codex/qwen-os-lab",
   "blocked_gate": {
     "gate": "L",
@@ -64,22 +64,46 @@
     },
     {
       "scope": "main checkout",
+      "command": ".\\qwen-code.ps1 --version",
+      "exit_code": 0,
+      "stdout": "0.22.3"
+    },
+    {
+      "scope": "main checkout",
+      "command": ".\\qwen-code.cmd --version",
+      "exit_code": 0,
+      "stdout": "0.22.3"
+    },
+    {
+      "scope": "main checkout",
+      "command": ".\\qwen-code.ps1 --help -i \"hello\"",
+      "exit_code": 0,
+      "stdout_summary": "Qwen Code help printed successfully and the -i flag passed through to Qwen Code rather than being consumed by PowerShell."
+    },
+    {
+      "scope": "external working directory",
+      "command": "& \"C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\qwen-code.ps1\" --version",
+      "exit_code": 0,
+      "stdout": "0.22.3"
+    },
+    {
+      "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "6819c80c4a77a2a7710ff5414ae9eeea7e8dec53790828547185e5cb999efe74",
+      "proof_sha256": "947f56f30971854e00e0e581f903c83060023d133106f6786750ee9678d4e630",
       "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 73 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; target blocker-report passed; requirements trace generation passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the main checkout clean."
     },
     {
       "scope": "clean checkout",
       "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
       "exit_code": 0,
-      "worktree": ".oslab\\clean-checkouts\\207d47c"
+      "worktree": ".oslab\\clean-checkouts\\bfcf1d2"
     },
     {
       "scope": "clean checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "96d65fbae04a25cfed270efef619b0f97802cf0d3bc66427bd1153c62139500a",
+      "proof_sha256": "c3dc0486ff5619f4fa01c0d73ac9a48a1fc0510453e76a1d1c1d263d2815c8f7",
       "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 73 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; target blocker-report passed; requirements trace generation passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
     },
     {

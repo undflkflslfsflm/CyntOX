@@ -1,20 +1,20 @@
 {
-  "generated_at": "2026-09-01T02:22:05Z",
+  "generated_at": "2026-09-01T02:33:19Z",
   "entries": [
     {
-      "bytes": 2910,
+      "bytes": 3245,
       "path": "README.md",
-      "sha256": "d2fa070b507ef0989338d568e2451bb43ccdd85e235dbd8fc23c3bebe2aa5cf6"
+      "sha256": "d44bd1d7dc856b65a69f148ffbc954d132e28578775797e2f4568d1655698625"
     },
     {
-      "bytes": 7553,
+      "bytes": 7642,
       "path": "FINAL_REPORT.md",
-      "sha256": "38842a7cd54fba2e6694823933e328f17ce0f6705c469a358f0b9cf42d8461ce"
+      "sha256": "04862b6afaa3e1e8081ed0d7c30351218217cb94a05d17620c842a92777b3eee"
     },
     {
-      "bytes": 6928,
+      "bytes": 7710,
       "path": "PROOF.json",
-      "sha256": "267200d337870642f1d89645ffa2fba7769229227bb6eba8d8278d30b8e91a29"
+      "sha256": "34b1762a2eafc94f9c5b4bc7cf844372614f47359666e0ad70ba9921b2d1b8ba"
     },
     {
       "bytes": 4530,
@@ -27,9 +27,9 @@
       "sha256": "8cb31af83c374c2fbd0d4e0ee7868418c7ec58e96a1cf4fa9a9b5ca429c94c22"
     },
     {
-      "bytes": 5397,
+      "bytes": 6006,
       "path": "docs/RUNBOOK.md",
-      "sha256": "f793b5c207a29f3a237890f5decc3d51841e8ada949d3d5013b2d77b07b627e6"
+      "sha256": "16b82012d4820b593066b2d60ef7fd86405bd272abaf755adf6f99b0b669ea62"
     },
     {
       "bytes": 4171,
@@ -39,7 +39,7 @@
     {
       "bytes": 7272,
       "path": "docs/REAL_OS_INTEGRATION.md",
-      "sha256": "d7c9b6d3f937d2af9f8a24946b09f1d64d8067c9fbb8a6be01ee9b2d84837a78"
+      "sha256": "4494bec25f8ea76ffcae1431e5fe5260ebc49c43236a8632297928226ea8800c"
     },
     {
       "bytes": 1364,
@@ -62,19 +62,19 @@
       "sha256": "2ee52828e3c997202a8e8139d8a473f62d0b2d4ebe0783a489f04627bf63ba59"
     },
     {
-      "bytes": 4586,
+      "bytes": 4679,
       "path": "docs/OSLAB_EXECPLAN.md",
-      "sha256": "babeb9761a23d6e68ec903e525b80796ef2ddf788a917100ea1cbb419b2bce0a"
+      "sha256": "c9e41390b8d8300826b7cb1503a297956d1907eef1932ab70f9ec572eb8929b3"
     },
     {
-      "bytes": 12904,
+      "bytes": 13293,
       "path": "docs/OSLAB_PROGRESS.md",
-      "sha256": "0eb52e8b0a14a2f05d4456c2164cb105bf75716a8733cbe9e8eb3ec22ba5514a"
+      "sha256": "0f16a85deabf00d275d74ab7fd8a15da3c405f8d304d2411beaa04a0a821ce3e"
     },
     {
-      "bytes": 19917,
+      "bytes": 20797,
       "path": "docs/OSLAB_DECISIONS.md",
-      "sha256": "9b0794af7f2d7bab2fd8ec8d7b7adbf976011de62f783b14a143c317af501077"
+      "sha256": "f29e65a138c27301f5a88b5d1d86194e53c9f9c0ebdf6d149eadb63bdba9c8e7"
     },
     {
       "bytes": 7888,
@@ -109,12 +109,12 @@
     {
       "bytes": 3697,
       "path": "artifacts/reports/gate-l-blocker-report.json",
-      "sha256": "d7b479179c570ccb5443bec5f6aea1d9aa8847dc5408c6e73a772427f8758530"
+      "sha256": "04b0ab804b2a6e6d7954c70c1074f10e0622de9c34a0091c080ec73966d1760a"
     },
     {
       "bytes": 7715,
       "path": "artifacts/reports/requirements-trace.json",
-      "sha256": "985c9bee688121e427c40cdf1605377326cb392a3c6524998faa8539f3bef5da"
+      "sha256": "45577594c5c16d839d5fe6645aa2c262a7f5a57fe6465572ac1d03e64d21acad"
     },
     {
       "bytes": 11087,
@@ -155,6 +155,16 @@
       "bytes": 116,
       "path": "oslab.cmd",
       "sha256": "b2fe8ba8f37f00968e65edcf17a91700450caba7b5f063a978ef2faba44ec8ef"
+    },
+    {
+      "bytes": 1659,
+      "path": "qwen-code.ps1",
+      "sha256": "f815e6d96b52393c2240b8a8e9df3e377c4064c264b3ea16d61a2dd7b33db46f"
+    },
+    {
+      "bytes": 120,
+      "path": "qwen-code.cmd",
+      "sha256": "dfb0c6868c8adf4c96183442ed6354ff0619c4f9d894ee115bed83ec268a3468"
     }
   ]
 }

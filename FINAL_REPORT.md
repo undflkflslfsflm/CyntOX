@@ -18,8 +18,8 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Live agentic fix loop repaired the seeded fixture in a disposable worktree and rejected an invalid evaluator edit.
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
-- One-line launchers `oslab.ps1` and `oslab.cmd` work from paths containing spaces/parentheses and forward arguments to the project-local CLI; the fully quoted PowerShell launcher was verified from outside the repository.
-- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `207d47c`, including `uv lock --check`, frozen/offline `pnpm install`, `oslab target blocker-report --json`, `oslab acceptance trace --json`, `73 passed`, and `ruff format --check .`.
+- One-line launchers `oslab.ps1`/`oslab.cmd` and `qwen-code.ps1`/`qwen-code.cmd` work from paths containing spaces/parentheses. The lab launchers forward to the project-local `oslab` CLI; the Qwen Code launchers start the project-local Qwen Code 0.22.3 CLI through bundled Node when system Node is unavailable.
+- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `bfcf1d2`, including `uv lock --check`, frozen/offline `pnpm install`, `oslab target blocker-report --json`, `oslab acceptance trace --json`, `73 passed`, and `ruff format --check .`.
 - The CLI accepts both subcommand-style and spec-style campaign/evaluation workflows, including `oslab campaign --target fixture --budget 10m --seed 7 --iterations 6 --base-commit HEAD --json` and `oslab eval --suite seeded --seeds 1,2,3 --base-commit HEAD --json`.
 - `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, real selftest proof artifacts, clean-checkout source commit, live Ollama/Qwen Code stdout, the current requirements trace, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. The recorded audit-artifact check rejects stale or inconsistent audit blobs, and the key-evidence check rejects missing/corrupt/semantically invalid decisive artifacts. Saved audit artifact: `350a4915ab7a76431761e1ddee2668b04545948acb6937531512bae1e424df94`.
 - Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, a `target validate-manifest` command, manifest-backed real-target build execution, and manifest-backed QEMU serial smoke boot/test execution. The validator rejects path traversal, source-root escapes, missing smoke tests, serial PASS smoke tests without success patterns, non-isolated QEMU networking, QEMU network devices, branch-like or unresolved base commits, inherited parent Git repositories, and shell-eval command wrappers before any real target build is attempted. Manifest-backed builds run from detached disposable Git worktrees at `source.base_commit`, pass only the declared environment allowlist, and hash declared build artifacts. Manifest-backed smoke runs boot the disposable-worktree artifacts through Docker-backed QEMU with `-nic none`, loopback QMP, declared serial readiness/success pattern checks, and serial/stderr artifact capture.
@@ -56,10 +56,10 @@ What was attempted: bounded target discovery, main and clean live selftests, cur
 
 ## Final Verification
 
-- Main checkout selftest at `207d47c0dd6a9597991ca7ad2444b8aee23132b9`: PASS, proof artifact `6819c80c4a77a2a7710ff5414ae9eeea7e8dec53790828547185e5cb999efe74`; checkout remained clean afterward.
+- Main checkout selftest at `bfcf1d26045e4eca48de566ccd7b0aca38b859b9`: PASS, proof artifact `947f56f30971854e00e0e581f903c83060023d133106f6786750ee9678d4e630`; checkout remained clean afterward.
 - Main checkout safe subset: PASS, `68 passed, 5 deselected`.
-- Clean checkout bootstrap at `207d47c0dd6a9597991ca7ad2444b8aee23132b9`: PASS
-- Clean checkout selftest: PASS, proof artifact `96d65fbae04a25cfed270efef619b0f97802cf0d3bc66427bd1153c62139500a`; checkout remained clean afterward.
+- Clean checkout bootstrap at `bfcf1d26045e4eca48de566ccd7b0aca38b859b9`: PASS
+- Clean checkout selftest: PASS, proof artifact `c3dc0486ff5619f4fa01c0d73ac9a48a1fc0510453e76a1d1c1d263d2815c8f7`; checkout remained clean afterward.
 - Acceptance audit: PASS, artifact `350a4915ab7a76431761e1ddee2668b04545948acb6937531512bae1e424df94`.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Requirements trace: `artifacts/reports/requirements-trace.json`
