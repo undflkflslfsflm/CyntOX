@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T02:35:32Z",
+  "generated_at": "2026-09-01T02:57:48Z",
   "goal_status": "blocked_on_gate_l",
   "source_commit_verified": "bfcf1d2",
   "source_commit_full": "bfcf1d26045e4eca48de566ccd7b0aca38b859b9",
@@ -85,6 +85,13 @@
       "command": "& \"C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\qwen-code.ps1\" --version",
       "exit_code": 0,
       "stdout": "0.22.3"
+    },
+    {
+      "scope": "external working directory",
+      "command": "& \"C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\qwen-code.ps1\" --max-wall-time 2m -p \"Read README.md in the primary project root and answer only with its first Markdown heading.\"",
+      "exit_code": 0,
+      "stdout": "# Qwen OS Lab",
+      "stdout_summary": "Human-use launcher started from outside the repository, used the ignored .oslab interactive workspace, left .qwen/settings.json untouched, and read README.md as text instead of invoking display_image."
     },
     {
       "scope": "main checkout",

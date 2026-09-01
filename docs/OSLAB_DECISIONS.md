@@ -253,3 +253,11 @@
 - Context: the lab CLI launcher is useful for workflows, but the user also needs one command that opens Qwen Code itself for interactive use. The generated `node_modules\.bin\qwen.ps1` assumes `node.exe` is on `PATH`, which is not always true in the Codex desktop runtime.
 - Decision: add repo-root `qwen-code.ps1` and `qwen-code.cmd` launchers that resolve the project root, bootstrap dependencies if needed, locate bundled Node when system Node is absent, set project-local runtime environment, default to text output, and forward arbitrary Qwen Code flags such as `-i` or `-p`.
 - Consequence: Qwen Code can be opened with a single quoted PowerShell command from any directory while still using this repository's project-local `.qwen/settings.json` and local Ollama-backed worker model.
+
+## D-033 — Split human Qwen Code launches from the audited lab tool profile
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: the audited lab Qwen profile intentionally exposes only two read-only MCP tools and caps sessions at six turns for smoke-proof determinism. That profile is too narrow for human interactive use: Qwen cannot reliably inspect text files such as `FINAL_REPORT.md`, and the six-turn cap stops normal conversation.
+- Decision: make `qwen-code.ps1` launch Qwen from an ignored `.oslab/qwen-code-workspace` with generated human-use settings derived from the known-good local Ollama provider. The human profile removes the six-turn/tool/wall-clock caps, skips bulky startup context, exposes only essential text read/search/edit tools eagerly, keeps other tools discoverable, denies `display_image`, and adds the real project root as an included directory.
+- Consequence: the one-line Qwen launcher works for normal interactive repo work without mutating `.qwen/settings.json`; the lab smoke path remains fail-closed and continues to prove the constrained two-MCP-tool boundary.
