@@ -23,7 +23,7 @@ Build and verify a local, safety-bounded OS reliability lab driven by the instal
 | 3. Live Qwen | Complete | Exact identity, structured smoke, and resident throughput benchmark saved. |
 | 4. Tool broker | Complete | Transactional patch, rollback, receipts, immutable evaluator and policy tests pass. |
 | 5. QEMU fixture | Complete | Actual cold boots, QMP, snapshot restore and controlled failures pass. |
-| 6. Real target | Blocked externally | Manifest schema, template, and validator are complete; resume still needs authorized source path plus build entry point. |
+| 6. Real target | Blocked externally | Manifest schema, template, and validator are complete; resume still needs authorized source path plus build entry point. The validator requires the target to be its own Git repository root and proves `source.base_commit` resolves before any build is attempted. |
 | 7. Supervisor | Complete | Controlled exit 97, database recovery, full state path, one idempotent finding, and CAS proof passed. |
 | 8. Fix loop | Complete | Live Qwen + disposable worktree + actual QEMU fix/regression loop passed. |
 | 9. Fuzzing | Complete | Six actual QEMU protocol modes, checkpoint/resume data, deduplication, stable replay, and minimal input passed. |

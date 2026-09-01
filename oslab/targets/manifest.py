@@ -3,6 +3,8 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import shutil
+import subprocess
 import tomllib
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
@@ -317,12 +319,18 @@ def inspect_target_manifest(root: Path) -> dict[str, Any]:
     if path_errors:
         return {"status": "invalid", "path": str(manifest_path), "errors": path_errors}
 
+    source_root = _resolve_within(root.resolve(), manifest.source.root)
+    git_info, git_errors = _inspect_source_git(source_root, manifest.source.base_commit)
+    if git_errors:
+        return {"status": "invalid", "path": str(manifest_path), "errors": git_errors}
+
     return {
         "status": "ready",
         "path": str(manifest_path),
         "name": manifest.name,
-        "source_root": str(_resolve_within(root.resolve(), manifest.source.root)),
+        "source_root": str(source_root),
         "base_commit": manifest.source.base_commit,
+        "git": git_info,
         "build_profiles": sorted(manifest.build.profiles),
         "boot_method": manifest.boot.method,
         "qemu": manifest.boot.qemu.model_dump(),
@@ -391,6 +399,73 @@ def _resolve_within(root: Path, value: str) -> Path:
     if resolved != root and root not in resolved.parents:
         raise ValueError("path escapes target source root")
     return resolved
+
+
+def _inspect_source_git(
+    source_root: Path, base_commit: str
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    git = shutil.which("git")
+    if git is None:
+        return {}, [{"field": "source.base_commit", "reason": "git executable not found"}]
+
+    top = _run_git(git, source_root, "rev-parse", "--show-toplevel")
+    if top.returncode != 0:
+        return (
+            {},
+            [
+                {
+                    "field": "source.root",
+                    "reason": "source root must be inside a Git repository",
+                    "stderr": top.stderr.strip(),
+                }
+            ],
+        )
+    repository_root = Path(top.stdout.strip()).resolve()
+    if repository_root != source_root.resolve():
+        return (
+            {"repository_root": str(repository_root)},
+            [
+                {
+                    "field": "source.root",
+                    "reason": "source root must be the Git repository root",
+                }
+            ],
+        )
+
+    verified = _run_git(git, source_root, "rev-parse", "--verify", f"{base_commit}^{{commit}}")
+    if verified.returncode != 0:
+        return (
+            {"repository_root": str(repository_root)},
+            [
+                {
+                    "field": "source.base_commit",
+                    "reason": "source.base_commit does not resolve to a commit in source.root",
+                    "stderr": verified.stderr.strip(),
+                }
+            ],
+        )
+
+    head = _run_git(git, source_root, "rev-parse", "HEAD")
+    status = _run_git(git, source_root, "status", "--short")
+    return (
+        {
+            "repository_root": str(repository_root),
+            "base_commit_verified": verified.stdout.strip(),
+            "head": head.stdout.strip() if head.returncode == 0 else None,
+            "dirty": bool(status.stdout.strip()) if status.returncode == 0 else None,
+        },
+        [],
+    )
+
+
+def _run_git(git: str, cwd: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(  # noqa: S603 - resolved git binary with fixed argv, no shell
+        [git, *args],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
 def _safe_path(value: str, allow_absolute: bool = False) -> str:

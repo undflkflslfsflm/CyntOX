@@ -165,3 +165,11 @@
 - Context: after producing a saved PASS audit artifact with the clean-checkout source-binding check, stale saved audit blobs could still be accepted if the freshness contract did not require that check.
 - Decision: include `clean_checkout_matches_verified_source` in the recorded-audit required-check list.
 - Consequence: final acceptance fails if `PROOF.json` points at an older saved audit artifact that predates clean-checkout source binding.
+
+## D-022 — Verify real-target base commits before Gate L execution
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: the real-target manifest required an immutable-looking commit string, but a syntactically valid SHA that did not exist in the target repository could still make onboarding appear stronger than it was.
+- Decision: require `source.root` to be the target Git repository root and verify `source.base_commit` with Git before a manifest can become ready.
+- Consequence: Gate L cannot proceed on a made-up base commit or on a target directory that accidentally inherits an unrelated parent repository.

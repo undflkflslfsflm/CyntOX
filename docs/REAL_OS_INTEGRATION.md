@@ -24,13 +24,14 @@ The tracked starter file is `config/oslab-target.example.toml`.
 Create `oslab-target.toml` in the real OS root once the source is present. The validator requires:
 
 - `source.root`, a full 40- or 64-character immutable `source.base_commit`, and `source.authorization = "owned_or_authorized"`
+- `source.root` must resolve to the target Git repository root, and `source.base_commit` must resolve to an actual commit in that repository
 - at least one named build profile with argv-vector commands, cwd, environment allowlist, and artifacts
 - QEMU boot metadata with `network = "none"`
 - at least one boot artifact and one readiness pattern
 - at least one smoke test
 - optional debugger symbols, sanitizer/coverage labels, and cleanup paths
 
-The validator rejects path traversal, paths escaping the target source root, non-immutable base commit names such as branches, shell-eval command forms such as `bash -c` or `powershell -Command`, malformed profile/test identifiers, missing smoke tests, and public/NAT/bridged QEMU networking.
+The validator rejects path traversal, paths escaping the target source root, non-immutable base commit names such as branches, base commits that Git cannot resolve in the target repository, target directories that accidentally inherit an unrelated parent Git repository, shell-eval command forms such as `bash -c` or `powershell -Command`, malformed profile/test identifiers, missing smoke tests, and public/NAT/bridged QEMU networking.
 
 Unsupported profiles must be reported as unsupported. They must not be silently mapped to a weaker profile.
 

@@ -28,7 +28,7 @@ The bootstrap creates a project-local environment and does not install a service
 
 - Discovery, local model probe, Qwen Code constrained MCP smoke, QEMU fixture, recovery proof, fuzzing, A-E evaluation, training dry-run, and integrity/report commands have saved evidence under `artifacts/`.
 - Optional runtimes are documented in `docs/MODEL_RUNTIME_REPORT.md`; only Ollama is installed and benchmarked locally.
-- Gate L is blocked until a local authorized real OS source path and build entry point are supplied. Use `oslab target manifest-template --json`, create `oslab-target.toml` from `config/oslab-target.example.toml`, then run `oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json` and `oslab target validate-manifest --repo <AUTHORIZED_OS_SOURCE_PATH> --json` to unlock that gate.
+- Gate L is blocked until a local authorized real OS source path and build entry point are supplied. Use `oslab target manifest-template --json`, create `oslab-target.toml` from `config/oslab-target.example.toml`, then run `oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json` and `oslab target validate-manifest --repo <AUTHORIZED_OS_SOURCE_PATH> --json` to unlock that gate. The validator confirms the target is its own Git repository root and that `source.base_commit` resolves to a real commit before any build is attempted.
 
 ## Proof command
 

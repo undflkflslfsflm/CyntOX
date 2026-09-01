@@ -75,4 +75,4 @@ When the authorized OS source is available locally:
 .\.venv\Scripts\python.exe -m oslab.cli target validate-manifest --repo C:\path\to\authorized-os --json
 ```
 
-If the target has a build marker and OS-source markers, add an `oslab-target.toml` manifest using `docs/REAL_OS_INTEGRATION.md` or `config/oslab-target.example.toml`, then rerun target inspection and validation. The validator rejects path traversal and non-isolated QEMU networking. Do not guess build commands.
+If the target has a build marker and OS-source markers, add an `oslab-target.toml` manifest using `docs/REAL_OS_INTEGRATION.md` or `config/oslab-target.example.toml`, then rerun target inspection and validation. The validator rejects path traversal, non-isolated QEMU networking, shell-eval build commands, target directories that inherit an unrelated parent Git repository, and base commits that do not resolve in the target Git repository. Do not guess build commands.
