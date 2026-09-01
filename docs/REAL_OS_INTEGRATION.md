@@ -2,6 +2,29 @@
 
 Current Gate L status: blocked by missing external input. Bounded discovery found no authorized real OS source in the current repository, immediate parent/children, or saved target configuration.
 
+## Gate L Blocker Report
+
+What was attempted:
+
+- Bounded target discovery inspected the current repository, immediate parent/children, and saved target configuration without recursively crawling unrelated personal files or the whole disk.
+- The main-checkout live selftest and clean-checkout live selftest both ran `oslab target inspect --json` as part of the final proof sequence.
+- `oslab acceptance audit --json` re-checked the recorded Gate L status, the exact blocker text, the proof hashes, the clean-checkout source commit, and current Git cleanliness.
+- The framework side of Gate L was implemented and tested: manifest validation, disposable commit-pinned build worktrees, real-target `build`, real-target `boot`, real-target `test`, QEMU `-nic none`, loopback QMP, and serial readiness/success pattern matching.
+
+Concrete evidence:
+
+- Verified source commit: `d906e0266e6d81dbac43ce8ea5d89351a64d7b5f`.
+- Main live selftest proof: `469b18968e26406680acb4e2a22f8c2502aa32026640996a5bedd23f541fd268` with `67 passed`.
+- Clean-checkout live selftest proof: `5cd43b53eca7ff42252335a07187c9b58fbee73c988ffb985afa9afa5caf8437` with `67 passed`.
+- Saved acceptance audit proof: `12308345a40365bcaa8b25e7a22561fba8f8378112b49d5c6f66f4db6a14fff6`.
+- Current `target inspect` result: fixture ready, `real_os.status = "absent"`, `gate_l = "blocked_missing_external_input"`, and no bounded candidates.
+
+Why further local progress is impossible:
+
+- Gate L requires an actual authorized OS source tree and its existing build entry point. The lab cannot honestly build, cold-boot, smoke-test, or claim evidence for a target that is not locally present in the allowed discovery scope.
+- The specification forbids inventing a successful build command, silently changing production build behavior, recursively crawling unrelated personal files, uploading source, or using external systems to fill in the missing target.
+- Therefore the only defensible local state is `BLOCKED_MISSING_EXTERNAL_INPUT` until the authorized target path and manifest/build details are supplied.
+
 Smallest input needed:
 
 ```powershell
@@ -54,3 +77,14 @@ When `oslab boot --target real --repo ...` or `oslab test --target real --test s
 ## Unlocking Gate L
 
 Gate L can pass only after the real target is present and the lab has actually built it from a disposable manifest worktree, cold-booted it through the manifest QEMU adapter, and run at least one smoke test without modifying normal production build behavior.
+
+Exact resume sequence after the authorized source path is available:
+
+```powershell
+.\.venv\Scripts\python.exe -m oslab.cli target inspect --repo C:\path\to\authorized-os --json
+.\.venv\Scripts\python.exe -m oslab.cli target manifest-template --json
+.\.venv\Scripts\python.exe -m oslab.cli target validate-manifest --repo C:\path\to\authorized-os --json
+.\.venv\Scripts\python.exe -m oslab.cli build --target real --repo C:\path\to\authorized-os --profile debug --json
+.\.venv\Scripts\python.exe -m oslab.cli boot --target real --repo C:\path\to\authorized-os --profile debug --json
+.\.venv\Scripts\python.exe -m oslab.cli test --target real --repo C:\path\to\authorized-os --test smoke --profile debug --json
+```

@@ -189,3 +189,11 @@
 - Context: a real-target boot command should not guess that a serial log is successful merely because QEMU started or emitted a readiness line.
 - Decision: require serial PASS smoke tests to declare exact success patterns and make manifest-backed real-target boot/test wait for declared readiness and success patterns under Docker-backed QEMU with `-nic none` and loopback QMP.
 - Consequence: Gate L smoke evidence must include actual serial proof and cannot be satisfied by a boot process that merely stayed alive.
+
+## D-025 — Keep Gate L blocked until an authorized real target is present
+
+- Status: accepted
+- Date: 2026-09-01
+- Context: final audits prove the local fixture/framework, manifest-backed real-target machinery, and QEMU isolation, but bounded discovery still finds no authorized real OS source or build entry point.
+- Decision: record a precise blocker report instead of expanding the search beyond the permitted scope, inventing a build command, or treating a throwaway test candidate as the user's real OS.
+- Consequence: the next valid action is the documented local resume sequence against `C:\path\to\authorized-os`; completion still requires actual build, cold boot, and smoke evidence from that supplied target.

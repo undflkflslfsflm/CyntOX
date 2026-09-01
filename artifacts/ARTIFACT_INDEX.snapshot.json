@@ -7,9 +7,9 @@
       "sha256": "730ed19b71f774e7143b3c4b08f381f2e8db69e52024d446a723c0a45176bdad"
     },
     {
-      "bytes": 6447,
+      "bytes": 6734,
       "path": "FINAL_REPORT.md",
-      "sha256": "63d732c8f3d659f21e0462d78fa36f0321d3732d18146dcca9a58d9cffbb9ae5"
+      "sha256": "66437d166041f9af762f8f7ac4179e53bdede1419a41ff0139e7fdd634fbb38c"
     },
     {
       "bytes": 5847,
@@ -37,9 +37,9 @@
       "sha256": "b656e526b0fc0c7c6217aff0cde9ae780b94781c9ed4664542c63bda0364d7ff"
     },
     {
-      "bytes": 4158,
+      "bytes": 6940,
       "path": "docs/REAL_OS_INTEGRATION.md",
-      "sha256": "481be92aadd3482b13f435028259542fd6013871c34f084cebe596acef0184f0"
+      "sha256": "a7d5535b2358070da4211609c8c94b9a594819d1918b50f7583bdbddfdf8a3cd"
     },
     {
       "bytes": 1364,
@@ -67,14 +67,14 @@
       "sha256": "b6b03abc5ad2600e6f32e7a88951259258cd429050822d137872f52aa8a8a3cf"
     },
     {
-      "bytes": 10607,
+      "bytes": 10961,
       "path": "docs/OSLAB_PROGRESS.md",
-      "sha256": "ce2784a75523a0d9cbd57a06d3bec3814c9451947d27d3e534cb351c3e7a3933"
+      "sha256": "9d06e604618118fee86cdb938b32723941cb0dae47361ec673dc33edb1f25b00"
     },
     {
-      "bytes": 15023,
+      "bytes": 15745,
       "path": "docs/OSLAB_DECISIONS.md",
-      "sha256": "5c59a5d3483dde24148535a0703d646e2c92e03902daa17dcb4ef299de15f3d6"
+      "sha256": "ec7503faeeafc5bcd2b832a0843176cf25c39ca295a9fbcd2a63192e5cba52bc"
     },
     {
       "bytes": 7888,

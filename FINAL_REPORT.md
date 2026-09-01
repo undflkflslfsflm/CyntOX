@@ -50,7 +50,7 @@ Gate L requires the real OS target. The smallest unlocking input is:
 .\.venv\Scripts\python.exe -m oslab.cli boot --target real --repo C:\path\to\authorized-os --profile debug --json
 ```
 
-The path must point to the authorized OS source and its existing build entry point. The lab must then build from the declarative manifest, cold-boot, and smoke-test that target.
+What was attempted: bounded target discovery, main and clean live selftests, current `target inspect`, and final acceptance audits. Evidence shows the fixture is ready, the manifest-backed real-target framework is implemented, and `real_os.status = "absent"` with no bounded candidates. The path must point to the authorized OS source and its existing build entry point. The lab must then build from the declarative manifest, cold-boot, and smoke-test that target.
 
 ## Final Verification
 
