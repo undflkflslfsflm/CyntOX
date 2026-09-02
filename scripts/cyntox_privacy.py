@@ -2,12 +2,16 @@ from __future__ import annotations
 
 import argparse
 import ipaddress
-import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
+
+try:
+    from scripts import cyntox_output
+except ModuleNotFoundError:  # pragma: no cover - direct script execution path
+    import cyntox_output  # type: ignore[import-not-found,no-redef]
 
 URL_RE = re.compile(r"\bhttps?://[^\s<>\]\"')]+", re.IGNORECASE)
 
@@ -242,6 +246,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     policy = subparsers.add_parser("policy", help="Print the active privacy policy prompt.")
     policy.add_argument("--json", action="store_true")
+    policy.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
 
     scan = subparsers.add_parser(
         "scan", help="Scan text or a project file for privacy/injection risk signals."
@@ -249,12 +256,18 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("text", nargs="*")
     scan.add_argument("--file")
     scan.add_argument("--json", action="store_true")
+    scan.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
 
     check_url = subparsers.add_parser(
         "check-url", help="Check URL(s) against the current internet policy."
     )
     check_url.add_argument("urls", nargs="+")
     check_url.add_argument("--json", action="store_true")
+    check_url.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     return parser
 
 
@@ -266,7 +279,11 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command == "policy":
         rendered = render_policy_prompt(policy)
-        print(json.dumps({"policy": rendered}, indent=2) if args.json else rendered)
+        print(
+            cyntox_output.terminal_json({"policy": rendered}, full=args.full)
+            if args.json
+            else rendered
+        )
         return 0
 
     if args.command == "scan":
@@ -280,14 +297,14 @@ def main(argv: list[str] | None = None) -> int:
             [str(url) for url in scan_result["urls"]], policy
         )
         if args.json:
-            print(json.dumps(scan_result, indent=2))
+            print(cyntox_output.terminal_json(scan_result, full=args.full))
         else:
             print(render_policy_prompt(policy, scan=scan_result))
         return 0
 
     if args.command == "check-url":
         result = evaluate_network_policy([str(url) for url in args.urls], policy)
-        print(json.dumps(result, indent=2) if args.json else result)
+        print(cyntox_output.terminal_json(result, full=args.full) if args.json else result)
         return 0
 
     parser.error(f"unknown command: {args.command}")

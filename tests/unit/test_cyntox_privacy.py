@@ -84,3 +84,18 @@ def test_file_scan_replaces_invalid_utf8(tmp_path: Path, monkeypatch, capsys) ->
     output = json.loads(capsys.readouterr().out)
     assert code == 0
     assert "ignore-prior-instructions" in output["prompt_injection_signals"]
+
+
+def test_scan_json_compacts_large_url_lists(tmp_path: Path, monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
+    root = tmp_path / "repo"
+    root.mkdir()
+    urls = " ".join(f"https://example{i}.com/path" for i in range(40))
+    (root / "copied-page.md").write_text(urls, encoding="utf-8")
+    monkeypatch.setattr(cyntox_privacy, "project_root", lambda: root)
+
+    code = cyntox_privacy.main(["scan", "--file", "copied-page.md", "--json"])
+
+    output = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert output["_cyntox_terminal"]["compacted"] is True
+    assert output["urls"][-1] == {"_truncated_items": 15}

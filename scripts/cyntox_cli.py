@@ -17,10 +17,11 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from scripts import cyntox_council, cyntox_memory, cyntox_privacy
+    from scripts import cyntox_council, cyntox_memory, cyntox_output, cyntox_privacy
 except ModuleNotFoundError:  # pragma: no cover - direct script execution path
     import cyntox_council  # type: ignore[import-not-found,no-redef]
     import cyntox_memory  # type: ignore[import-not-found,no-redef]
+    import cyntox_output  # type: ignore[import-not-found,no-redef]
     import cyntox_privacy  # type: ignore[import-not-found,no-redef]
 
 
@@ -36,10 +37,6 @@ MAX_STRESS_REPEAT = 25
 MAX_STRESS_RERUN_FAILURES = 5
 DEFAULT_FOREGROUND_OUTPUT_LIMIT = 4_000
 MAX_FOREGROUND_OUTPUT_LIMIT = 50_000
-TERMINAL_JSON_STRING_LIMIT = 1_200
-TERMINAL_JSON_LIST_LIMIT = 25
-TERMINAL_JSON_DICT_LIMIT = 80
-TERMINAL_JSON_DEPTH_LIMIT = 6
 JOB_LIST_TASK_PREVIEW_LIMIT = 160
 JOB_SHOW_TASK_PREVIEW_LIMIT = 800
 JOB_SHOW_OUTPUT_PREVIEW_LIMIT = 1_600
@@ -1380,107 +1377,6 @@ def concise_line(text: str, limit: int = 240) -> str:
     return stripped[: max(0, limit - 3)].rstrip() + "..."
 
 
-def middle_truncated_text(text: str, limit: int) -> str:
-    if limit <= 0:
-        return f"[truncated {len(text)} chars]"
-    if len(text) <= limit:
-        return text
-    marker = f"\n[... terminal JSON truncated {len(text) - limit} chars ...]\n"
-    if limit <= len(marker) + 20:
-        return text[:limit].rstrip() + marker.strip()
-    head = max(1, (limit - len(marker)) // 2)
-    tail = max(1, limit - len(marker) - head)
-    return f"{text[:head]}{marker}{text[-tail:]}"
-
-
-def compact_terminal_json_value(
-    value: Any,
-    *,
-    changed: list[bool],
-    depth: int = 0,
-    string_limit: int = TERMINAL_JSON_STRING_LIMIT,
-    list_limit: int = TERMINAL_JSON_LIST_LIMIT,
-    dict_limit: int = TERMINAL_JSON_DICT_LIMIT,
-    depth_limit: int = TERMINAL_JSON_DEPTH_LIMIT,
-) -> Any:
-    if depth >= depth_limit and isinstance(value, dict | list | tuple):
-        changed[0] = True
-        return {"_truncated": f"depth limit {depth_limit} reached"}
-    if isinstance(value, str):
-        if len(value) > string_limit:
-            changed[0] = True
-            return middle_truncated_text(value, string_limit)
-        return value
-    if isinstance(value, bool | int | float) or value is None:
-        return value
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, dict):
-        items = list(value.items())
-        visible_items = items[:dict_limit]
-        if len(items) > len(visible_items):
-            changed[0] = True
-        compacted: dict[str, Any] = {
-            str(key): compact_terminal_json_value(
-                item_value,
-                changed=changed,
-                depth=depth + 1,
-                string_limit=string_limit,
-                list_limit=list_limit,
-                dict_limit=dict_limit,
-                depth_limit=depth_limit,
-            )
-            for key, item_value in visible_items
-        }
-        if len(items) > len(visible_items):
-            compacted["_truncated_keys"] = len(items) - len(visible_items)
-        return compacted
-    if isinstance(value, list | tuple):
-        items = list(value)
-        visible_items = items[:list_limit]
-        if len(items) > len(visible_items):
-            changed[0] = True
-        compacted_items = [
-            compact_terminal_json_value(
-                item,
-                changed=changed,
-                depth=depth + 1,
-                string_limit=string_limit,
-                list_limit=list_limit,
-                dict_limit=dict_limit,
-                depth_limit=depth_limit,
-            )
-            for item in visible_items
-        ]
-        if len(items) > len(visible_items):
-            compacted_items.append({"_truncated_items": len(items) - len(visible_items)})
-        return compacted_items
-    return str(value)
-
-
-def terminal_json(
-    payload: Any, *, full: bool = False, full_artifact: Path | str | None = None
-) -> str:
-    if full:
-        return json.dumps(payload, indent=2)
-    changed = [False]
-    compacted = compact_terminal_json_value(payload, changed=changed)
-    metadata: dict[str, Any] = {
-        "compacted": changed[0],
-        "string_limit": TERMINAL_JSON_STRING_LIMIT,
-        "list_limit": TERMINAL_JSON_LIST_LIMIT,
-        "dict_limit": TERMINAL_JSON_DICT_LIMIT,
-        "depth_limit": TERMINAL_JSON_DEPTH_LIMIT,
-    }
-    if full_artifact is not None:
-        metadata["full_artifact"] = str(full_artifact)
-    if isinstance(compacted, dict):
-        compacted = {**compacted, "_cyntox_terminal": metadata}
-    else:
-        compacted = {"data": compacted, "_cyntox_terminal": metadata}
-    return json.dumps(compacted, indent=2)
-
-
 def diagnostic_line(text: str) -> str:
     lines = [line.strip() for line in text.splitlines() if line.strip()]
     if not lines:
@@ -2568,7 +2464,7 @@ def cmd_jobs(root: Path, argv: list[str]) -> int:
     if args.command in {None, "list"}:
         jobs = list_jobs(root, args.jobs_dir)
         if getattr(args, "json", False):
-            print(terminal_json({"jobs": jobs}, full=getattr(args, "full", False)))
+            print(cyntox_output.terminal_json({"jobs": jobs}, full=getattr(args, "full", False)))
         else:
             for job in jobs:
                 score = job.get("latest_score") or "?"
@@ -2581,7 +2477,7 @@ def cmd_jobs(root: Path, argv: list[str]) -> int:
         job_dir, job = load_job(root, args.job_id, args.jobs_dir)
         if getattr(args, "json", False):
             print(
-                terminal_json(
+                cyntox_output.terminal_json(
                     job, full=getattr(args, "full", False), full_artifact=job_dir / "job.json"
                 )
             )
@@ -2696,7 +2592,7 @@ def write_jobs_report(
     ]
     (report_dir / "latest-report.md").write_text("\n".join(markdown) + "\n", encoding="utf-8")
     if as_json:
-        print(terminal_json(payload, full=full_json, full_artifact=json_path))
+        print(cyntox_output.terminal_json(payload, full=full_json, full_artifact=json_path))
     else:
         print(report_dir / "latest-report.md")
     return 0
@@ -2725,7 +2621,7 @@ def cmd_skills(root: Path, argv: list[str]) -> int:
         registry = cyntox_council.sync_skill_registry(root, args.skills_dir)
         if args.json:
             print(
-                terminal_json(
+                cyntox_output.terminal_json(
                     registry,
                     full=getattr(args, "full", False),
                     full_artifact=root / args.skills_dir / ".registry.json",
@@ -2806,7 +2702,7 @@ def cmd_devices(root: Path, argv: list[str]) -> int:
     if args.command == "list":
         if args.json:
             print(
-                terminal_json(
+                cyntox_output.terminal_json(
                     {"devices": devices},
                     full=getattr(args, "full", False),
                     full_artifact=root / args.devices_file,
@@ -2828,7 +2724,7 @@ def cmd_devices(root: Path, argv: list[str]) -> int:
         payload = {"name": args.device, "status": status, "issues": issues, "device": device}
         if args.json:
             print(
-                terminal_json(
+                cyntox_output.terminal_json(
                     payload,
                     full=getattr(args, "full", False),
                     full_artifact=root / args.devices_file,
@@ -2841,7 +2737,7 @@ def cmd_devices(root: Path, argv: list[str]) -> int:
         payload = {"name": args.device, "status": status, "issues": issues, "device": device}
         if args.json:
             print(
-                terminal_json(
+                cyntox_output.terminal_json(
                     payload,
                     full=getattr(args, "full", False),
                     full_artifact=root / args.devices_file,
@@ -3073,7 +2969,7 @@ def cmd_doctor(root: Path, argv: list[str]) -> int:
     args = parser.parse_args(argv)
     report = build_doctor_report(root)
     if args.json:
-        print(terminal_json(report, full=args.full))
+        print(cyntox_output.terminal_json(report, full=args.full))
     else:
         print(render_doctor_report(report))
     return 0 if report["status"] != "fail" else 1
@@ -3091,7 +2987,7 @@ def cmd_next(root: Path, argv: list[str]) -> int:
         parser.error("--history-limit must be at least 1")
     report = build_next_report(root, history_limit=args.history_limit)
     if args.json:
-        print(terminal_json(report, full=args.full))
+        print(cyntox_output.terminal_json(report, full=args.full))
     else:
         print(render_next_report(report))
     return 0
@@ -3110,7 +3006,7 @@ def cmd_stress(root: Path, argv: list[str]) -> int:
             parser.error("--limit must be at least 1")
         history = read_stress_history(root, limit=args.limit)
         if args.json:
-            print(terminal_json(history, full=args.full))
+            print(cyntox_output.terminal_json(history, full=args.full))
         else:
             print(render_stress_history(history))
         return 0
@@ -3207,7 +3103,7 @@ def cmd_stress(root: Path, argv: list[str]) -> int:
             if isinstance(report.get("artifacts"), dict) and report["artifacts"].get("json")
             else None
         )
-        print(terminal_json(report, full=args.full, full_artifact=full_artifact))
+        print(cyntox_output.terminal_json(report, full=args.full, full_artifact=full_artifact))
     else:
         print(render_stress_report(report))
     return 0 if report["status"] != "fail" else 1

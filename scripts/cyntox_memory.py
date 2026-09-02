@@ -14,8 +14,9 @@ from oslab.database import LabDatabase
 from oslab.memory import MemoryIndex
 
 try:
-    from scripts import cyntox_privacy
+    from scripts import cyntox_output, cyntox_privacy
 except ModuleNotFoundError:  # pragma: no cover - direct script execution path
+    import cyntox_output  # type: ignore[import-not-found,no-redef]
     import cyntox_privacy  # type: ignore[import-not-found,no-redef]
 
 
@@ -691,6 +692,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     sync = subparsers.add_parser("sync", help="Sync vault markdown into SQLite FTS.")
     sync.add_argument("--json", action="store_true")
+    sync.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
 
     extract = subparsers.add_parser(
         "extract", help="Extract compact safe memory from a CyntOX job."
@@ -766,7 +770,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "sync":
         result = sync_vault(root, vault_dir=args.vault_dir, db_path=args.memory_db)
         if args.json:
-            print(json.dumps(result, indent=2))
+            print(cyntox_output.terminal_json(result, full=args.full))
         else:
             skipped = int(result.get("skipped_secret") or 0)
             suffix = f" Skipped {skipped} secret-looking note(s)." if skipped else ""

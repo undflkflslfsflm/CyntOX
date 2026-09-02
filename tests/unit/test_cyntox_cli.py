@@ -4,7 +4,7 @@ import json
 import subprocess
 from pathlib import Path
 
-from scripts import cyntox_cli
+from scripts import cyntox_cli, cyntox_output
 
 
 def write_doctor_fixture(root: Path, *, max_tokens: int = 8192, num_ctx: int = 32768) -> None:
@@ -105,7 +105,7 @@ def test_safe_text_capture_kwargs_uses_utf8_replacement() -> None:
 def test_terminal_json_compacts_long_strings_and_lists() -> None:
     payload = {"long": "A" * 2000, "items": list(range(40))}
 
-    parsed = json.loads(cyntox_cli.terminal_json(payload))
+    parsed = json.loads(cyntox_output.terminal_json(payload))
 
     assert parsed["_cyntox_terminal"]["compacted"] is True
     assert "terminal JSON truncated" in parsed["long"]

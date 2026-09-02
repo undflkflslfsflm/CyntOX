@@ -369,6 +369,26 @@ def test_memory_search_json_full_is_explicit_opt_in(tmp_path: Path, capsys, monk
     assert "fulljsonterm keep this complete text" in payload["hits"][0]["content"]
 
 
+def test_memory_sync_json_compacts_large_skip_lists(tmp_path: Path, capsys, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    root = tmp_path / "repo"
+    facts = root / "vault" / "Facts"
+    facts.mkdir(parents=True)
+    for index in range(40):
+        (facts / f"secret-{index}.md").write_text(
+            f"# Secret {index}\n\napi_key = value-{index}\n",
+            encoding="utf-8",
+        )
+    monkeypatch.setattr(cyntox_memory, "project_root", lambda: root)
+
+    code = cyntox_memory.main(["sync", "--json"])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert payload["skipped_secret"] == 40
+    assert payload["skipped_secret_sources"][-1] == {"_truncated_items": 15}
+    assert payload["_cyntox_terminal"]["compacted"] is True
+
+
 def test_save_task_memory_creates_task_note(tmp_path: Path) -> None:
     root = tmp_path / "repo"
     root.mkdir()
