@@ -108,6 +108,44 @@ def test_shell_hook_allows_single_file_rg_search() -> None:
     assert decision(response) == "ask"
 
 
+def test_shell_hook_denies_raw_oslab_json_terminal_dump() -> None:
+    response = cyntox_qwen_hook.evaluate_pre_tool_use(
+        shell_payload("python -m oslab.cli doctor --json")
+    )
+
+    assert decision(response) == "deny"
+    reason = response["hookSpecificOutput"]["permissionDecisionReason"]  # type: ignore[index]
+    assert "OS-lab JSON" in str(reason)
+
+
+def test_shell_hook_allows_redirected_oslab_json() -> None:
+    response = cyntox_qwen_hook.evaluate_pre_tool_use(
+        shell_payload("python -m oslab.cli doctor --json > .oslab/doctor.json")
+    )
+
+    assert decision(response) == "ask"
+
+
+def test_shell_hook_denies_full_cyntox_json_terminal_dump() -> None:
+    response = cyntox_qwen_hook.evaluate_pre_tool_use(
+        shell_payload(".\\cyntox.cmd jobs list --json --full")
+    )
+
+    assert decision(response) == "deny"
+    reason = response["hookSpecificOutput"]["permissionDecisionReason"]  # type: ignore[index]
+    assert "--json --full" in str(reason)
+
+
+def test_shell_hook_denies_unbounded_convert_to_json() -> None:
+    response = cyntox_qwen_hook.evaluate_pre_tool_use(
+        shell_payload("Get-CimInstance Win32_Process | ConvertTo-Json")
+    )
+
+    assert decision(response) == "deny"
+    reason = response["hookSpecificOutput"]["permissionDecisionReason"]  # type: ignore[index]
+    assert "ConvertTo-Json" in str(reason)
+
+
 def test_shell_hook_asks_for_allowlisted_network_command() -> None:
     response = cyntox_qwen_hook.evaluate_pre_tool_use(
         shell_payload("curl https://docs.jellyfin.org"),

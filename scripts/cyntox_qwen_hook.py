@@ -71,6 +71,24 @@ UNBOUNDED_OUTPUT_RULES: tuple[tuple[re.Pattern[str], str], ...] = (
         re.compile(r"\brg\s+(?:--files\s+)?[\"']?\.[\"']?(?:\s|$)", re.IGNORECASE),
         "Use a specific pattern/path or add a bounded preview instead of dumping the whole tree.",
     ),
+    (
+        re.compile(
+            r"\b(?:python(?:\.exe)?\s+-m\s+oslab\.cli|oslab(?:\.exe)?|uv\s+run\s+oslab)\b"
+            r"[^\n\r|;]*--json\b",
+            re.IGNORECASE,
+        ),
+        "Redirect raw OS-lab JSON to a file, request a compact CyntOX command instead, or pipe to a bounded preview.",
+    ),
+    (
+        re.compile(
+            r"\bcyntox(?:\.cmd|\.ps1)?\b[^\n\r|;]*--json\b[^\n\r|;]*--full\b", re.IGNORECASE
+        ),
+        "Use compact `--json` for terminal work, or redirect `--json --full` output to a file.",
+    ),
+    (
+        re.compile(r"\bConvertTo-Json\b", re.IGNORECASE),
+        "Pipe to `Select-Object -First <n>` before ConvertTo-Json, or redirect the full JSON to a file.",
+    ),
 )
 
 
