@@ -1647,7 +1647,7 @@ def _check_proof_commands(proof: dict[str, Any], checks: list[dict[str, Any]]) -
         "main_quality_lint": ("main checkout", ".venv\\Scripts\\python.exe -m ruff check ."),
         "main_quality_typecheck": (
             "main checkout",
-            ".venv\\Scripts\\python.exe -m mypy oslab",
+            ".venv\\Scripts\\python.exe -m mypy oslab scripts",
         ),
         "main_quality_pytest_subset": (
             "main checkout",

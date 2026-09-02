@@ -275,8 +275,8 @@
 - Status: accepted
 - Date: 2026-09-02
 - Context: the CyntOX daily assistant layer lives in `scripts/`, but the OS-lab selftest previously ran strict typing only over `oslab/`. Acceptance also treated the intentional QEMU availability skip in `tests/conftest.py` as an unresolved placeholder.
-- Decision: change `oslab selftest` to run `mypy oslab scripts`, update the acceptance expected command list accordingly, and allow only the specific QEMU availability skip wording in `tests/conftest.py` while continuing to reject ordinary skipped or unfinished tests.
-- Consequence: future proof runs cover the daily assistant code as well as the lab core, and acceptance stays strict without failing on the deliberate external-Docker/QEMU gate.
+- Decision: change `oslab selftest` and the top-level proof-command contract to require `mypy oslab scripts`, update the acceptance expected command list accordingly, and allow only the specific QEMU availability skip wording in `tests/conftest.py` while continuing to reject ordinary skipped or unfinished tests.
+- Consequence: future proof runs cover the daily assistant code as well as the lab core, acceptance rejects stale proofs that only type-check `oslab/`, and acceptance stays strict without failing on the deliberate external-Docker/QEMU gate.
 
 ## D-036 — Make the artifact index regenerable
 

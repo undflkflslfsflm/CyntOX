@@ -676,7 +676,7 @@ def _create_complete_fixture_proof(root: Path) -> None:
             },
             {
                 "scope": "main checkout",
-                "command": ".venv\\Scripts\\python.exe -m mypy oslab",
+                "command": ".venv\\Scripts\\python.exe -m mypy oslab scripts",
                 "exit_code": 0,
             },
             {
@@ -890,6 +890,25 @@ def test_acceptance_audit_rejects_selftest_without_dependency_checks(tmp_path: P
 
     assert not result["ok"]
     assert "selftest_proof_artifacts_are_verifiable" in result["failed_checks"]
+
+
+def test_acceptance_audit_rejects_proof_without_scripts_typecheck(tmp_path: Path) -> None:
+    _create_complete_fixture_proof(tmp_path)
+    proof_path = tmp_path / "PROOF.json"
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
+    for row in proof["verified_commands"]:
+        if row["command"] == ".venv\\Scripts\\python.exe -m mypy oslab scripts":
+            row["command"] = ".venv\\Scripts\\python.exe -m mypy oslab"
+    _write(proof_path, json.dumps(proof, indent=2) + "\n")
+    _write_artifact_index(tmp_path)
+
+    result = audit_acceptance(tmp_path)
+
+    check = next(
+        row for row in result["checks"] if row["name"] == "proof_records_required_commands"
+    )
+    assert check["status"] == "FAIL"
+    assert check["details"]["missing_or_failed"]["main_quality_typecheck"] == "missing"
 
 
 def test_acceptance_audit_rejects_clean_checkout_at_wrong_commit(tmp_path: Path) -> None:
