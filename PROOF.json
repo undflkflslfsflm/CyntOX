@@ -1,8 +1,8 @@
 {
   "generated_at": "2026-09-02T17:30:58Z",
   "goal_status": "complete",
-  "source_commit_verified": "6151eb0",
-  "source_commit_full": "6151eb06762c64e0f252eb276fa5404653f91be4",
+  "source_commit_verified": "9a059ca",
+  "source_commit_full": "9a059ca5d5088b7367ce493c02ddb86026faf79a",
   "branch": "codex/cyntox-os-lab",
   "blocked_gate": {},
   "verified_commands": [
@@ -76,21 +76,23 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "9c531f81130566e71c8774e9454f9a01fd7bd5d834a531e00dab70c2ce8bfb0a",
-      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 210 passed, 3 QEMU-gated skips, 2 warnings; Ruff format and lint passed; mypy oslab scripts passed; target inspect, manifest-template, blocker-report, requirements trace, artifact-index, training dry-run, cleanup dry-run, live Ollama, CyntOX Code MCP smoke, and integrity checks passed."
+      "proof_sha256": "1e595cdd5ee173e8728359ef993bb90f2edc7913d77d5ee3324e682eaab9ce9a",
+      "stdout_summary": "Main checkout at source commit 9a059ca passed the 16-command live proof path: uv lock, offline pnpm install, pytest, Ruff, mypy oslab scripts, target inspect, manifest-template, Gate L report, requirements trace, artifact-index, training dry-run, cleanup dry-run, live Ollama, CyntOX Code MCP smoke, and integrity."
     },
     {
       "scope": "clean checkout",
       "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
       "exit_code": 0,
-      "worktree": ".oslab\\clean-checkouts\\6151eb0"
+      "worktree": ".oslab\\clean-checkouts\\9a059ca",
+      "source_commit": "9a059ca5d5088b7367ce493c02ddb86026faf79a",
+      "stdout_summary": "Clean checkout at source commit 9a059ca bootstrapped successfully from its own project root."
     },
     {
       "scope": "clean checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "7fba749b8a0f891acb98952066a9cbf2ba5dd6dbf3defcfbc0f588a7851e2ae9",
-      "stdout_summary": "Clean checkout at source commit 6151eb0 bootstrapped successfully; selftest passed the same 16-command live proof path including mypy oslab scripts and acceptance artifact-index generation."
+      "proof_sha256": "0b54fbcb6315e7b6a89f47ee0ce55efcd93e7b2998c630e186ff78b33436f39b",
+      "stdout_summary": "Clean checkout at source commit 9a059ca passed the same 16-command live proof path."
     },
     {
       "scope": "main checkout",

@@ -2,9 +2,9 @@
   "schema_version": 1,
   "generated_at": "2026-09-02T17:30:58Z",
   "goal_status": "complete",
-  "source_commit_full": "6151eb06762c64e0f252eb276fa5404653f91be4",
-  "main_selftest_proof_sha256": "9c531f81130566e71c8774e9454f9a01fd7bd5d834a531e00dab70c2ce8bfb0a",
-  "clean_selftest_proof_sha256": "7fba749b8a0f891acb98952066a9cbf2ba5dd6dbf3defcfbc0f588a7851e2ae9",
+  "source_commit_full": "9a059ca5d5088b7367ce493c02ddb86026faf79a",
+  "main_selftest_proof_sha256": "1e595cdd5ee173e8728359ef993bb90f2edc7913d77d5ee3324e682eaab9ce9a",
+  "clean_selftest_proof_sha256": "0b54fbcb6315e7b6a89f47ee0ce55efcd93e7b2998c630e186ff78b33436f39b",
   "trace": [
     {
       "gate": "A",

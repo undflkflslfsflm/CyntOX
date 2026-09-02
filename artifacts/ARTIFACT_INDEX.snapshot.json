@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-02T21:25:20Z",
+  "generated_at": "2026-09-02T21:32:00Z",
   "entries": [
     {
       "path": "README.md",
@@ -13,8 +13,8 @@
     },
     {
       "path": "PROOF.json",
-      "bytes": 8806,
-      "sha256": "c05aef560b5625332e946b33e32a3987a7961b710348147edd6c542dfb27717f"
+      "bytes": 8859,
+      "sha256": "392e011464f53a3f0123b23a4261db7e1b8bcee7f34783c9b258525e996f273e"
     },
     {
       "path": "docs/ARCHITECTURE.md",
@@ -114,7 +114,7 @@
     {
       "path": "artifacts/reports/requirements-trace.json",
       "bytes": 7401,
-      "sha256": "0ec27f7b12e5c10ae86fbd14aab402ecf420f80192d08e648db2ed834d227ced"
+      "sha256": "a61c17c6c06458811ef4207a3cde0109f39c25c838c5bed72de87586cd5c62c2"
     },
     {
       "path": "artifacts/reports/latest-report.json",
