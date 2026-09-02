@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-02T21:32:00Z",
+  "generated_at": "2026-09-02T21:32:56Z",
   "entries": [
     {
       "path": "README.md",
@@ -13,8 +13,8 @@
     },
     {
       "path": "PROOF.json",
-      "bytes": 8859,
-      "sha256": "392e011464f53a3f0123b23a4261db7e1b8bcee7f34783c9b258525e996f273e"
+      "bytes": 8550,
+      "sha256": "ee12282898b4f5ceafe2751506bdfd7d4a4dba55788fcb9554d1a56c7083bd2e"
     },
     {
       "path": "docs/ARCHITECTURE.md",

@@ -98,8 +98,8 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
       "exit_code": 0,
-      "artifact_sha256": "2431801869e63e960ea9e5bb149bffe33576e7ea28bdadd2577f0b5ce6f9bf77",
-      "stdout_summary": "Acceptance audit passed on the refreshed proof seed: gate summary, required docs/artifacts/support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, selftest proof artifacts, clean-checkout source commit, live Ollama/CyntOX Code stdout, recorded audit artifact freshness, Gate L blocker, requirements trace, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
+      "artifact_sha256": "42202d02121c4cb006614cb4f0d346fd2b55ed5dceb2d188247d7f51f73c2d69",
+      "stdout_summary": "Bootstrap meta-audit seed after Gate L changed to PASS; all non-meta checks passed before reseeding the recorded audit-artifact chain."
     }
   ],
   "gate_summary": {
