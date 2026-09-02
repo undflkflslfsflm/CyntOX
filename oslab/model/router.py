@@ -42,7 +42,7 @@ class ModelRouter:
                 min(context_limit, 16_384),
                 min(model.output_tokens, 2048),
                 "ollama" in self.installed_runtimes,
-                "resident Ollama Qwen worker; default for builds, tests, and fix loops",
+                "resident Ollama CyntOX worker; default for builds, tests, and fix loops",
             ),
             "deep": RuntimeProfile(
                 "deep",

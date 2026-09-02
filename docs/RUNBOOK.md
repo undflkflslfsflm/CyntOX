@@ -1,6 +1,6 @@
 # CyntOX Runbook
 
-All commands are local. They do not push, publish, install services, or modify global Qwen settings.
+All commands are local. They do not push, publish, install services, or modify global CyntOX settings.
 
 ## Setup
 
@@ -56,21 +56,21 @@ CyntOX command shortcuts:
 One-line OS-lab launcher from anywhere in PowerShell:
 
 ```powershell
-& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\oslab.ps1" --help
+& "<repo>\oslab.ps1" --help
 ```
 
-One-line interactive Qwen Code launcher from anywhere in PowerShell:
+One-line interactive CyntOX Code launcher from anywhere in PowerShell:
 
 ```powershell
-& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1"
+& "<repo>\cyntox-code.ps1"
 ```
 
-This launches the project-local Qwen Code package with bundled Node when system Node is not on `PATH`, auto-selects the local Ollama-backed `cyntox` model through the OpenAI-compatible loopback provider, displays it as `CyntOX` with a custom CyntOX/Mythos banner, uses an ignored `.oslab` interactive workspace, keeps startup context lean, enables normal text-file read/search/edit tools, denies `display_image` for text files, raises the default completion/context limits to reduce mid-answer truncation, tells the model to keep terminal answers compact and save/report file paths for long detail, removes the lab MCP approval prompt, and leaves the audited lab `.qwen/settings.json` untouched. The human-use launcher also denies Qwen Code's built-in `web_fetch` and `web_search` tools by default, injects CyntOX prompt-injection boundaries, and installs a local `run_shell_command` pre-tool hook that denies public-network/secret-exfiltration shell attempts plus obvious terminal-flood commands such as raw `git diff`, broad unbounded `rg`, unbounded recursive listings, and wildcard/raw file dumps before execution. Use council allowlists for any task that genuinely needs public internet. To run a one-shot prompt and stay interactive, add Qwen Code's own `-i` option:
+This launches the project-local CyntOX Code package with bundled Node when system Node is not on `PATH`, auto-selects the local Ollama-backed `cyntox` model through the OpenAI-compatible loopback provider, displays it as `CyntOX` with a custom CyntOX/Mythos banner, uses an ignored `.oslab` interactive workspace, keeps startup context lean, enables normal text-file read/search/edit tools, denies `display_image` for text files, raises the default completion/context limits to reduce mid-answer truncation, tells the model to keep terminal answers compact and save/report file paths for long detail, removes the lab MCP approval prompt, and leaves the audited lab `.cyntox/settings.json` untouched. The human-use launcher also denies CyntOX Code's built-in `web_fetch` and `web_search` tools by default, injects CyntOX prompt-injection boundaries, and installs a local `run_shell_command` pre-tool hook that denies public-network/secret-exfiltration shell attempts plus obvious terminal-flood commands such as raw `git diff`, broad unbounded `rg`, unbounded recursive listings, and wildcard/raw file dumps before execution. Use council allowlists for any task that genuinely needs public internet. To run a one-shot prompt and stay interactive, add CyntOX Code's own `-i` option:
 
-Council jobs use direct local Ollama by default because it avoids Qwen Code's large tool-prompt overhead. The default direct-Ollama council limits are `num_ctx=32768` and `num_predict=8192`; override them with `CYNTOX_COUNCIL_NUM_CTX` and `CYNTOX_COUNCIL_NUM_PREDICT` only when you know the local model/runtime can handle it. Terminal previews are capped to 4,000 characters by default while full outputs are saved under the run artifacts; use `--terminal-output-limit <chars>` or `CYNTOX_TERMINAL_OUTPUT_LIMIT=<chars>` to resize previews, `--terminal-output-limit 0` for artifact pointers only, or `--print-full-output` for intentional full terminal dumps. CyntOX command JSON is compact, parseable, and whole-response capped by default; add `--full` beside `--json` when intentionally exporting full metadata, preferably redirected to a file. Use `.\cyntox-council.cmd --engine qwen-code ...` only when explicitly testing the Qwen Code prompt path.
+Council jobs use direct local Ollama by default because it avoids CyntOX Code's large tool-prompt overhead. The default direct-Ollama council limits are `num_ctx=32768` and `num_predict=8192`; override them with `CYNTOX_COUNCIL_NUM_CTX` and `CYNTOX_COUNCIL_NUM_PREDICT` only when you know the local model/runtime can handle it. Terminal previews are capped to 4,000 characters by default while full outputs are saved under the run artifacts; use `--terminal-output-limit <chars>` or `CYNTOX_TERMINAL_OUTPUT_LIMIT=<chars>` to resize previews, `--terminal-output-limit 0` for artifact pointers only, or `--print-full-output` for intentional full terminal dumps. CyntOX command JSON is compact, parseable, and whole-response capped by default; add `--full` beside `--json` when intentionally exporting full metadata, preferably redirected to a file. Use `.\cyntox-council.cmd --engine cyntox-code ...` only when explicitly testing the CyntOX Code prompt path.
 
 ```powershell
-& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1" -i "help me inspect this project"
+& "<repo>\cyntox-code.ps1" -i "help me inspect this project"
 ```
 
 PowerShell:
@@ -79,7 +79,7 @@ PowerShell:
 .\scripts\bootstrap.ps1
 .\oslab.ps1 init --json
 .\oslab.ps1 doctor --json
-.\qwen-code.ps1 --version
+.\cyntox-code.ps1 --version
 .\.venv\Scripts\python.exe -m oslab.cli init --json
 .\.venv\Scripts\python.exe -m oslab.cli doctor --json
 ```
@@ -132,7 +132,7 @@ Device safety:
 .\oslab.ps1 acceptance audit --json
 .\.venv\Scripts\python.exe -m oslab.cli model probe --live --json
 .\.venv\Scripts\python.exe -m oslab.cli model benchmark --json
-.\.venv\Scripts\python.exe -m oslab.cli model qwen-code-smoke --json
+.\.venv\Scripts\python.exe -m oslab.cli model cyntox-code-smoke --json
 .\.venv\Scripts\python.exe -m oslab.cli target inspect --json
 .\.venv\Scripts\python.exe -m oslab.cli target manifest-template --json
 .\.venv\Scripts\python.exe -m oslab.cli build --target fixture --profile debug --json
@@ -172,7 +172,7 @@ Device safety:
 .\.venv\Scripts\python.exe -m oslab.cli acceptance audit --save --json
 ```
 
-`selftest` runs `uv lock --check`, frozen/offline `pnpm install`, pytest, format check, lint, strict typing for both `oslab` and `scripts`, target inspection, generated acceptance trace/artifact-index checks, training export, cleanup dry-run, live Ollama smoke, Qwen Code MCP smoke, and artifact/database integrity. The QEMU and live tests require Docker Desktop/WSL2, Ollama, and the local Qwen model to be available.
+`selftest` runs `uv lock --check`, frozen/offline `pnpm install`, pytest, format check, lint, strict typing for both `oslab` and `scripts`, target inspection, generated acceptance trace/artifact-index checks, training export, cleanup dry-run, live Ollama smoke, CyntOX Code MCP smoke, and artifact/database integrity. The QEMU and live tests require Docker Desktop/WSL2, Ollama, and the local CyntOX model to be available.
 `acceptance audit` checks the final proof files, gate summary, required artifact contents, key evidence CAS artifacts, artifact snapshot, referenced selftest proof blobs, clean-checkout source commit, live smoke stdout, recorded audit artifact, clean Git state, and proof-only post-verification changes. The recorded audit artifact must include the semantic-content, key-evidence, clean-checkout, and live-output checks, match the final gate summary and Gate L blocker, and decisive evidence blobs must exist with valid nested serial/stderr artifact references.
 
 ## Real OS Target

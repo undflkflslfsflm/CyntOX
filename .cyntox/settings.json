@@ -5,9 +5,9 @@
   "modelProviders": {
     "openai": [
       {
-        "id": "qwen-os-lab-worker:latest",
-        "name": "Local Qwen3.8 27B Q4_K_M (Ollama)",
-        "description": "Loopback-only resident worker selected by qwen-os-lab discovery",
+        "id": "cyntox-os-lab-worker:latest",
+        "name": "Local CyntOX3.8 27B Q4_K_M (Ollama)",
+        "description": "Loopback-only resident worker selected by cyntox-os-lab discovery",
         "envKey": "OSLAB_OLLAMA_API_KEY",
         "baseUrl": "http://127.0.0.1:11434/v1",
         "generationConfig": {
@@ -39,7 +39,7 @@
     }
   },
   "model": {
-    "name": "qwen-os-lab-worker:latest",
+    "name": "cyntox-os-lab-worker:latest",
     "maxSessionTurns": 6,
     "maxWallTimeSeconds": 120,
     "maxToolCalls": 4,

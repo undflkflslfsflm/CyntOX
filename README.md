@@ -2,7 +2,7 @@
 
 CyntOX is the primary daily command for the local-first AI workbench. The stack uses the local CyntOX model, Mythos operating persona, council review, resumable jobs, repo-local skills, a device safety registry, and an Obsidian-compatible memory vault. The OS-lab subsystem remains a local-only, evidence-driven reliability laboratory for operating-system targets.
 
-The detected primary worker is the local Ollama model `huihui-qwen3.8-27b-abliterated:latest`. Guest networking is disabled, APIs bind to loopback, evaluated patches use disposable Git worktrees, and artifacts are content addressed.
+The detected primary worker is the local Ollama model `cyntox:latest`. Guest networking is disabled, APIs bind to loopback, evaluated patches use disposable Git worktrees, and artifacts are content addressed.
 
 ## Bootstrap
 
@@ -15,16 +15,16 @@ One-line daily launcher from PowerShell:
 One-line OS-lab launcher from PowerShell:
 
 ```powershell
-& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\oslab.ps1" --help
+& "<repo>\oslab.ps1" --help
 ```
 
-One-line interactive Qwen Code launcher:
+One-line interactive CyntOX Code launcher:
 
 ```powershell
-& "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1"
+& "<repo>\cyntox-code.ps1"
 ```
 
-That opens the project-local Qwen Code 0.22.3 CLI on the local Ollama-backed `cyntox` model alias, displayed as `CyntOX` with a custom CyntOX/Mythos banner. For human use, the launcher starts Qwen from an ignored `.oslab` workspace, forces the OpenAI-compatible loopback provider/model so no provider picker appears, keeps startup context lean, gives it text-file read/search/edit tools, denies `display_image` for text files, raises the default completion/context limits to reduce mid-answer truncation, tells the model to keep terminal answers compact and save/report file paths for long detail, removes the lab MCP prompt, and leaves the audited lab `.qwen/settings.json` untouched.
+That opens the project-local CyntOX Code 0.22.3 CLI on the local Ollama-backed `cyntox` model alias, displayed as `CyntOX` with a custom CyntOX/Mythos banner. For human use, the launcher starts CyntOX Code from an ignored `.oslab` workspace, forces the OpenAI-compatible loopback provider/model so no provider picker appears, keeps startup context lean, gives it text-file read/search/edit tools, denies `display_image` for text files, raises the default completion/context limits to reduce mid-answer truncation, tells the model to keep terminal answers compact and save/report file paths for long detail, removes the lab MCP prompt, and leaves the audited lab `.cyntox/settings.json` untouched.
 
 One-line CyntOX Council runner:
 
@@ -32,7 +32,7 @@ One-line CyntOX Council runner:
 .\cyntox-council.cmd "review this repo and give me the safest next engineering step"
 ```
 
-The council runs CyntOX through focused roles, scores the final answer, and retries the synthesis once if the score is below the quality threshold. Council jobs default to the direct local Ollama engine for reliability with larger daily-use generation limits (`num_ctx=32768`, `num_predict=8192` by default); `cyntox chat` remains the Qwen Code interactive path. Council terminal output is capped to a 4,000-character preview by default so long answers do not flood/truncate the console; the full role outputs are always saved in the run artifacts. Use `--terminal-output-limit <chars>` or `CYNTOX_TERMINAL_OUTPUT_LIMIT=<chars>` to change the preview size, `--terminal-output-limit 0` to print only the artifact pointer, or `--print-full-output` when you intentionally want the full answer printed. Terminal JSON from CyntOX commands is valid, compact, and whole-response capped by default; add `--full` beside `--json` only when intentionally exporting/dumping full metadata, preferably redirected to a file. Default mode is planning/review only. Use `--mode implement` only when the task should make scoped local changes or run authorized setup commands.
+The council runs CyntOX through focused roles, scores the final answer, and retries the synthesis once if the score is below the quality threshold. Council jobs default to the direct local Ollama engine for reliability with larger daily-use generation limits (`num_ctx=32768`, `num_predict=8192` by default); `cyntox chat` remains the CyntOX Code interactive path. Council terminal output is capped to a 4,000-character preview by default so long answers do not flood/truncate the console; the full role outputs are always saved in the run artifacts. Use `--terminal-output-limit <chars>` or `CYNTOX_TERMINAL_OUTPUT_LIMIT=<chars>` to change the preview size, `--terminal-output-limit 0` to print only the artifact pointer, or `--print-full-output` when you intentionally want the full answer printed. Terminal JSON from CyntOX commands is valid, compact, and whole-response capped by default; add `--full` beside `--json` only when intentionally exporting/dumping full metadata, preferably redirected to a file. Default mode is planning/review only. Use `--mode implement` only when the task should make scoped local changes or run authorized setup commands.
 
 Useful CyntOX commands:
 
@@ -88,7 +88,7 @@ CyntOX vault/RAG memory is stored as Markdown under `vault/` and indexed into `.
 
 Device control is registered in `devices.toml`. Dry-run planning is allowed for configured and unconfigured devices. Configured devices must declare command allow/deny policies or `devices doctor` keeps them in limited mode. The deterministic executor enforces each device's denied-command list and allowed-command list before local/SSH execution, rejects unsafe SSH host/user values before invoking `ssh`, and blocks setup services that are not allowed for the target. Dangerous task patterns hard-stop implementation/device execution, while plan-mode boundary discussions are passed to the council instead of being falsely blocked. Real writes/installs require an approved target and command evidence; CyntOX must not claim success without captured output and verification.
 
-Privacy defaults are strict. The council injects a default-deny internet policy (`--internet-mode off`), can allow specific domains with `--internet-mode allowlist --allow-domain <domain>`, scans prompt text/RAG context for injection-like and secret-like patterns, and records a privacy summary in each run manifest. The interactive Qwen launcher denies built-in `web_fetch`/`web_search` and installs a local `run_shell_command` pre-tool hook that denies public-network/secret-exfiltration shell attempts plus obvious terminal-flood commands such as raw `git diff`, broad unbounded `rg`, unbounded recursive listings, and wildcard/raw file dumps before execution. See `docs/PRIVACY_AND_INJECTION.md`.
+Privacy defaults are strict. The council injects a default-deny internet policy (`--internet-mode off`), can allow specific domains with `--internet-mode allowlist --allow-domain <domain>`, scans prompt text/RAG context for injection-like and secret-like patterns, and records a privacy summary in each run manifest. The interactive CyntOX launcher denies built-in `web_fetch`/`web_search` and installs a local `run_shell_command` pre-tool hook that denies public-network/secret-exfiltration shell attempts plus obvious terminal-flood commands such as raw `git diff`, broad unbounded `rg`, unbounded recursive listings, and wildcard/raw file dumps before execution. See `docs/PRIVACY_AND_INJECTION.md`.
 
 PowerShell:
 
@@ -96,7 +96,7 @@ PowerShell:
 .\scripts\bootstrap.ps1
 .\oslab.ps1 doctor --json
 .\oslab.cmd doctor --json
-.\qwen-code.ps1 --version
+.\cyntox-code.ps1 --version
 .\.venv\Scripts\uv.exe run oslab doctor --json
 .\scripts\demo.ps1
 ```
@@ -109,14 +109,14 @@ Bash/WSL:
 ./scripts/demo.sh
 ```
 
-The bootstrap creates a project-local environment and does not install a service or modify global Qwen settings. See `docs/RUNBOOK.md` for all workflows and `docs/THREAT_MODEL.md` for the security boundary.
+The bootstrap creates a project-local environment and does not install a service or modify global CyntOX settings. See `docs/RUNBOOK.md` for all workflows and `docs/THREAT_MODEL.md` for the security boundary.
 
 ## Current verified status
 
-- Discovery, local model probe, Qwen Code constrained MCP smoke, QEMU fixture, recovery proof, fuzzing, A-E evaluation, training dry-run, and integrity/report commands have saved evidence under `artifacts/`.
+- Discovery, local model probe, CyntOX Code constrained MCP smoke, QEMU fixture, recovery proof, fuzzing, A-E evaluation, training dry-run, and integrity/report commands have saved evidence under `artifacts/`.
 - Spec-style workflows are available directly as `oslab campaign --target fixture --budget 10m --seed 1 --iterations 6 --json` and `oslab eval --suite seeded --seeds 1,2,3 --json`, while the original `campaign run` and `eval run` forms remain available.
 - Optional runtimes are documented in `docs/MODEL_RUNTIME_REPORT.md`; only Ollama is installed and benchmarked locally.
-- Gate L is blocked until a local authorized real OS source path and build entry point are supplied. Use `oslab target manifest-template --json`, create `oslab-target.toml` from `config/oslab-target.example.toml`, then run `oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json` and `oslab target validate-manifest --repo <AUTHORIZED_OS_SOURCE_PATH> --json` to unlock that gate. The validator confirms the target is its own Git repository root and that `source.base_commit` resolves to a real commit before any build is attempted. `oslab target blocker-report --json` regenerates the machine-readable blocker report while Gate L is waiting. `oslab build --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --profile debug --json` then builds from a detached disposable worktree at that base commit and hashes the declared artifacts; `oslab boot --target real --repo <AUTHORIZED_OS_SOURCE_PATH> --profile debug --json` runs the declared serial smoke boot through Docker-backed QEMU with `-nic none` and loopback QMP.
+- Gate L now passes with the MIT-licensed open-source target at `C:\Users\vikto\Documents\ChatGPT\cyntox-open-os-target`. The lab validates its `oslab-target.toml`, builds from immutable commit `db7b591789313d6288584c223e954e6f52880d11` in a detached disposable worktree, then runs the serial smoke test through Docker-backed QEMU with `-nic none` and loopback QMP. The saved smoke proof is `artifacts/reports/gate-l-real-target-run.json`, and the serial output contains `READY` followed by `PASS`.
 
 ## Proof command
 

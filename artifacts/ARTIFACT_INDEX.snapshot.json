@@ -1,50 +1,50 @@
 {
-  "generated_at": "2026-09-02T17:32:10Z",
+  "generated_at": "2026-09-02T21:25:20Z",
   "entries": [
     {
       "path": "README.md",
-      "bytes": 11776,
-      "sha256": "f405850518cfc37347f68240b077914d4910c4c6ad123d209fab6e0c6aa1838d"
+      "bytes": 11126,
+      "sha256": "ce3b1a618dd774c8390861692f48322bcf11b2c8c3dce8b03c04c33e73ffe380"
     },
     {
       "path": "FINAL_REPORT.md",
-      "bytes": 8407,
-      "sha256": "0bffc6a99cb91d38b8873474b05e7df6e772d19be8f734e3f8e8d04b27a4e3d6"
+      "bytes": 8093,
+      "sha256": "48c404410e4f0aa4cc9ed409414fd76bd80248191cb5eb77251efe534741f8ee"
     },
     {
       "path": "PROOF.json",
-      "bytes": 7377,
-      "sha256": "ae391dde2b84a117a8152edacdcb31eb8ff9eef9ffdb4fa2b14c45384b9c3e4c"
+      "bytes": 8806,
+      "sha256": "c05aef560b5625332e946b33e32a3987a7961b710348147edd6c542dfb27717f"
     },
     {
       "path": "docs/ARCHITECTURE.md",
-      "bytes": 4530,
-      "sha256": "d2e15fb8780a3a5f2268702bf1179c7ec678ae99d2c3b02d1a88bae8d8745c46"
+      "bytes": 4542,
+      "sha256": "4aa336668a9261230f0ad3eec5ba4e0208d368a3b45359f0576f10730a159929"
     },
     {
       "path": "docs/THREAT_MODEL.md",
-      "bytes": 3226,
-      "sha256": "8cb31af83c374c2fbd0d4e0ee7868418c7ec58e96a1cf4fa9a9b5ca429c94c22"
+      "bytes": 3234,
+      "sha256": "75cce5ebecccb5ae2ce9099ec6965cf3303633ccc0d1c36b882551806cf881c3"
     },
     {
       "path": "docs/RUNBOOK.md",
-      "bytes": 12009,
-      "sha256": "4927ac74185d39526dd71f34410fc563a62f69e6f929bb1d21e38970962bf058"
+      "bytes": 11847,
+      "sha256": "c816e46d1ba26cffcfe1ab610120661ab07aa3b5ece9d0b4b1f58b968651734d"
     },
     {
       "path": "docs/MODEL_RUNTIME_REPORT.md",
-      "bytes": 4171,
-      "sha256": "b656e526b0fc0c7c6217aff0cde9ae780b94781c9ed4664542c63bda0364d7ff"
+      "bytes": 4152,
+      "sha256": "5c8550b599cfe4ed21b192350a9f2c39d3a20522041c0c64579e3658336172c0"
     },
     {
       "path": "docs/REAL_OS_INTEGRATION.md",
-      "bytes": 7272,
-      "sha256": "263e1d38cbe54891d1e2d8acb7b8075b8e7bf1a7f30219eb1c459c380d8f6c1e"
+      "bytes": 4053,
+      "sha256": "e0f185765e67327ea6c7d927837f2c0a3c2c166da02ec2551821debc0a948a3a"
     },
     {
       "path": "docs/TRAINING_READINESS.md",
-      "bytes": 1364,
-      "sha256": "200b75e10cc52c17011f2bcd5fe33f27ca0a8487c2b1aefef20e5c7baf538137"
+      "bytes": 1366,
+      "sha256": "677bfeebf9d995437481350f6cdc6ce7baec5bc583a432e4444e6131522027d4"
     },
     {
       "path": "docs/KNOWN_LIMITATIONS.md",
@@ -58,38 +58,38 @@
     },
     {
       "path": "docs/HARDWARE_REPORT.md",
-      "bytes": 830,
-      "sha256": "2ee52828e3c997202a8e8139d8a473f62d0b2d4ebe0783a489f04627bf63ba59"
+      "bytes": 857,
+      "sha256": "79c58c216d8d0c568066773ee462d45e6bebc19c637d980666ce693ee8e6447f"
     },
     {
       "path": "docs/OSLAB_EXECPLAN.md",
-      "bytes": 5015,
-      "sha256": "9a83d238de9e615e983053cec236841d66c2b69deade350b2e0849b0e1247f58"
+      "bytes": 3870,
+      "sha256": "1cbe884d7dfd9391bbeb02f0582a906bf7cd30ffacc375e3e84e4fd9128ebb6e"
     },
     {
       "path": "docs/OSLAB_PROGRESS.md",
-      "bytes": 15752,
-      "sha256": "473c6f3aba8450f55459f2440a61c8d47725b542c67b96c43ce8aeb84346cc5c"
+      "bytes": 16221,
+      "sha256": "5e69b7eb721d4700c4ccd1458b1b097a7ca82886264b33ba328a1bbfa7800d35"
     },
     {
       "path": "docs/OSLAB_DECISIONS.md",
-      "bytes": 24512,
-      "sha256": "ff4932611383ebfaa1c3afc8cdcab26555f09e7a4de9c12312d0ec79d1ba8138"
+      "bytes": 25381,
+      "sha256": "60e8c2c2a985bab296558a1135f68d6869041993498798d8296535bb4dad36ba"
     },
     {
       "path": "artifacts/discovery/hardware-report.json",
-      "bytes": 7888,
-      "sha256": "c513c5dc9f6a03b12aab6fb815c376ffeebbb96fc8ef36677401be45af371581"
+      "bytes": 6531,
+      "sha256": "5a8e5d17c425fe505a1609004384781809e59736247c5b10e5dec6a526ae650c"
     },
     {
       "path": "artifacts/discovery/model-benchmark.json",
-      "bytes": 1230,
-      "sha256": "9831eb9af7a702d18212efaa40310214df06e0e112d54c99d3955d68feb56d67"
+      "bytes": 1167,
+      "sha256": "1f57aa5c2e20317faa50cfcafd46d9b20115bf2e52cba4e31943b2c15be2349f"
     },
     {
       "path": "artifacts/discovery/runtime-assessment.json",
-      "bytes": 1253,
-      "sha256": "566ca8eef48e70ea802745444d8c6008d628a19688814a38d593b6b3cdd18d92"
+      "bytes": 1238,
+      "sha256": "6952ccf5a48fbe8c99df3d9d94041056b55822a044f4cf3958b77d984e78dbcf"
     },
     {
       "path": "artifacts/evaluation/seeded-results.json",
@@ -108,23 +108,23 @@
     },
     {
       "path": "artifacts/reports/gate-l-blocker-report.json",
-      "bytes": 3678,
-      "sha256": "c9338546bc7ba13c11afb8926aefcbb340690a539783e101e4839d4214c9cb50"
+      "bytes": 4068,
+      "sha256": "9633f4708fa33f4f899f72087a1ec35116813652bc9b1a122e82719aca0a26ff"
     },
     {
       "path": "artifacts/reports/requirements-trace.json",
-      "bytes": 7715,
-      "sha256": "8e914e16a8184f8be004ec4d2fb6e76d6f55c76b738ecb727fb7ed90ccd2f197"
+      "bytes": 7401,
+      "sha256": "0ec27f7b12e5c10ae86fbd14aab402ecf420f80192d08e648db2ed834d227ced"
     },
     {
       "path": "artifacts/reports/latest-report.json",
-      "bytes": 11087,
-      "sha256": "f5cbb930fed2a25534c0d420d2273601bb60facec5d5decad54a04577f9ef394"
+      "bytes": 10920,
+      "sha256": "20f2212b736c35cc95ff1d75daa978c6f527ec2c3d46e10efd8d99581d4464e0"
     },
     {
       "path": "artifacts/reports/latest-report.md",
-      "bytes": 167,
-      "sha256": "c69302c5eb201719fd12f88959662a1e47da54b4b44447c7c290f68ffc004cae"
+      "bytes": 149,
+      "sha256": "e53380000e4f03616703a77d98cb26846c10383ab4d0f7b43cc6c4af64e7196b"
     },
     {
       "path": "artifacts/training/dry-run/trajectories.jsonl",
@@ -138,8 +138,8 @@
     },
     {
       "path": "artifacts/training/dry-run/DATASET_CARD.md",
-      "bytes": 342,
-      "sha256": "ea7ee94ab91ce0deaa672918097e4032076ce9ca2b27bae3e3e8ad73e5affbdc"
+      "bytes": 344,
+      "sha256": "7e3cfa5baa16687d3297e5cfb0f82eeef0a1e1c31904dd01d56cd960458b71f0"
     },
     {
       "path": "config/oslab-target.example.toml",
@@ -157,14 +157,14 @@
       "sha256": "b2fe8ba8f37f00968e65edcf17a91700450caba7b5f063a978ef2faba44ec8ef"
     },
     {
-      "path": "qwen-code.ps1",
-      "bytes": 24147,
-      "sha256": "ee2b3caebf6b8070bfb3c4e7dfd4a1a0924195ed5b003c591a554f5b95d5a7dc"
+      "path": "cyntox-code.ps1",
+      "bytes": 24562,
+      "sha256": "4f5ad23f209a07841bd5d6676d23db74cbfa43916b563b798f1f84a36b6afdbb"
     },
     {
-      "path": "qwen-code.cmd",
-      "bytes": 256,
-      "sha256": "af54d6cd39a66661ff92b80fb37d9894a61d2fa683c4027192468157bc828fe1"
+      "path": "cyntox-code.cmd",
+      "bytes": 260,
+      "sha256": "5781658e5de52dc5d8c252650bd082835c18c70b97ec728334cb9ad398c1bfd5"
     }
   ]
 }

@@ -136,7 +136,7 @@ PRESETS: dict[str, tuple[str, ...]] = {
 }
 DEFAULT_PRESET = "max"
 DEFAULT_ENGINE = "ollama"
-DEFAULT_OLLAMA_MODEL = "huihui-qwen3.8-27b-abliterated:latest"
+DEFAULT_OLLAMA_MODEL = "cyntox:latest"
 DEFAULT_OLLAMA_NUM_CTX = 32768
 DEFAULT_OLLAMA_NUM_PREDICT = 8192
 MAX_OLLAMA_NUM_CTX = 262144
@@ -327,7 +327,8 @@ def sync_skill_registry(
         if isinstance(entry, dict):
             entry.setdefault("created_at", now)
             entry.setdefault("last_seen_at", now)
-            entry["last_seen_at"] = now
+            if save:
+                entry["last_seen_at"] = now
             entry.setdefault("use_count", 0)
             entry.setdefault("archived_at", None)
             entry.setdefault("archive_path", None)
@@ -685,9 +686,11 @@ def safe_text_capture_kwargs(timeout: float | None = None) -> dict[str, Any]:
     return kwargs
 
 
-def run_qwen_role(root: Path, prompt: str, max_wall_time: str) -> subprocess.CompletedProcess[str]:
+def run_cyntox_code_role(
+    root: Path, prompt: str, max_wall_time: str
+) -> subprocess.CompletedProcess[str]:
     shell = find_powershell()
-    launcher = root / "qwen-code.ps1"
+    launcher = root / "cyntox-code.ps1"
     timeout = parse_duration_seconds(max_wall_time) + 75
     command = [
         shell,
@@ -830,7 +833,7 @@ def run_role(
 ) -> subprocess.CompletedProcess[str]:
     if engine == "ollama":
         return run_ollama_role(prompt, max_wall_time, model)
-    return run_qwen_role(root, prompt, max_wall_time)
+    return run_cyntox_code_role(root, prompt, max_wall_time)
 
 
 def parse_roles(value: str) -> list[str]:
@@ -1032,7 +1035,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--roles", help="Comma-separated role list. Overrides --preset.")
     parser.add_argument("--mode", choices=("plan", "implement"), default="plan")
-    parser.add_argument("--engine", choices=("ollama", "qwen-code"), default=DEFAULT_ENGINE)
+    parser.add_argument("--engine", choices=("ollama", "cyntox-code"), default=DEFAULT_ENGINE)
     parser.add_argument(
         "--model",
         default=os.environ.get("CYNTOX_UPSTREAM_MODEL", DEFAULT_OLLAMA_MODEL),
@@ -1128,7 +1131,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--out-dir", default=".oslab/council/runs", help="Directory for council artifacts."
     )
     parser.add_argument(
-        "--dry-run", action="store_true", help="Write prompts/manifest without calling Qwen."
+        "--dry-run", action="store_true", help="Write prompts/manifest without calling CyntOX."
     )
     parser.add_argument(
         "--verbose", action="store_true", help="Print every role output, not just final synthesis."

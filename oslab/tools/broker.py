@@ -562,9 +562,9 @@ class CapabilityBroker:
         result = await self._git(
             [
                 "-c",
-                "user.name=Qwen OS Lab",
+                "user.name=CyntOX OS Lab",
                 "-c",
-                "user.email=qwen-os-lab@local.invalid",
+                "user.email=cyntox-os-lab@local.invalid",
                 "commit",
                 "-m",
                 message,
@@ -950,7 +950,7 @@ class CapabilityBroker:
                 "--rm",
                 "--mount",
                 f"type=bind,source={root},target=/lab",
-                "qwen-os-lab-qemu:bookworm",
+                "cyntox-os-lab-qemu:bookworm",
                 "ndisasm",
                 "-b",
                 "16",

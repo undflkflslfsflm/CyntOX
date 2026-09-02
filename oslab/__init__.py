@@ -1,3 +1,3 @@
-"""Qwen OS Lab."""
+"""CyntOX OS Lab."""
 
 __version__ = "0.1.0"

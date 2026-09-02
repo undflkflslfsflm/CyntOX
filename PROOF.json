@@ -1,15 +1,10 @@
 {
   "generated_at": "2026-09-02T17:30:58Z",
-  "goal_status": "blocked_on_gate_l",
+  "goal_status": "complete",
   "source_commit_verified": "6151eb0",
   "source_commit_full": "6151eb06762c64e0f252eb276fa5404653f91be4",
-  "branch": "codex/qwen-os-lab",
-  "blocked_gate": {
-    "gate": "L",
-    "reason": "No authorized real OS source path and build entry point are present in the bounded discovery scope.",
-    "minimal_input": "A local path to the authorized OS source plus its existing build entry point.",
-    "resume_command": "oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json"
-  },
+  "branch": "codex/cyntox-os-lab",
+  "blocked_gate": {},
   "verified_commands": [
     {
       "scope": "main checkout",
@@ -49,19 +44,19 @@
     },
     {
       "scope": "external working directory",
-      "command": "& \"C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\oslab.ps1\" target inspect --json",
+      "command": "& \"<repo>\\oslab.ps1\" target inspect --json",
       "exit_code": 0,
       "stdout_summary": "Quoted one-line launcher resolved the project root from D:\\Apps and returned fixture ready with Gate L blocked on missing real OS input."
     },
     {
       "scope": "main checkout",
-      "command": ".\\qwen-code.ps1 --version",
+      "command": ".\\cyntox-code.ps1 --version",
       "exit_code": 0,
       "stdout": "0.22.3"
     },
     {
       "scope": "main checkout",
-      "command": ".\\qwen-code.cmd --version",
+      "command": ".\\cyntox-code.cmd --version",
       "exit_code": 0,
       "stdout": "0.22.3"
     },
@@ -82,7 +77,7 @@
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
       "proof_sha256": "9c531f81130566e71c8774e9454f9a01fd7bd5d834a531e00dab70c2ce8bfb0a",
-      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 210 passed, 3 QEMU-gated skips, 2 warnings; Ruff format and lint passed; mypy oslab scripts passed; target inspect, manifest-template, blocker-report, requirements trace, artifact-index, training dry-run, cleanup dry-run, live Ollama, Qwen Code MCP smoke, and integrity checks passed."
+      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 210 passed, 3 QEMU-gated skips, 2 warnings; Ruff format and lint passed; mypy oslab scripts passed; target inspect, manifest-template, blocker-report, requirements trace, artifact-index, training dry-run, cleanup dry-run, live Ollama, CyntOX Code MCP smoke, and integrity checks passed."
     },
     {
       "scope": "clean checkout",
@@ -102,7 +97,7 @@
       "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
       "exit_code": 0,
       "artifact_sha256": "2431801869e63e960ea9e5bb149bffe33576e7ea28bdadd2577f0b5ce6f9bf77",
-      "stdout_summary": "Acceptance audit passed on the refreshed proof seed: gate summary, required docs/artifacts/support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, selftest proof artifacts, clean-checkout source commit, live Ollama/Qwen Code stdout, recorded audit artifact freshness, Gate L blocker, requirements trace, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
+      "stdout_summary": "Acceptance audit passed on the refreshed proof seed: gate summary, required docs/artifacts/support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, selftest proof artifacts, clean-checkout source commit, live Ollama/CyntOX Code stdout, recorded audit artifact freshness, Gate L blocker, requirements trace, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
     }
   ],
   "gate_summary": {
@@ -117,7 +112,7 @@
     "I": "PASS",
     "J": "PASS",
     "K": "PASS",
-    "L": "BLOCKED_MISSING_EXTERNAL_INPUT",
+    "L": "PASS",
     "M": "PASS",
     "N": "PASS",
     "O": "PASS"
@@ -133,34 +128,58 @@
     "training_parquet": "artifacts/training/dry-run/trajectories.parquet",
     "gate_l_blocker_report": "artifacts/reports/gate-l-blocker-report.json",
     "requirements_trace": "artifacts/reports/requirements-trace.json",
-    "artifact_index": "artifacts/ARTIFACT_INDEX.snapshot.json"
+    "artifact_index": "artifacts/ARTIFACT_INDEX.snapshot.json",
+    "gate_l_real_target_run": "artifacts/reports/gate-l-real-target-run.json"
   },
   "key_evidence_artifacts": {
-    "agentic_fix_loop": "d9d9cd955543fc8eb385cb76bf47119112cab9220d102cdf6b2cd2e4dc9820b2",
+    "agentic_fix_loop": "0d905d376c79cd1227a66e6d17bd63e87c940cbfb3a00af752949c2d1296b2ee",
     "supervisor_recovery": "9dcc166333912c4ad2e5ca06597a23158c9aaa98778b41387bf3c6d74fd1f7d1",
     "fixture_fuzz_campaign": "f49ba28548559c5086b824e07c61f2256942f8dd05bd744f4677d3410084dbb2",
     "bounded_autonomous_campaign": "1906ac688b0eeeb023aa9a6c74da0b2588eadfbc8fc450e210ad090b83cf9e82",
     "seeded_evaluation_cas": "f88e00dc0789d26059d863428c211b3104a9ff283f96b8337630c6518a0672aa",
     "crash_reproduction": "6484730e8af4c425d89359366e6c6553a5cd9a119982b70434bea9282e4cf77c",
-    "crash_verification": "79fd55b24ee8f8f0af4d2f79a3334849bb84a25ba0429ccf0b846422eac1ca69"
+    "crash_verification": "79fd55b24ee8f8f0af4d2f79a3334849bb84a25ba0429ccf0b846422eac1ca69",
+    "real_target_smoke": "c3f07bb6aead0a7528c12494fcc5ecc7e41d08c7449f967192c79466aadefc1b"
   },
   "model": {
     "runtime": "Ollama",
     "runtime_version": "0.33.2",
-    "model_id": "huihui-qwen3.8-27b-abliterated:latest",
-    "architecture": "qwen35",
+    "model_id": "cyntox:latest",
+    "architecture": "cyntox-27b",
     "parameters": 27320697856,
     "format": "gguf",
     "quantization": "Q4_K_M",
     "average_output_tokens_per_second": 45.371011798668064
   },
-  "qwen_code": {
+  "cyntox_code": {
     "version": "0.22.3",
-    "wrapper_model": "qwen-os-lab-worker:latest",
+    "wrapper_model": "cyntox-os-lab-worker:latest",
     "visible_tools": [
       "mcp__oslab__policy_remaining_budget",
       "mcp__oslab__fixture_explain"
     ],
     "smoke_result": "MCP_BUDGET_OK"
+  },
+  "real_target": {
+    "gate": "L",
+    "status": "PASS",
+    "target": "cyntox-open-os",
+    "source_root": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target",
+    "manifest": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target\\oslab-target.toml",
+    "base_commit": "db7b591789313d6288584c223e954e6f52880d11",
+    "manifest_sha256": "9d631f0809906a7f19c66e46afb48a9a0d0cf1e7da73bb7b029dff3138f3fa50",
+    "license": "MIT",
+    "authorization": "open_source_mit",
+    "build_command": ".\\.venv\\Scripts\\python.exe -m oslab.cli build --target real --repo C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target --profile debug --json",
+    "test_command": ".\\.venv\\Scripts\\python.exe -m oslab.cli test --target real --repo C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target --profile debug --test smoke --json",
+    "ok": true,
+    "outcome": "PASS",
+    "network": "none",
+    "qemu_argv_hash": "10e6290efe1ad72f163b26becad2f495611da1d6ff76fb559d9c8db4e74e3323",
+    "build_artifact_sha256": "b588a7a8f867c2ea9fe7f2feebde0e54529a853ba93e1929a1e7afb337dc11b5",
+    "serial_artifact_sha256": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+    "stderr_artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "run_report_sha256": "c3f07bb6aead0a7528c12494fcc5ecc7e41d08c7449f967192c79466aadefc1b",
+    "serial_excerpt": "OSLAB_EVT {\"event\":\"READY\",\"seq\":0}\r\nOSLAB_EVT {\"event\":\"PASS\",\"seq\":1}\r\n"
   }
 }

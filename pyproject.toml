@@ -3,9 +3,9 @@ requires = ["hatchling==1.27.0"]
 build-backend = "hatchling.build"
 
 [project]
-name = "qwen-os-lab"
+name = "cyntox-os-lab"
 version = "0.1.0"
-description = "Safety-bounded local Qwen operating-system reliability laboratory"
+description = "Safety-bounded local CyntOX operating-system reliability laboratory"
 readme = "README.md"
 requires-python = ">=3.12,<3.15"
 license = { text = "Apache-2.0" }
@@ -38,7 +38,7 @@ packages = ["oslab"]
 addopts = "-ra --strict-config --strict-markers --basetemp=.oslab/pytest"
 testpaths = ["tests"]
 markers = [
-  "live: requires the local Ollama Qwen endpoint",
+  "live: requires the local Ollama CyntOX endpoint",
   "qemu: requires --run-qemu, Docker, and the qemu fixture image",
 ]
 

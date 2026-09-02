@@ -1,7 +1,7 @@
 from oslab.model.base import ModelProvider
+from oslab.model.cyntox_code import CyntoxCodeWorker
 from oslab.model.fake import FakeModelProvider
 from oslab.model.ollama import OllamaProvider
-from oslab.model.qwen_code import QwenCodeWorker
 from oslab.model.router import ModelRouter, ResourceScheduler, RuntimeProfile, WorkloadKind
 
 __all__ = [
@@ -9,7 +9,7 @@ __all__ = [
     "ModelProvider",
     "ModelRouter",
     "OllamaProvider",
-    "QwenCodeWorker",
+    "CyntoxCodeWorker",
     "ResourceScheduler",
     "RuntimeProfile",
     "WorkloadKind",

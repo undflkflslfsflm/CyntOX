@@ -12,7 +12,7 @@ from oslab.schemas import ResourceBudget
 
 class ModelConfig(BaseModel):
     endpoint: str = "http://127.0.0.1:11434"
-    model_id: str = "huihui-qwen3.8-27b-abliterated:latest"
+    model_id: str = "cyntox:latest"
     provider: str = "ollama"
     timeout_seconds: float = Field(default=180.0, gt=0)
     retry_attempts: int = Field(default=3, ge=1, le=5)

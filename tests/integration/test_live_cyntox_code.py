@@ -3,12 +3,12 @@ from pathlib import Path
 
 import pytest
 
-from oslab.model import QwenCodeWorker
+from oslab.model import CyntoxCodeWorker
 
 
 @pytest.mark.live
-def test_qwen_code_uses_only_brokered_mcp_tool() -> None:
-    worker = QwenCodeWorker(Path.cwd())
+def test_cyntox_code_uses_only_brokered_mcp_tool() -> None:
+    worker = CyntoxCodeWorker(Path.cwd())
     response = asyncio.run(
         worker.complete(
             [

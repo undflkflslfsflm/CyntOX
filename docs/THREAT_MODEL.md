@@ -7,7 +7,7 @@ Scope: local testing of code and machines owned by the user. Out of scope: exter
 - Host filesystem outside allowlisted roots
 - Hidden evaluator data under `tests/hidden` and `.oslab/evaluator`
 - Source, patches, logs, crash artifacts, prompts, and model outputs
-- Local model endpoint and Qwen Code configuration
+- Local model endpoint and CyntOX Code configuration
 - SQLite experiment database and content-addressed artifact store
 - Host CPU/GPU/RAM/disk resources
 
@@ -16,7 +16,7 @@ Scope: local testing of code and machines owned by the user. Out of scope: exter
 | Threat | Control | Evidence |
 | --- | --- | --- |
 | Prompt injection from repository text or logs | The supervisor, not the model, owns acceptance. Tools are typed and policy checked. | `tests/integration/test_broker.py`, `oslab/tools/broker.py` |
-| Tool abuse or arbitrary shell | The broker exposes named capabilities only. Qwen Code sees only two read-only MCP tools. | `tests/integration/test_live_qwen_code.py`, `.qwen/settings.json` |
+| Tool abuse or arbitrary shell | The broker exposes named capabilities only. CyntOX Code sees only two read-only MCP tools. | `tests/integration/test_live_cyntox_code.py`, `.cyntox/settings.json` |
 | Path traversal | Paths are canonicalized and checked against allowed roots. `..` is denied. | `tests/unit/test_policy.py` |
 | Symlink escape | Writes reject symlink chains before mutation. | `tests/unit/test_policy.py` |
 | Command injection | Build and exceptional commands use reviewed argument arrays and allowlists, not model strings. | `oslab/process_runner.py`, `oslab/policy.py` |

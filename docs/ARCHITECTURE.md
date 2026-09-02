@@ -1,13 +1,13 @@
 # Architecture
 
-Qwen OS Lab is a local-only reliability-testing supervisor for owned OS targets. The language model proposes hypotheses and patches; the Python supervisor, policy layer, broker, QEMU backend, evaluator, and artifact store decide what is allowed and what counts as evidence.
+CyntOX OS Lab is a local-only reliability-testing supervisor for owned OS targets. The language model proposes hypotheses and patches; the Python supervisor, policy layer, broker, QEMU backend, evaluator, and artifact store decide what is allowed and what counts as evidence.
 
 ## Main components
 
 - `oslab/cli.py`: user-facing workflows for discovery, model probes, build/boot/test, reproduction, fuzzing, evaluation, training export, reporting, cleanup, and selftest.
 - `oslab/config.py`: loopback-only model/API configuration, local runtime paths, resource budgets, and guest-network policy.
-- `oslab/doctor.py`: bounded hardware, runtime, model, Qwen Code, Docker/WSL/QEMU, disk, and target discovery.
-- `oslab/model/`: provider-neutral model interface, Ollama worker, Qwen Code worker, fake provider, and runtime router.
+- `oslab/doctor.py`: bounded hardware, runtime, model, CyntOX Code, Docker/WSL/QEMU, disk, and target discovery.
+- `oslab/model/`: provider-neutral model interface, Ollama worker, CyntOX Code worker, fake provider, and runtime router.
 - `oslab/tools/broker.py`: capability-scoped typed tool broker. It owns path validation, worktree mutation, build/VM/test/fuzz/debug/report/memory/code tools, receipts, and denials.
 - `oslab/qemu/`: Docker-backed QEMU fixture runner with QMP, serial capture, timeouts, snapshots, and `-nic none`.
 - `oslab/fuzz/`: seedable fixture mutator, checkpointed campaigns, deduplication, replay, minimization, and protocol-state coverage.
@@ -29,11 +29,11 @@ Qwen OS Lab is a local-only reliability-testing supervisor for owned OS targets.
 
 ## Safety Boundary
 
-The model never receives a generic host shell. Qwen Code is configured project-locally and fail-closed: `QwenCodeWorker` rejects any declared tool set other than the two read-only MCP tools used for the smoke proof. Guest networking is disabled by default. APIs bind to loopback. Patches are applied only in disposable lab worktrees with expected base commits and before/after hashes.
+The model never receives a generic host shell. CyntOX Code is configured project-locally and fail-closed: `CyntoxCodeWorker` rejects any declared tool set other than the two read-only MCP tools used for the smoke proof. Guest networking is disabled by default. APIs bind to loopback. Patches are applied only in disposable lab worktrees with expected base commits and before/after hashes.
 
 ## Runtime Strategy
 
-The measured resident Ollama Qwen model is the normal worker. The router exposes `fast`, `deep`, `long`, and disabled `oracle` profiles; all enabled profiles currently use the same resident model to avoid duplicate loads. Optional AirLLM, KTransformers, vLLM, SGLang, llama.cpp, and LM Studio paths are documented but not enabled without local installation and benchmarks.
+The measured resident Ollama CyntOX model is the normal worker. The router exposes `fast`, `deep`, `long`, and disabled `oracle` profiles; all enabled profiles currently use the same resident model to avoid duplicate loads. Optional AirLLM, KTransformers, vLLM, SGLang, llama.cpp, and LM Studio paths are documented but not enabled without local installation and benchmarks.
 
 ## Persistence
 

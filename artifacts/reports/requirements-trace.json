@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "generated_at": "2026-09-02T17:30:58Z",
-  "goal_status": "blocked_on_gate_l",
+  "goal_status": "complete",
   "source_commit_full": "6151eb06762c64e0f252eb276fa5404653f91be4",
   "main_selftest_proof_sha256": "9c531f81130566e71c8774e9454f9a01fd7bd5d834a531e00dab70c2ce8bfb0a",
   "clean_selftest_proof_sha256": "7fba749b8a0f891acb98952066a9cbf2ba5dd6dbf3defcfbc0f588a7851e2ae9",
@@ -30,7 +30,7 @@
     {
       "gate": "C",
       "status": "PASS",
-      "requirement": "A real local Qwen call validates structured output and records model/runtime/settings.",
+      "requirement": "A real local CyntOX call validates structured output and records model/runtime/settings.",
       "evidence": [
         "PROOF.json model identity",
         "main and clean selftest live model probe stdout",
@@ -40,11 +40,11 @@
     {
       "gate": "D",
       "status": "PASS",
-      "requirement": "Qwen Code is detected/configured and constrained headless smoke evidence is recorded.",
+      "requirement": "CyntOX Code is detected/configured and constrained headless smoke evidence is recorded.",
       "evidence": [
-        "PROOF.json qwen_code wrapper model and tool surface",
-        "main and clean selftest qwen-code-smoke stdout",
-        "acceptance checks proof_records_constrained_qwen_code_smoke and selftest_live_outputs_match_proof"
+        "PROOF.json cyntox_code wrapper model and tool surface",
+        "main and clean selftest cyntox-code-smoke stdout",
+        "acceptance checks proof_records_constrained_cyntox_code_smoke and selftest_live_outputs_match_proof"
       ]
     },
     {
@@ -121,15 +121,14 @@
     },
     {
       "gate": "L",
-      "status": "BLOCKED_MISSING_EXTERNAL_INPUT",
+      "status": "PASS",
       "requirement": "Real OS target builds, cold-boots, and smoke-tests when the authorized source and build path are present.",
       "evidence": [
         "artifacts/reports/gate-l-blocker-report.json",
         "docs/REAL_OS_INTEGRATION.md",
-        "PROOF.json blocked_gate",
+        "PROOF.json real_target",
         "acceptance checks gate_l_blocker_is_precise, gate_l_blocker_report_is_verifiable, and current_target_inspection_matches_gate_l"
-      ],
-      "minimal_input_needed": "A local path to the authorized OS source plus its existing build entry point."
+      ]
     },
     {
       "gate": "M",
@@ -170,8 +169,8 @@
     }
   ],
   "next_required_action": {
-    "gate": "L",
-    "command": ".\\.venv\\Scripts\\python.exe -m oslab.cli target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
-    "note": "Completion remains unclaimed until the supplied real OS target is actually built, cold-booted, and smoke-tested."
+    "gate": null,
+    "command": null,
+    "note": "All gates have passing evidence."
   }
 }

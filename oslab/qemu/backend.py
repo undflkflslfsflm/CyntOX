@@ -17,7 +17,7 @@ from oslab.policy import validate_qemu_network
 from oslab.qemu.qmp import QmpClient, QmpError
 from oslab.schemas import Outcome, utc_now
 
-IMAGE = "qwen-os-lab-qemu:bookworm"
+IMAGE = "cyntox-os-lab-qemu:bookworm"
 
 
 @dataclass(frozen=True)

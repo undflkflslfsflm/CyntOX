@@ -1,4 +1,4 @@
-# Qwen OS Lab Decision Log
+# CyntOX OS Lab Decision Log
 
 ## D-001 — Use the current repository as the orchestration root
 
@@ -13,7 +13,7 @@
 - Status: accepted
 - Date: 2026-08-31
 - Context: an unborn repository cannot create a secondary worktree until a first commit exists.
-- Decision: create `codex/qwen-os-lab`, make a minimal baseline commit after bounded instruction discovery, then exercise disposable worktrees through the broker later.
+- Decision: create `codex/cyntox-os-lab`, make a minimal baseline commit after bounded instruction discovery, then exercise disposable worktrees through the broker later.
 - Consequence: the initial bootstrap occurs in the primary checkout; all evaluated patch work will use disposable worktrees.
 
 ## D-003 — Evidence over declared capability
@@ -26,7 +26,7 @@
 
 - Status: accepted
 - Date: 2026-08-31
-- Context: the local manifest and live Ollama API identify `huihui-qwen3.8-27b-abliterated:latest` as a Qwen3.8 27.3B GGUF model quantized `Q4_K_M`, with tool/thinking/completion capabilities and a declared 262,144-token architecture context. The installed Modelfile defaults to 8,192 tokens.
+- Context: the local manifest and live Ollama API identify `cyntox:latest` as a CyntOX 27B 27.3B GGUF model quantized `Q4_K_M`, with tool/thinking/completion capabilities and a declared 262,144-token architecture context. The installed Modelfile defaults to 8,192 tokens.
 - Decision: implement Ollama native and OpenAI-compatible adapters first, initially benchmark at conservative context sizes, and increase only from measured stability.
 - Consequence: the informal 37B description is superseded by measured model metadata. Ollama 0.33.2 at `http://127.0.0.1:11434` is the primary local runtime.
 
@@ -38,21 +38,21 @@
 - Decision: build a pinned Linux container containing NASM and QEMU and run the true fixture under TCG. Do not install system-wide packages.
 - Consequence: WHPX is unavailable inside the Linux container; TCG performance will be measured and classified honestly.
 
-## D-006 — Give Qwen Code a larger zero-copy Ollama wrapper
+## D-006 — Give CyntOX Code a larger zero-copy Ollama wrapper
 
 - Status: accepted
 - Date: 2026-08-31
-- Context: Qwen Code 0.22.3 sends an approximately 8.6k-token initial prompt, while the installed model's default Modelfile limited context to 8,192. The native architecture declares 262,144, and a 16,384-token wrapper ran stably.
-- Decision: create `qwen-os-lab-worker:latest` from the existing Ollama blob with `num_ctx 16384`; do not duplicate or download model weights.
-- Consequence: the user's original model remains unchanged and Qwen Code can complete its two-turn MCP smoke.
+- Context: CyntOX Code 0.22.3 sends an approximately 8.6k-token initial prompt, while the installed model's default Modelfile limited context to 8,192. The native architecture declares 262,144, and a 16,384-token wrapper ran stably.
+- Decision: create `cyntox-os-lab-worker:latest` from the existing Ollama blob with `num_ctx 16384`; do not duplicate or download model weights.
+- Consequence: the user's original model remains unchanged and CyntOX Code can complete its two-turn MCP smoke.
 
-## D-007 — Fail closed around Qwen Code tools
+## D-007 — Fail closed around CyntOX Code tools
 
 - Status: accepted
 - Date: 2026-08-31
-- Context: project MCP servers remain pending in non-interactive runs unless Qwen Code uses its non-prompting approval mode. Its `yolo` label would be unsafe with ordinary built-ins.
-- Decision: disable every observed built-in tool, surface only two read-only MCP tools, mark both idempotent/non-destructive, and have `QwenCodeWorker` reject any startup tool set other than those exact names.
-- Consequence: approval is automatic inside a smaller capability boundary. A Qwen Code upgrade that introduces an unexpected tool causes the adapter to abort before trusting the result.
+- Context: project MCP servers remain pending in non-interactive runs unless CyntOX Code uses its non-prompting approval mode. Its `yolo` label would be unsafe with ordinary built-ins.
+- Decision: disable every observed built-in tool, surface only two read-only MCP tools, mark both idempotent/non-destructive, and have `CyntoxCodeWorker` reject any startup tool set other than those exact names.
+- Consequence: approval is automatic inside a smaller capability boundary. A CyntOX Code upgrade that introduces an unexpected tool causes the adapter to abort before trusting the result.
 
 ## D-008 — Classify the missing real OS as Gate L only
 
@@ -67,7 +67,7 @@
 - Status: accepted
 - Date: 2026-08-31
 - Context: only Ollama is installed and benchmarked locally. AirLLM, KTransformers, llama.cpp, vLLM, SGLang, and LM Studio are absent as commands/packages. Current upstream docs show possible compatibility paths, but several require different model formats, plugins, large disk caches, or offload-heavy operation.
-- Decision: route `fast`, `deep`, and `long` profiles to the resident Ollama Qwen worker; leave `oracle` disabled.
+- Decision: route `fast`, `deep`, and `long` profiles to the resident Ollama CyntOX worker; leave `oracle` disabled.
 - Consequence: v1 proof uses the fast resident model. Optional runtimes can be added only after local installation, compatibility checks, and measured utility.
 
 ## D-010 — Mark final status as blocked, not complete
@@ -107,8 +107,8 @@
 - Status: accepted
 - Date: 2026-09-01
 - Context: a successful live selftest command is stronger evidence when its embedded stdout is machine-checked against the final proof metadata.
-- Decision: have `acceptance audit` parse live Ollama probe output and Qwen Code smoke output from both recorded selftest artifacts. The audit checks model identity, structured response, constrained visible tools, single allowed MCP call, wrapper model, runtime version, and smoke result against `PROOF.json`.
-- Consequence: the final proof fails if the recorded live runs disagree with the model/Qwen Code claims, even when the commands exited zero.
+- Decision: have `acceptance audit` parse live Ollama probe output and CyntOX Code smoke output from both recorded selftest artifacts. The audit checks model identity, structured response, constrained visible tools, single allowed MCP call, wrapper model, runtime version, and smoke result against `PROOF.json`.
+- Consequence: the final proof fails if the recorded live runs disagree with the model/CyntOX Code claims, even when the commands exited zero.
 
 ## D-015 — Validate required artifact contents, not only hashes
 
@@ -132,7 +132,7 @@
 - Date: 2026-09-01
 - Context: `PROOF.json` recorded `uv lock --check` and frozen/offline `pnpm install`, but `oslab selftest --live --json` did not itself run those dependency checks.
 - Decision: run `uv lock --check` and `pnpm install --frozen-lockfile --offline` inside `selftest`, and make acceptance reject selftest proof blobs that omit either command.
-- Consequence: the one-command proof now covers Python and Qwen Code dependency reproducibility before quality checks, QEMU/live tests, and integrity checks.
+- Consequence: the one-command proof now covers Python and CyntOX Code dependency reproducibility before quality checks, QEMU/live tests, and integrity checks.
 
 ## D-018 — Machine-check key evidence artifacts
 
@@ -246,28 +246,28 @@
 - Decision: add repo-root `oslab.ps1` and `oslab.cmd` launchers that resolve the project root from the script location, bootstrap the local virtual environment when needed, and forward arguments to `python -m oslab.cli`.
 - Consequence: users can run `.\oslab.ps1 ...`, `.\oslab.cmd ...`, or a quoted full-path PowerShell one-liner from any directory; acceptance now treats the launchers as required support files.
 
-## D-032 — Add an interactive Qwen Code launcher
+## D-032 — Add an interactive CyntOX Code launcher
 
 - Status: accepted
 - Date: 2026-09-01
-- Context: the lab CLI launcher is useful for workflows, but the user also needs one command that opens Qwen Code itself for interactive use. The generated `node_modules\.bin\qwen.ps1` assumes `node.exe` is on `PATH`, which is not always true in the Codex desktop runtime.
-- Decision: add repo-root `qwen-code.ps1` and `qwen-code.cmd` launchers that resolve the project root, bootstrap dependencies if needed, locate bundled Node when system Node is absent, set project-local runtime environment, default to text output, and forward arbitrary Qwen Code flags such as `-i` or `-p`.
-- Consequence: Qwen Code can be opened with a single quoted PowerShell command from any directory while still using this repository's project-local `.qwen/settings.json` and local Ollama-backed worker model.
+- Context: the lab CLI launcher is useful for workflows, but the user also needs one command that opens CyntOX Code itself for interactive use. The generated `the CyntOX Code upstream CLI shim` assumes `node.exe` is on `PATH`, which is not always true in the Codex desktop runtime.
+- Decision: add repo-root `cyntox-code.ps1` and `cyntox-code.cmd` launchers that resolve the project root, bootstrap dependencies if needed, locate bundled Node when system Node is absent, set project-local runtime environment, default to text output, and forward arbitrary CyntOX Code flags such as `-i` or `-p`.
+- Consequence: CyntOX Code can be opened with a single quoted PowerShell command from any directory while still using this repository's project-local `.cyntox/settings.json` and local Ollama-backed worker model.
 
-## D-033 — Split human Qwen Code launches from the audited lab tool profile
+## D-033 — Split human CyntOX Code launches from the audited lab tool profile
 
 - Status: accepted
 - Date: 2026-09-01
-- Context: the audited lab Qwen profile intentionally exposes only two read-only MCP tools and caps sessions at six turns for smoke-proof determinism. That profile is too narrow for human interactive use: Qwen cannot reliably inspect text files such as `FINAL_REPORT.md`, and the six-turn cap stops normal conversation.
-- Decision: make `qwen-code.ps1` launch Qwen from an ignored `.oslab/qwen-code-workspace` with generated human-use settings derived from the known-good local Ollama provider. The human profile auto-selects the `cyntox` Ollama alias through the OpenAI-compatible loopback provider, removes the six-turn/tool/wall-clock caps, skips bulky startup context, exposes only essential text read/search/edit tools eagerly, keeps other tools discoverable, denies `display_image`, removes the lab MCP server prompt, and adds the real project root as an included directory.
-- Consequence: the one-line Qwen launcher opens directly on `cyntox` for normal interactive repo work without mutating `.qwen/settings.json`; the lab smoke path remains fail-closed and continues to prove the constrained two-MCP-tool boundary.
+- Context: the audited lab CyntOX profile intentionally exposes only two read-only MCP tools and caps sessions at six turns for smoke-proof determinism. That profile is too narrow for human interactive use: CyntOX Code cannot reliably inspect text files such as `FINAL_REPORT.md`, and the six-turn cap stops normal conversation.
+- Decision: make `cyntox-code.ps1` launch CyntOX Code from an ignored `.oslab/cyntox-code-workspace` with generated human-use settings derived from the known-good local Ollama provider. The human profile auto-selects the `cyntox` Ollama alias through the OpenAI-compatible loopback provider, removes the six-turn/tool/wall-clock caps, skips bulky startup context, exposes only essential text read/search/edit tools eagerly, keeps other tools discoverable, denies `display_image`, removes the lab MCP server prompt, and adds the real project root as an included directory.
+- Consequence: the one-line CyntOX launcher opens directly on `cyntox` for normal interactive repo work without mutating `.cyntox/settings.json`; the lab smoke path remains fail-closed and continues to prove the constrained two-MCP-tool boundary.
 
 ## D-034 — Keep CyntOX terminal output bounded by default
 
 - Status: accepted
 - Date: 2026-09-02
 - Context: long reports, raw JSON, broad search output, and repeated logs can exhaust the visible chat/terminal context even when the underlying job succeeds. The user hit a response-truncation failure while inspecting broad output.
-- Decision: make CyntOX terminal JSON compact, parseable, and whole-response capped by default, keep full artifacts on disk, require `--json --full` or redirection for intentional full dumps, show head+tail previews for long model/job outputs, and have the Qwen shell hook block broad unbounded `rg`, raw OS-lab JSON, full CyntOX JSON, and unbounded `ConvertTo-Json` terminal dumps unless the command is bounded or redirected.
+- Decision: make CyntOX terminal JSON compact, parseable, and whole-response capped by default, keep full artifacts on disk, require `--json --full` or redirection for intentional full dumps, show head+tail previews for long model/job outputs, and have the CyntOX shell hook block broad unbounded `rg`, raw OS-lab JSON, full CyntOX JSON, and unbounded `ConvertTo-Json` terminal dumps unless the command is bounded or redirected.
 - Consequence: normal daily use returns dense summaries and artifact paths instead of flooding context, while machine/export workflows still have an explicit path to full data.
 
 ## D-035 — Include CyntOX scripts in OS-lab selftest coverage
@@ -285,3 +285,11 @@
 - Context: the final artifact index is a machine-checkable hash snapshot, but manual regeneration is easy to get wrong after post-proof commits.
 - Decision: add `oslab acceptance artifact-index --json`/`--write`, derive the snapshot from the required docs/artifacts/support files, and include the read-only generator in `oslab selftest --live --json`.
 - Consequence: proof refreshes have a repeatable command for artifact-index metadata, and selftest evidence proves the generator remains runnable before final acceptance is claimed.
+
+## D-037 — Accept an open-source OS target for Gate L
+
+- Status: accepted
+- Date: 2026-09-02
+- Context: the user authorized using something open source to unlock the real-target gate instead of waiting for a private owned OS source tree.
+- Decision: create `C:\Users\vikto\Documents\ChatGPT\cyntox-open-os-target` as a separate MIT-licensed Git repository with a valid `oslab-target.toml`, immutable source commit `db7b591789313d6288584c223e954e6f52880d11`, PowerShell build entry point, and QEMU serial smoke contract.
+- Consequence: Gate L can be completed without weakening safety boundaries. The target is authorized by its MIT license, builds from a detached disposable worktree, boots with QEMU networking disabled, and must show explicit serial `READY` and `PASS` evidence before completion is claimed.

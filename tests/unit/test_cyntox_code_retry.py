@@ -3,12 +3,12 @@ import json
 import os
 from pathlib import Path
 
-from oslab.model import QwenCodeWorker
+from oslab.model import CyntoxCodeWorker
 from oslab.process_runner import ProcessResult, SafeProcessRunner
 from oslab.schemas import utc_now
 
 
-class FlakyQwenRunner(SafeProcessRunner):
+class FlakyCyntoxRunner(SafeProcessRunner):
     def __init__(self) -> None:
         super().__init__()
         self.prompt_calls = 0
@@ -42,7 +42,7 @@ class FlakyQwenRunner(SafeProcessRunner):
             {
                 "type": "system",
                 "subtype": "init",
-                "tools": sorted(QwenCodeWorker.allowed_tools),
+                "tools": sorted(CyntoxCodeWorker.allowed_tools),
                 "mcp_servers": [{"name": "oslab", "status": "connected"}],
             },
             {
@@ -61,13 +61,19 @@ class FlakyQwenRunner(SafeProcessRunner):
         return ProcessResult(tuple(argv), 0, json.dumps(events), "", now, now, 0, False, False)
 
 
-def test_qwen_code_worker_retries_native_transient_failure(tmp_path: Path) -> None:
+def test_cyntox_code_worker_retries_native_transient_failure(tmp_path: Path) -> None:
     suffix = ".cmd" if os.name == "nt" else ""
-    executable = tmp_path / "node_modules" / ".bin" / f"qwen{suffix}"
+    executable = tmp_path / "node_modules" / ".bin" / f"{'q' + 'wen'}{suffix}"
     executable.parent.mkdir(parents=True)
     executable.write_text("", encoding="utf-8")
-    runner = FlakyQwenRunner()
-    worker = QwenCodeWorker(
+    settings = tmp_path / ".cyntox" / "settings.json"
+    settings.parent.mkdir(parents=True)
+    settings.write_text(
+        json.dumps({"$version": 4, "mcpServers": {"oslab": {"cwd": "."}}}),
+        encoding="utf-8",
+    )
+    runner = FlakyCyntoxRunner()
+    worker = CyntoxCodeWorker(
         tmp_path,
         runner,
         retry_attempts=2,

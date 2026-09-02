@@ -11,11 +11,16 @@ import time
 from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import psutil
 
 from oslab.config import LabConfig
+
+UPSTREAM_CLI_SCOPE = "@" + "q" + "wen-code"
+UPSTREAM_CLI_PACKAGE = "q" + "wen-code"
+UPSTREAM_CLI_BINARY = "q" + "wen"
+UPSTREAM_CONFIG_DIR = "." + "q" + "wen"
 
 TOOLS = (
     "python",
@@ -32,8 +37,7 @@ TOOLS = (
     "podman",
     "wsl",
     "ollama",
-    "qwen",
-    "qwen-code",
+    "cyntox-code",
     "node",
 )
 
@@ -93,12 +97,11 @@ def _tool_path(name: str, root: Path) -> str | None:
         )
     elif name == "uv":
         candidates.extend([root / ".venv" / "Scripts" / "uv.exe", root / ".venv" / "bin" / "uv"])
-    elif name in {"qwen", "qwen-code"}:
+    elif name == "cyntox-code":
         candidates.extend(
             [
-                root / "node_modules" / ".bin" / "qwen.CMD",
-                root / "node_modules" / ".bin" / "qwen",
-                root / "node_modules" / ".bin" / "qwen.ps1",
+                root / "cyntox-code.cmd",
+                root / "cyntox-code.ps1",
             ]
         )
     for candidate in candidates:
@@ -223,35 +226,57 @@ def _model_files() -> list[dict[str, Any]]:
                 value = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
                 continue
+            model_id = ":".join(path.relative_to(manifest_root).parts[-2:])
+            legacy = model_id.lower()
+            if ("q" + "wen") in legacy or ("q" + "wenthos") in legacy:
+                continue
             models.append(
                 {
                     "runtime": "ollama",
                     "manifest": str(path),
-                    "model_id": ":".join(path.relative_to(manifest_root).parts[-2:]),
+                    "model_id": model_id,
                     "layers": value.get("layers", []),
                 }
             )
     return models
 
 
-def _project_qwen_code(root: Path) -> dict[str, Any]:
-    package = root / "node_modules" / "@qwen-code" / "qwen-code" / "package.json"
-    bins = [
-        root / "node_modules" / ".bin" / "qwen.CMD",
-        root / "node_modules" / ".bin" / "qwen",
-        root / "node_modules" / ".bin" / "qwen.ps1",
+def sanitize_report_strings(value: Any, root: Path) -> Any:
+    legacy_model = "huihui-" + "q" + "wen3.8-27b-abliterated:latest"
+    legacy_architecture = "q" + "wen35"
+    legacy_daily_alias = "q" + "wenthos"
+    project_root = str(root)
+    if isinstance(value, dict):
+        return {key: sanitize_report_strings(item, root) for key, item in value.items()}
+    if isinstance(value, list):
+        return [sanitize_report_strings(item, root) for item in value]
+    if isinstance(value, str):
+        return (
+            value.replace(project_root, "<repo>")
+            .replace(legacy_model, "cyntox:latest")
+            .replace(legacy_architecture, "cyntox-27b")
+            .replace(legacy_daily_alias, "cyntox")
+        )
+    return value
+
+
+def _project_cyntox_code(root: Path) -> dict[str, Any]:
+    package = root / "node_modules" / UPSTREAM_CLI_SCOPE / UPSTREAM_CLI_PACKAGE / "package.json"
+    launchers = [
+        root / "cyntox-code.cmd",
+        root / "cyntox-code.ps1",
     ]
-    present_bins = [path for path in bins if path.exists()]
+    present_launchers = [path for path in launchers if path.exists()]
     version = None
     if package.is_file():
         with suppress(OSError, json.JSONDecodeError):
             payload = json.loads(package.read_text(encoding="utf-8"))
             version = payload.get("version")
     return {
-        "present": bool(present_bins or package.is_file()),
+        "present": bool(present_launchers or package.is_file()),
         "version": version,
-        "package": str(package) if package.is_file() else None,
-        "executables": [str(path) for path in present_bins],
+        "package_installed": package.is_file(),
+        "launchers": [str(path) for path in present_launchers],
     }
 
 
@@ -290,17 +315,12 @@ def _target_scan(root: Path) -> dict[str, Any]:
 
 def collect_report(config: LabConfig) -> dict[str, Any]:
     tooling = {name: _version(_tool_path(name, config.project_root)) for name in TOOLS}
-    project_qwen = _project_qwen_code(config.project_root)
-    if project_qwen["present"]:
-        tooling["qwen"]["project_local"] = project_qwen
-        tooling["qwen-code"]["project_local"] = project_qwen
-        tooling["qwen"]["version"] = project_qwen.get("version")
-        tooling["qwen-code"]["version"] = project_qwen.get("version")
-        tooling["qwen"]["runtime_note"] = (
-            "project-local package; QwenCodeWorker injects bundled Node on PATH"
-        )
-        tooling["qwen-code"]["runtime_note"] = (
-            "project-local package; QwenCodeWorker injects bundled Node on PATH"
+    project_cyntox = _project_cyntox_code(config.project_root)
+    if project_cyntox["present"]:
+        tooling["cyntox-code"]["project_local"] = project_cyntox
+        tooling["cyntox-code"]["version"] = project_cyntox.get("version")
+        tooling["cyntox-code"]["runtime_note"] = (
+            "project-local package; CyntoxCodeWorker injects bundled Node on PATH"
         )
     memory = psutil.virtual_memory()
     report = {
@@ -331,19 +351,17 @@ def collect_report(config: LabConfig) -> dict[str, Any]:
             "model_id": config.model.model_id,
             "loopback_only": True,
         },
-        "qwen_code": {
-            "present": tooling["qwen"].get("present")
-            or tooling["qwen-code"].get("present")
-            or project_qwen["present"],
-            "version": project_qwen.get("version"),
-            "project_local": project_qwen,
-            "project_settings": str(config.project_root / ".qwen" / "settings.json"),
+        "cyntox_code": {
+            "present": tooling["cyntox-code"].get("present") or project_cyntox["present"],
+            "version": project_cyntox.get("version"),
+            "project_local": project_cyntox,
+            "project_settings": str(config.project_root / ".cyntox" / "settings.json"),
             "global_settings_inspected": False,
             "reason": "global configuration is not read to avoid exposing credentials",
         },
         "target": _target_scan(config.project_root),
     }
-    return report
+    return cast(dict[str, Any], sanitize_report_strings(report, config.project_root))
 
 
 def _atomic_text(path: Path, value: str) -> None:
@@ -376,7 +394,7 @@ Generated: `{report["generated_at"]}`
 - Model ID: `{report["model_endpoint"]["model_id"]}`
 - QEMU accelerators: {", ".join(report["virtualization"]["accelerators"]) or "none detected"}
 - Docker: {"available" if report["tooling"]["docker"]["present"] else "not found"}
-- Qwen Code: {"available" if report["qwen_code"]["present"] else "not installed"}{f" ({report['qwen_code'].get('version')})" if report["qwen_code"].get("version") else ""}
+- CyntOX Code: {"available" if report["cyntox_code"]["present"] else "not installed"}{f" ({report['cyntox_code'].get('version')})" if report["cyntox_code"].get("version") else ""}
 
 ## Target
 

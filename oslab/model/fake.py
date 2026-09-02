@@ -18,7 +18,7 @@ class FakeModelProvider(ModelProvider):
             provider="fake",
             runtime="deterministic-test-provider",
             runtime_version="1",
-            model_id="fake-qwen",
+            model_id="fake-cyntox",
             architecture="fixture",
             parameters=1,
             quantization="none",

@@ -45,7 +45,7 @@ def export_trajectories(events: list[TrajectoryEvent], output: Path) -> dict[str
     card = output / "DATASET_CARD.md"
     with card.open("w", encoding="utf-8", newline="\n") as handle:
         handle.write(
-            "# Qwen OS Lab Verified Trajectories\n\n"
+            "# CyntOX OS Lab Verified Trajectories\n\n"
             f"Records: {len(rows)}. Only verifier-approved, evidence-linked events are exported. "
             "Splits are assigned by defect family to reduce leakage. Source licenses and model/runtime "
             "identities remain attached to each trajectory. The dry-run export is deterministic so "

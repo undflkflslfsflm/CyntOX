@@ -1,6 +1,6 @@
 # CyntOX Privacy and Prompt-Injection Boundary
 
-CyntOX is hardened for local-first use. Public internet is denied by default in council prompts, and the interactive Qwen launcher denies Qwen Code's built-in `web_fetch` and `web_search` tools. The launcher also installs a local `run_shell_command` pre-tool hook that denies public-network and secret-exfiltration shell attempts before execution.
+CyntOX is hardened for local-first use. Public internet is denied by default in council prompts, and the interactive CyntOX launcher denies CyntOX Code's built-in `web_fetch` and `web_search` tools. The launcher also installs a local `run_shell_command` pre-tool hook that denies public-network and secret-exfiltration shell attempts before execution.
 
 ## Default network stance
 

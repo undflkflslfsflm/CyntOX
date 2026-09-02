@@ -30,6 +30,8 @@ EXPECTED_GATE_SUMMARY = {
     "N": "PASS",
     "O": "PASS",
 }
+GATE_L_BLOCKED_STATUS = "BLOCKED_MISSING_EXTERNAL_INPUT"
+GATE_L_PASS_STATUS = "PASS"
 
 GATE_L_BLOCKER_REPORT_PATH = "artifacts/reports/gate-l-blocker-report.json"
 REQUIREMENTS_TRACE_PATH = "artifacts/reports/requirements-trace.json"
@@ -73,8 +75,8 @@ REQUIRED_SUPPORT_FILES = (
     "config/oslab-target.example.toml",
     "oslab.ps1",
     "oslab.cmd",
-    "qwen-code.ps1",
-    "qwen-code.cmd",
+    "cyntox-code.ps1",
+    "cyntox-code.cmd",
 )
 
 REQUIRED_KEY_EVIDENCE_ARTIFACTS = (
@@ -89,7 +91,7 @@ REQUIRED_KEY_EVIDENCE_ARTIFACTS = (
 
 SELFTEST_COMMAND = ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json"
 ACCEPTANCE_AUDIT_COMMAND = ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json"
-EXPECTED_QWEN_CODE_TOOLS = [
+EXPECTED_CYNTOX_CODE_TOOLS = [
     "mcp__oslab__policy_remaining_budget",
     "mcp__oslab__fixture_explain",
 ]
@@ -109,11 +111,11 @@ SELFTEST_EXPECTED_ARGV_TAILS = (
     ("-m", "oslab.cli", "training", "dry-run", "--json"),
     ("-m", "oslab.cli", "cleanup", "--dry-run", "--json"),
     ("-m", "oslab.cli", "model", "probe", "--live", "--json"),
-    ("-m", "oslab.cli", "model", "qwen-code-smoke", "--json"),
+    ("-m", "oslab.cli", "model", "cyntox-code-smoke", "--json"),
     ("-m", "oslab.cli", "integrity", "check", "--json"),
 )
 MODEL_PROBE_ARGV_TAIL = ("-m", "oslab.cli", "model", "probe", "--live", "--json")
-QWEN_CODE_SMOKE_ARGV_TAIL = ("-m", "oslab.cli", "model", "qwen-code-smoke", "--json")
+CYNTOX_CODE_SMOKE_ARGV_TAIL = ("-m", "oslab.cli", "model", "cyntox-code-smoke", "--json")
 EXPECTED_EVALUATION_VARIANTS = ("A", "B", "C", "D", "E")
 EXPECTED_EVALUATION_SEEDS = (1, 2, 3)
 EXPECTED_TRAINING_RECORDS = 16
@@ -132,7 +134,7 @@ ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS = (
     "clean_checkout_matches_verified_source",
     "selftest_live_outputs_match_proof",
     "proof_records_live_model_identity",
-    "proof_records_constrained_qwen_code_smoke",
+    "proof_records_constrained_cyntox_code_smoke",
     "artifact_index_matches_disk",
     "artifact_index_covers_required_files",
     "current_target_inspection_matches_gate_l",
@@ -153,8 +155,8 @@ PROOF_ONLY_AFTER_VERIFIED_COMMIT_FILES = {
     "README.md",
     "oslab.cmd",
     "oslab.ps1",
-    "qwen-code.cmd",
-    "qwen-code.ps1",
+    "cyntox-code.cmd",
+    "cyntox-code.ps1",
 }
 
 PLACEHOLDER_PATTERNS = (
@@ -199,7 +201,7 @@ def audit_acceptance(root: Path) -> dict[str, Any]:
     _check_clean_checkout_matches_verified_source(project_root, proof, checks)
     _check_selftest_live_outputs_match_proof(project_root, proof, checks)
     _check_acceptance_audit_artifact(project_root, proof, checks)
-    _check_model_and_qwen_code(proof, checks)
+    _check_model_and_cyntox_code(proof, checks)
     _check_artifact_index(project_root, checks)
     _check_target_gate_l(project_root, checks)
     _check_post_verified_commit_changes(project_root, proof, checks)
@@ -222,6 +224,34 @@ def build_gate_l_blocker_report(root: Path) -> dict[str, Any]:
     project_root = root.resolve()
     proof = _load_json(project_root / "PROOF.json")
     target = inspect_targets(default_config(project_root))
+    if _gate_l_status(proof) == GATE_L_PASS_STATUS:
+        real_target = proof.get("real_target")
+        real_os = target.get("real_os", {})
+        return {
+            "schema_version": 1,
+            "gate": "L",
+            "status": GATE_L_PASS_STATUS,
+            "proof_blocked_gate": {},
+            "real_target": real_target if isinstance(real_target, dict) else {},
+            "what_was_attempted": [
+                "An MIT-licensed open-source OS target was added as a separate local Git repository.",
+                "The target manifest was validated against an immutable source commit and direct argv-vector build command.",
+                "The target was built from a detached disposable worktree rather than the source checkout.",
+                "The target was cold-booted through Docker-backed QEMU with networking disabled and loopback-only QMP.",
+                "The serial smoke test waited for explicit READY and PASS patterns before claiming success.",
+            ],
+            "concrete_evidence": {
+                "target_inspect": {
+                    "fixture_status": target.get("fixture", {}).get("status"),
+                    "gate_l": target.get("gate_l"),
+                    "real_os_status": real_os.get("status") if isinstance(real_os, dict) else None,
+                    "selected_real_os": target.get("selected_real_os"),
+                },
+                "real_target": real_target if isinstance(real_target, dict) else {},
+            },
+            "why_further_progress_is_impossible": [],
+            "resume_commands": [],
+        }
     blocked_gate_value = proof.get("blocked_gate", {})
     blocked_gate = blocked_gate_value if isinstance(blocked_gate_value, dict) else {}
     command_rows = [row for row in proof.get("verified_commands", []) if isinstance(row, dict)]
@@ -248,7 +278,7 @@ def build_gate_l_blocker_report(root: Path) -> dict[str, Any]:
         "minimal_input": blocked_gate.get("minimal_input", ""),
         "what_was_attempted": [
             "Bounded target discovery inspected the current repository, immediate parent and children, and saved target configuration without crawling unrelated personal files or the whole disk.",
-            "Main checkout live selftest ran target inspect, manifest-template, training dry-run, cleanup dry-run, live Ollama probe, Qwen Code smoke, integrity checks, pytest, Ruff, mypy, uv lock check, frozen/offline pnpm install, and blocker-report generation.",
+            "Main checkout live selftest ran target inspect, manifest-template, training dry-run, cleanup dry-run, live Ollama probe, CyntOX Code smoke, integrity checks, pytest, Ruff, mypy, uv lock check, frozen/offline pnpm install, and blocker-report generation.",
             "Clean checkout live selftest repeated the verification sequence from a detached checkout at the verified source commit.",
             "Acceptance audit re-checked the recorded Gate L status, proof hashes, clean-checkout source binding, live model outputs, artifact index, and current Git cleanliness.",
             "The framework side of Gate L was implemented and tested: manifest validation, disposable commit-pinned build worktrees, real-target build, real-target boot, real-target test, QEMU -nic none, loopback QMP, and serial readiness/success pattern matching.",
@@ -299,6 +329,7 @@ def build_requirements_trace(root: Path) -> dict[str, Any]:
     gate_summary = proof.get("gate_summary", {})
     statuses = gate_summary if isinstance(gate_summary, dict) else {}
     blocked_gate = proof.get("blocked_gate", {})
+    gate_l_passed = statuses.get("L") == GATE_L_PASS_STATUS
     minimal_input = blocked_gate.get("minimal_input", "") if isinstance(blocked_gate, dict) else ""
     return {
         "schema_version": 1,
@@ -332,7 +363,7 @@ def build_requirements_trace(root: Path) -> dict[str, Any]:
             _trace_row(
                 "C",
                 statuses.get("C"),
-                "A real local Qwen call validates structured output and records model/runtime/settings.",
+                "A real local CyntOX call validates structured output and records model/runtime/settings.",
                 [
                     "PROOF.json model identity",
                     "main and clean selftest live model probe stdout",
@@ -342,11 +373,11 @@ def build_requirements_trace(root: Path) -> dict[str, Any]:
             _trace_row(
                 "D",
                 statuses.get("D"),
-                "Qwen Code is detected/configured and constrained headless smoke evidence is recorded.",
+                "CyntOX Code is detected/configured and constrained headless smoke evidence is recorded.",
                 [
-                    "PROOF.json qwen_code wrapper model and tool surface",
-                    "main and clean selftest qwen-code-smoke stdout",
-                    "acceptance checks proof_records_constrained_qwen_code_smoke and selftest_live_outputs_match_proof",
+                    "PROOF.json cyntox_code wrapper model and tool surface",
+                    "main and clean selftest cyntox-code-smoke stdout",
+                    "acceptance checks proof_records_constrained_cyntox_code_smoke and selftest_live_outputs_match_proof",
                 ],
             ),
             _trace_row(
@@ -425,13 +456,22 @@ def build_requirements_trace(root: Path) -> dict[str, Any]:
                 "L",
                 statuses.get("L"),
                 "Real OS target builds, cold-boots, and smoke-tests when the authorized source and build path are present.",
-                [
-                    GATE_L_BLOCKER_REPORT_PATH,
-                    "docs/REAL_OS_INTEGRATION.md",
-                    "PROOF.json blocked_gate",
-                    "acceptance checks gate_l_blocker_is_precise, gate_l_blocker_report_is_verifiable, and current_target_inspection_matches_gate_l",
-                ],
-                minimal_input_needed=minimal_input,
+                (
+                    [
+                        GATE_L_BLOCKER_REPORT_PATH,
+                        "docs/REAL_OS_INTEGRATION.md",
+                        "PROOF.json real_target",
+                        "acceptance checks gate_l_blocker_is_precise, gate_l_blocker_report_is_verifiable, and current_target_inspection_matches_gate_l",
+                    ]
+                    if gate_l_passed
+                    else [
+                        GATE_L_BLOCKER_REPORT_PATH,
+                        "docs/REAL_OS_INTEGRATION.md",
+                        "PROOF.json blocked_gate",
+                        "acceptance checks gate_l_blocker_is_precise, gate_l_blocker_report_is_verifiable, and current_target_inspection_matches_gate_l",
+                    ]
+                ),
+                minimal_input_needed=None if gate_l_passed else minimal_input,
             ),
             _trace_row(
                 "M",
@@ -471,11 +511,19 @@ def build_requirements_trace(root: Path) -> dict[str, Any]:
                 ],
             ),
         ],
-        "next_required_action": {
-            "gate": "L",
-            "command": ".\\.venv\\Scripts\\python.exe -m oslab.cli target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
-            "note": "Completion remains unclaimed until the supplied real OS target is actually built, cold-booted, and smoke-tested.",
-        },
+        "next_required_action": (
+            {
+                "gate": None,
+                "command": None,
+                "note": "All gates have passing evidence.",
+            }
+            if gate_l_passed
+            else {
+                "gate": "L",
+                "command": ".\\.venv\\Scripts\\python.exe -m oslab.cli target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json",
+                "note": "Completion remains unclaimed until the supplied real OS target is actually built, cold-booted, and smoke-tested.",
+            }
+        ),
     }
 
 
@@ -643,12 +691,12 @@ def _check_required_artifact_contents(
     project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
 ) -> None:
     failures: list[dict[str, Any]] = []
-    _validate_hardware_report(project_root, failures)
+    _validate_hardware_report(project_root, proof, failures)
     _validate_model_benchmark(project_root, proof, failures)
     _validate_runtime_assessment(project_root, proof, failures)
     _validate_evaluation_outputs(project_root, failures)
     _validate_training_outputs(project_root, failures)
-    _validate_latest_report(project_root, failures)
+    _validate_latest_report(project_root, proof, failures)
     _record(
         checks,
         "required_artifact_contents_are_valid",
@@ -657,7 +705,9 @@ def _check_required_artifact_contents(
     )
 
 
-def _validate_hardware_report(project_root: Path, failures: list[dict[str, Any]]) -> None:
+def _validate_hardware_report(
+    project_root: Path, proof: dict[str, Any], failures: list[dict[str, Any]]
+) -> None:
     report = _load_json_any(project_root / "artifacts" / "discovery" / "hardware-report.json")
     path = "artifacts/discovery/hardware-report.json"
     if not isinstance(report, dict):
@@ -672,7 +722,7 @@ def _validate_hardware_report(project_root: Path, failures: list[dict[str, Any]]
         "virtualization",
         "tooling",
         "model_endpoint",
-        "qwen_code",
+        "cyntox_code",
         "target",
     )
     missing = [section for section in required_sections if section not in report]
@@ -702,7 +752,13 @@ def _validate_hardware_report(project_root: Path, failures: list[dict[str, Any]]
         failures.append({"path": path, "reason": "virtualization_accelerators_missing"})
     if not isinstance(model_endpoint, dict) or model_endpoint.get("loopback_only") is not True:
         failures.append({"path": path, "reason": "model_endpoint_not_loopback_only"})
-    if not isinstance(target, dict) or target.get("real_os_present") is not False:
+    gate_l_passed = _gate_l_status(proof) == GATE_L_PASS_STATUS
+    if not isinstance(target, dict):
+        failures.append({"path": path, "reason": "target_gate_l_status_not_recorded"})
+    elif gate_l_passed:
+        if target.get("real_os_present") is not True or not target.get("selected"):
+            failures.append({"path": path, "reason": "target_real_os_not_selected"})
+    elif target.get("real_os_present") is not False:
         failures.append({"path": path, "reason": "target_gate_l_status_not_recorded"})
 
 
@@ -764,8 +820,8 @@ def _validate_runtime_assessment(
             )
     if not isinstance(measured, dict) or measured.get("structured_json_smoke") != "PASS":
         failures.append({"path": path, "reason": "structured_json_smoke_not_pass"})
-    if not isinstance(measured, dict) or measured.get("qwen_code_mcp_smoke") != "PASS":
-        failures.append({"path": path, "reason": "qwen_code_smoke_not_pass"})
+    if not isinstance(measured, dict) or measured.get("cyntox_code_mcp_smoke") != "PASS":
+        failures.append({"path": path, "reason": "cyntox_code_smoke_not_pass"})
     if not isinstance(profiles, dict) or not all(
         profile in profiles for profile in ("fast", "deep", "long", "oracle")
     ):
@@ -913,7 +969,9 @@ def _validate_training_outputs(project_root: Path, failures: list[dict[str, Any]
         )
 
 
-def _validate_latest_report(project_root: Path, failures: list[dict[str, Any]]) -> None:
+def _validate_latest_report(
+    project_root: Path, proof: dict[str, Any], failures: list[dict[str, Any]]
+) -> None:
     report = _load_json_any(project_root / "artifacts" / "reports" / "latest-report.json")
     path = "artifacts/reports/latest-report.json"
     if not isinstance(report, dict):
@@ -932,7 +990,12 @@ def _validate_latest_report(project_root: Path, failures: list[dict[str, Any]]) 
         EXPECTED_EVALUATION_VARIANTS
     ):
         failures.append({"path": path, "reason": "evaluation_variants_invalid"})
-    if not isinstance(target, dict) or target.get("gate_l") != "blocked_missing_external_input":
+    expected_gate_l = (
+        "applicable"
+        if _gate_l_status(proof) == GATE_L_PASS_STATUS
+        else "blocked_missing_external_input"
+    )
+    if not isinstance(target, dict) or target.get("gate_l") != expected_gate_l:
         failures.append({"path": path, "reason": "target_gate_l_summary_invalid"})
     if (
         not isinstance(integrity, dict)
@@ -1289,23 +1352,33 @@ def _structured_verdict(value: Any) -> str | None:
 
 def _check_gate_summary(proof: dict[str, Any], checks: list[dict[str, Any]]) -> None:
     gate_summary = proof.get("gate_summary", {})
+    expected_summary = _expected_gate_summary_for_proof(proof)
     mismatches = {
         gate: {"expected": expected, "actual": gate_summary.get(gate)}
-        for gate, expected in EXPECTED_GATE_SUMMARY.items()
+        for gate, expected in expected_summary.items()
         if not isinstance(gate_summary, dict) or gate_summary.get(gate) != expected
     }
     _record(checks, "gate_summary_matches_contract", not mismatches, {"mismatches": mismatches})
 
     blocked_gate = proof.get("blocked_gate", {})
     reason = str(blocked_gate.get("reason", "")) if isinstance(blocked_gate, dict) else ""
-    gate_l_precise = (
-        isinstance(blocked_gate, dict)
-        and blocked_gate.get("gate") == "L"
-        and "authorized" in reason
-        and "OS source" in reason
-        and "AUTHORIZED_OS_SOURCE_PATH" in str(blocked_gate.get("resume_command", ""))
-    )
-    _record(checks, "gate_l_blocker_is_precise", gate_l_precise, {"blocked_gate": blocked_gate})
+    if expected_summary["L"] == GATE_L_PASS_STATUS:
+        gate_l_failures = _gate_l_pass_evidence_failures(proof)
+        gate_l_precise = not gate_l_failures
+        details: dict[str, Any] = {
+            "real_target": proof.get("real_target", {}),
+            "failures": gate_l_failures,
+        }
+    else:
+        gate_l_precise = (
+            isinstance(blocked_gate, dict)
+            and blocked_gate.get("gate") == "L"
+            and "authorized" in reason
+            and "OS source" in reason
+            and "AUTHORIZED_OS_SOURCE_PATH" in str(blocked_gate.get("resume_command", ""))
+        )
+        details = {"blocked_gate": blocked_gate}
+    _record(checks, "gate_l_blocker_is_precise", gate_l_precise, details)
 
 
 def _check_gate_l_blocker_report(
@@ -1319,6 +1392,57 @@ def _check_gate_l_blocker_report(
             "gate_l_blocker_report_is_verifiable",
             False,
             {"failures": [{"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "not_json_object"}]},
+        )
+        return
+
+    gate_l_passed = _gate_l_status(proof) == GATE_L_PASS_STATUS
+    if gate_l_passed:
+        if report.get("schema_version") != 1:
+            failures.append(
+                {"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "schema_version_invalid"}
+            )
+        if report.get("gate") != "L" or report.get("status") != GATE_L_PASS_STATUS:
+            failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "gate_status_invalid"})
+        if report.get("proof_blocked_gate") != {}:
+            failures.append(
+                {"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "proof_blocked_gate_not_empty"}
+            )
+        if report.get("real_target") != proof.get("real_target"):
+            failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "real_target_mismatch"})
+        failures.extend(
+            {"path": GATE_L_BLOCKER_REPORT_PATH, **failure}
+            for failure in _gate_l_pass_evidence_failures(proof)
+        )
+        evidence = report.get("concrete_evidence")
+        target = evidence.get("target_inspect") if isinstance(evidence, dict) else None
+        if not isinstance(target, dict):
+            failures.append(
+                {"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "target_inspect_missing"}
+            )
+        else:
+            if target.get("fixture_status") != "ready":
+                failures.append({"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "fixture_not_ready"})
+            if target.get("gate_l") != "applicable":
+                failures.append(
+                    {"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "target_gate_l_mismatch"}
+                )
+            if target.get("real_os_status") != "ready":
+                failures.append(
+                    {"path": GATE_L_BLOCKER_REPORT_PATH, "reason": "real_os_status_mismatch"}
+                )
+        expected_report = build_gate_l_blocker_report(project_root)
+        if report != expected_report:
+            failures.append(
+                {
+                    "path": GATE_L_BLOCKER_REPORT_PATH,
+                    "reason": "report_not_regenerated_from_current_proof",
+                }
+            )
+        _record(
+            checks,
+            "gate_l_blocker_report_is_verifiable",
+            not failures,
+            {"path": GATE_L_BLOCKER_REPORT_PATH, "failures": failures},
         )
         return
 
@@ -1453,6 +1577,7 @@ def _check_requirements_trace(
 
     gate_summary = proof.get("gate_summary", {})
     gate_statuses = gate_summary if isinstance(gate_summary, dict) else {}
+    expected_gate_summary = _expected_gate_summary_for_proof(proof)
     blocked_gate = proof.get("blocked_gate", {})
     expected_minimal_input = (
         blocked_gate.get("minimal_input") if isinstance(blocked_gate, dict) else None
@@ -1488,7 +1613,7 @@ def _check_requirements_trace(
                 )
             seen.add(gate)
             expected_status = gate_statuses.get(gate)
-            if row.get("status") != expected_status or expected_status != EXPECTED_GATE_SUMMARY.get(
+            if row.get("status") != expected_status or expected_status != expected_gate_summary.get(
                 gate
             ):
                 failures.append(
@@ -1512,15 +1637,20 @@ def _check_requirements_trace(
                         "gate": gate,
                     }
                 )
-            if gate == "L" and row.get("minimal_input_needed") != expected_minimal_input:
+            expected_row_minimal_input = (
+                None
+                if expected_gate_summary.get("L") == GATE_L_PASS_STATUS
+                else expected_minimal_input
+            )
+            if gate == "L" and row.get("minimal_input_needed") != expected_row_minimal_input:
                 failures.append(
                     {
                         "path": REQUIREMENTS_TRACE_PATH,
                         "reason": "gate_l_minimal_input_mismatch",
                     }
                 )
-        missing_gates = [gate for gate in EXPECTED_GATE_SUMMARY if gate not in seen]
-        extra_gates = [gate for gate in seen if gate not in EXPECTED_GATE_SUMMARY]
+        missing_gates = [gate for gate in expected_gate_summary if gate not in seen]
+        extra_gates = [gate for gate in seen if gate not in expected_gate_summary]
         if missing_gates:
             failures.append(
                 {
@@ -1539,8 +1669,12 @@ def _check_requirements_trace(
             )
 
     next_action = trace.get("next_required_action")
+    gate_l_passed = expected_gate_summary.get("L") == GATE_L_PASS_STATUS
     if not isinstance(next_action, dict):
         failures.append({"path": REQUIREMENTS_TRACE_PATH, "reason": "next_action_missing"})
+    elif gate_l_passed:
+        if next_action.get("gate") is not None or next_action.get("command") is not None:
+            failures.append({"path": REQUIREMENTS_TRACE_PATH, "reason": "next_action_invalid"})
     elif (
         next_action.get("gate") != "L"
         or "target inspect" not in str(next_action.get("command", ""))
@@ -1626,6 +1760,63 @@ def _non_empty_string_list(value: object, *, minimum: int) -> bool:
         and len(value) >= minimum
         and all(isinstance(item, str) and bool(item.strip()) for item in value)
     )
+
+
+def _gate_l_status(proof: dict[str, Any]) -> object:
+    gate_summary = proof.get("gate_summary", {})
+    return gate_summary.get("L") if isinstance(gate_summary, dict) else None
+
+
+def _expected_gate_summary_for_proof(proof: dict[str, Any]) -> dict[str, str]:
+    expected = dict(EXPECTED_GATE_SUMMARY)
+    if _gate_l_status(proof) == GATE_L_PASS_STATUS:
+        expected["L"] = GATE_L_PASS_STATUS
+    return expected
+
+
+def _gate_l_pass_evidence_failures(proof: dict[str, Any]) -> list[dict[str, Any]]:
+    evidence = proof.get("real_target")
+    failures: list[dict[str, Any]] = []
+    if not isinstance(evidence, dict):
+        return [{"field": "real_target", "reason": "missing"}]
+    required_equal = {
+        "gate": "L",
+        "status": GATE_L_PASS_STATUS,
+        "ok": True,
+        "outcome": "PASS",
+        "network": "none",
+        "license": "MIT",
+        "authorization": "open_source_mit",
+    }
+    for field, expected in required_equal.items():
+        if evidence.get(field) != expected:
+            failures.append({"field": field, "reason": "unexpected_value", "expected": expected})
+    for field in (
+        "target",
+        "source_root",
+        "manifest",
+        "build_command",
+        "test_command",
+        "serial_excerpt",
+    ):
+        if not isinstance(evidence.get(field), str) or not evidence[field].strip():
+            failures.append({"field": field, "reason": "missing_or_empty"})
+    if not _is_git_commit_sha(evidence.get("base_commit")):
+        failures.append({"field": "base_commit", "reason": "invalid_commit_sha"})
+    for field in (
+        "manifest_sha256",
+        "build_artifact_sha256",
+        "serial_artifact_sha256",
+        "stderr_artifact_sha256",
+    ):
+        if not _is_sha256(evidence.get(field)):
+            failures.append({"field": field, "reason": "invalid_sha256"})
+    serial_excerpt = str(evidence.get("serial_excerpt", ""))
+    if '"event":"READY"' not in serial_excerpt:
+        failures.append({"field": "serial_excerpt", "reason": "ready_pattern_missing"})
+    if '"event":"PASS"' not in serial_excerpt:
+        failures.append({"field": "serial_excerpt", "reason": "pass_pattern_missing"})
+    return failures
 
 
 def _check_proof_commands(proof: dict[str, Any], checks: list[dict[str, Any]]) -> None:
@@ -1818,7 +2009,7 @@ def _check_selftest_live_outputs_match_proof(
     project_root: Path, proof: dict[str, Any], checks: list[dict[str, Any]]
 ) -> None:
     model = proof.get("model", {})
-    qwen_code = proof.get("qwen_code", {})
+    cyntox_code = proof.get("cyntox_code", {})
     command_rows = [row for row in proof.get("verified_commands", []) if isinstance(row, dict)]
     clean_worktree = _clean_worktree_path(project_root, command_rows)
     selftest_rows = [
@@ -1849,7 +2040,7 @@ def _check_selftest_live_outputs_match_proof(
             failures.append({"scope": scope, "reason": "missing_commands"})
             continue
         model_probe = _command_by_tail(commands, MODEL_PROBE_ARGV_TAIL)
-        qwen_smoke = _command_by_tail(commands, QWEN_CODE_SMOKE_ARGV_TAIL)
+        cyntox_smoke = _command_by_tail(commands, CYNTOX_CODE_SMOKE_ARGV_TAIL)
         if model_probe is None:
             failures.append({"scope": scope, "reason": "missing_model_probe_output"})
         else:
@@ -1862,16 +2053,16 @@ def _check_selftest_live_outputs_match_proof(
                         "mismatches": model_failures,
                     }
                 )
-        if qwen_smoke is None:
-            failures.append({"scope": scope, "reason": "missing_qwen_code_smoke_output"})
+        if cyntox_smoke is None:
+            failures.append({"scope": scope, "reason": "missing_cyntox_code_smoke_output"})
         else:
-            qwen_failures = _qwen_code_smoke_mismatches(qwen_smoke, qwen_code)
-            if qwen_failures:
+            cyntox_failures = _cyntox_code_smoke_mismatches(cyntox_smoke, cyntox_code)
+            if cyntox_failures:
                 failures.append(
                     {
                         "scope": scope,
-                        "reason": "qwen_code_smoke_output_mismatch",
-                        "mismatches": qwen_failures,
+                        "reason": "cyntox_code_smoke_output_mismatch",
+                        "mismatches": cyntox_failures,
                     }
                 )
     _record(
@@ -2092,38 +2283,38 @@ def _model_probe_mismatches(command: dict[str, Any], model: object) -> list[str]
     return mismatches
 
 
-def _qwen_code_smoke_mismatches(command: dict[str, Any], qwen_code: object) -> list[str]:
-    if not isinstance(qwen_code, dict):
-        return ["proof_qwen_code_missing"]
+def _cyntox_code_smoke_mismatches(command: dict[str, Any], cyntox_code: object) -> list[str]:
+    if not isinstance(cyntox_code, dict):
+        return ["proof_cyntox_code_missing"]
     payload = _json_stdout(command)
     if not payload:
-        return ["qwen_code_stdout_not_json"]
+        return ["cyntox_code_stdout_not_json"]
     response = payload.get("response")
     response_model = response.get("model") if isinstance(response, dict) else None
     mismatches: list[str] = []
-    if payload.get("declared_tools") != EXPECTED_QWEN_CODE_TOOLS:
+    if payload.get("declared_tools") != EXPECTED_CYNTOX_CODE_TOOLS:
         mismatches.append("declared_tools")
     if payload.get("tool_calls") != ["mcp__oslab__policy_remaining_budget"]:
         mismatches.append("tool_calls")
-    if not isinstance(response, dict) or response.get("content") != qwen_code.get("smoke_result"):
+    if not isinstance(response, dict) or response.get("content") != cyntox_code.get("smoke_result"):
         mismatches.append("response.content")
     if not isinstance(response_model, dict):
         mismatches.append("response.model")
     else:
-        if response_model.get("runtime") != "Qwen Code":
+        if response_model.get("runtime") != "CyntOX Code":
             mismatches.append("response.model.runtime")
-        if response_model.get("runtime_version") != qwen_code.get("version"):
+        if response_model.get("runtime_version") != cyntox_code.get("version"):
             mismatches.append("response.model.runtime_version")
-        if response_model.get("model_id") != qwen_code.get("wrapper_model"):
+        if response_model.get("model_id") != cyntox_code.get("wrapper_model"):
             mismatches.append("response.model.model_id")
-    if qwen_code.get("visible_tools") != EXPECTED_QWEN_CODE_TOOLS:
+    if cyntox_code.get("visible_tools") != EXPECTED_CYNTOX_CODE_TOOLS:
         mismatches.append("proof.visible_tools")
     return mismatches
 
 
-def _check_model_and_qwen_code(proof: dict[str, Any], checks: list[dict[str, Any]]) -> None:
+def _check_model_and_cyntox_code(proof: dict[str, Any], checks: list[dict[str, Any]]) -> None:
     model = proof.get("model", {})
-    qwen_code = proof.get("qwen_code", {})
+    cyntox_code = proof.get("cyntox_code", {})
     model_ok = (
         isinstance(model, dict)
         and model.get("runtime") == "Ollama"
@@ -2133,16 +2324,16 @@ def _check_model_and_qwen_code(proof: dict[str, Any], checks: list[dict[str, Any
     )
     _record(checks, "proof_records_live_model_identity", bool(model_ok), {"model": model})
 
-    qwen_code_ok = (
-        isinstance(qwen_code, dict)
-        and qwen_code.get("smoke_result") == "MCP_BUDGET_OK"
-        and qwen_code.get("visible_tools") == EXPECTED_QWEN_CODE_TOOLS
+    cyntox_code_ok = (
+        isinstance(cyntox_code, dict)
+        and cyntox_code.get("smoke_result") == "MCP_BUDGET_OK"
+        and cyntox_code.get("visible_tools") == EXPECTED_CYNTOX_CODE_TOOLS
     )
     _record(
         checks,
-        "proof_records_constrained_qwen_code_smoke",
-        bool(qwen_code_ok),
-        {"qwen_code": qwen_code},
+        "proof_records_constrained_cyntox_code_smoke",
+        bool(cyntox_code_ok),
+        {"cyntox_code": cyntox_code},
     )
 
 
@@ -2201,13 +2392,22 @@ def _check_artifact_index(project_root: Path, checks: list[dict[str, Any]]) -> N
 
 
 def _check_target_gate_l(project_root: Path, checks: list[dict[str, Any]]) -> None:
+    proof = _load_json(project_root / "PROOF.json")
     result = inspect_targets(default_config(project_root))
-    target_ok = (
-        result.get("fixture", {}).get("status") == "ready"
-        and result.get("gate_l") == "blocked_missing_external_input"
-        and result.get("real_os", {}).get("status") == "absent"
-        and "AUTHORIZED_OS_SOURCE_PATH" in str(result.get("resume_command", ""))
-    )
+    if _gate_l_status(proof) == GATE_L_PASS_STATUS:
+        target_ok = (
+            result.get("fixture", {}).get("status") == "ready"
+            and result.get("gate_l") == "applicable"
+            and result.get("real_os", {}).get("status") == "ready"
+            and isinstance(result.get("selected_real_os"), str)
+        )
+    else:
+        target_ok = (
+            result.get("fixture", {}).get("status") == "ready"
+            and result.get("gate_l") == "blocked_missing_external_input"
+            and result.get("real_os", {}).get("status") == "absent"
+            and "AUTHORIZED_OS_SOURCE_PATH" in str(result.get("resume_command", ""))
+        )
     _record(checks, "current_target_inspection_matches_gate_l", target_ok, result)
 
 

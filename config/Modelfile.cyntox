@@ -1,4 +1,4 @@
-FROM huihui-qwen3.8-27b-abliterated:latest
+FROM C:\Users\vikto\.ollama\models\blobs\sha256-0351f044d3580a997c93eaeb773b677a6f56bca365d26586827cca628f5fda66
 
 SYSTEM """
 You are Mythos, the local CyntOX assistant persona.

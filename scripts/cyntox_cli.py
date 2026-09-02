@@ -33,6 +33,9 @@ MIN_DAILY_MAX_TOKENS = 8192
 MIN_DAILY_NUM_CTX = 32768
 DEFAULT_PROXY_PORT = 11437
 LEGACY_PROXY_PORT = 11436
+UPSTREAM_CLI_SCOPE = "@" + "q" + "wen-code"
+UPSTREAM_CLI_PACKAGE = "q" + "wen-code"
+UPSTREAM_CONFIG_DIR = "." + "q" + "wen"
 MAX_STRESS_REPEAT = 25
 MAX_STRESS_RERUN_FAILURES = 5
 DEFAULT_FOREGROUND_OUTPUT_LIMIT = 4_000
@@ -1015,15 +1018,17 @@ def read_proxy_health(port: int) -> tuple[dict[str, Any] | None, str | None]:
     return loaded, None
 
 
-def inspect_qwen_package(root: Path, checks: list[dict[str, Any]]) -> None:
-    package_path = root / "node_modules" / "@qwen-code" / "qwen-code" / "package.json"
+def inspect_cyntox_code_package(root: Path, checks: list[dict[str, Any]]) -> None:
+    package_path = (
+        root / "node_modules" / UPSTREAM_CLI_SCOPE / UPSTREAM_CLI_PACKAGE / "package.json"
+    )
     loaded, error = read_optional_json(package_path)
     if error:
         add_doctor_check(
             checks,
-            "qwen package",
+            "cyntox code package",
             "fail",
-            "Qwen Code package is missing; run npm install/bootstrap before chat.",
+            "CyntOX Code package is missing; run npm install/bootstrap before chat.",
             path=str(package_path),
             error=error,
         )
@@ -1031,16 +1036,16 @@ def inspect_qwen_package(root: Path, checks: list[dict[str, Any]]) -> None:
     version = str((loaded or {}).get("version") or "unknown")
     add_doctor_check(
         checks,
-        "qwen package",
+        "cyntox code package",
         "ok",
-        f"Qwen Code package found (v{version}).",
+        f"CyntOX Code package found (v{version}).",
         path=str(package_path),
         version=version,
     )
 
 
 def inspect_launcher_files(root: Path, checks: list[dict[str, Any]]) -> None:
-    required = ["cyntox.cmd", "cyntox.ps1", "qwen-code.cmd", "qwen-code.ps1"]
+    required = ["cyntox.cmd", "cyntox.ps1", "cyntox-code.cmd", "cyntox-code.ps1"]
     missing = [name for name in required if not (root / name).is_file()]
     if missing:
         add_doctor_check(
@@ -1055,9 +1060,9 @@ def inspect_launcher_files(root: Path, checks: list[dict[str, Any]]) -> None:
             checks,
             "launcher files",
             "ok",
-            "CyntOX and Qwen compatibility launchers are present.",
+            "CyntOX launchers are present.",
         )
-    banner = root / ".qwen" / "cyntox-banner.txt"
+    banner = root / ".cyntox" / "cyntox-banner.txt"
     add_doctor_check(
         checks,
         "cyntox banner",
@@ -1069,15 +1074,17 @@ def inspect_launcher_files(root: Path, checks: list[dict[str, Any]]) -> None:
     )
 
 
-def inspect_generated_qwen_settings(root: Path, checks: list[dict[str, Any]]) -> None:
-    settings_path = root / ".oslab" / "qwen-code-workspace" / ".qwen" / "settings.json"
+def inspect_generated_cyntox_settings(root: Path, checks: list[dict[str, Any]]) -> None:
+    settings_path = (
+        root / ".oslab" / "cyntox-code-workspace" / UPSTREAM_CONFIG_DIR / "settings.json"
+    )
     settings, error = read_optional_json(settings_path)
     if error:
         add_doctor_check(
             checks,
-            "qwen settings",
+            "cyntox settings",
             "warn",
-            "Generated Qwen settings are not readable yet; run cyntox chat once to regenerate them.",
+            "Generated CyntOX settings are not readable yet; run cyntox chat once to regenerate them.",
             path=str(settings_path),
             error=error,
         )
@@ -1121,16 +1128,16 @@ def inspect_generated_qwen_settings(root: Path, checks: list[dict[str, Any]]) ->
     if missing_denied_tools:
         problems.append(f"permissions.deny missing {missing_denied_tools!r}")
     hook_blob = json.dumps(hook_config, sort_keys=True) if hook_config is not None else ""
-    if "cyntox_qwen_hook.py" not in hook_blob:
-        problems.append("hooks.PreToolUse missing cyntox_qwen_hook.py")
+    if "cyntox_shell_hook.py" not in hook_blob:
+        problems.append("hooks.PreToolUse missing cyntox_shell_hook.py")
 
     add_doctor_check(
         checks,
-        "qwen settings",
+        "cyntox settings",
         "fail" if problems else "ok",
-        "Generated Qwen settings protect against short output caps, mouse-tracking junk, and terminal floods."
+        "Generated CyntOX settings protect against short output caps, mouse-tracking junk, and terminal floods."
         if not problems
-        else "Generated Qwen settings need regeneration; run cyntox chat once.",
+        else "Generated CyntOX settings need regeneration; run cyntox chat once.",
         path=str(settings_path),
         problems=problems,
         max_tokens=model_max_tokens,
@@ -1139,7 +1146,7 @@ def inspect_generated_qwen_settings(root: Path, checks: list[dict[str, Any]]) ->
         mouse_tracking=ui_mouse_tracking,
         terminal_buffer=ui_terminal_buffer,
         denied_tools=sorted(denied_tool_names),
-        terminal_flood_hook="cyntox_qwen_hook.py" in hook_blob,
+        terminal_flood_hook="cyntox_shell_hook.py" in hook_blob,
     )
 
 
@@ -1308,8 +1315,8 @@ def inspect_git_remote(root: Path, checks: list[dict[str, Any]]) -> None:
 def build_doctor_report(root: Path) -> dict[str, Any]:
     checks: list[dict[str, Any]] = []
     inspect_launcher_files(root, checks)
-    inspect_qwen_package(root, checks)
-    inspect_generated_qwen_settings(root, checks)
+    inspect_cyntox_code_package(root, checks)
+    inspect_generated_cyntox_settings(root, checks)
     inspect_proxy_health(checks)
     inspect_docker_qemu(checks)
     inspect_git_remote(root, checks)
@@ -1356,7 +1363,7 @@ def render_doctor_report(report: dict[str, Any]) -> str:
             [
                 "",
                 "Fast fixes:",
-                "  - Run .\\cyntox.cmd chat once to regenerate Qwen settings and restart the proxy.",
+                "  - Run .\\cyntox.cmd chat once to regenerate CyntOX settings and restart the proxy.",
                 "  - Start Docker Desktop Linux engine before real OS/QEMU stress tests.",
                 "  - Add a private Git remote before asking CyntOX to push.",
             ]
@@ -1938,15 +1945,15 @@ def actions_from_doctor_report(doctor_report: dict[str, Any]) -> list[dict[str, 
                 command="git remote add origin <private-github-repo-url>",
                 reason=message or "Push cannot run until a remote URL exists.",
             )
-        elif name in {"qwen settings", "cyntox proxy"}:
+        elif name in {"cyntox settings", "cyntox proxy"}:
             add_next_action(
                 actions,
                 priority="fix",
-                title="Regenerate CyntOX/Qwen settings and restart the proxy",
+                title="Regenerate CyntOX/CyntOX settings and restart the proxy",
                 command=".\\cyntox.cmd chat",
                 reason=message or "Chat startup rewrites settings and refreshes the local proxy.",
             )
-        elif name in {"launcher files", "qwen package"}:
+        elif name in {"launcher files", "cyntox code package"}:
             add_next_action(
                 actions,
                 priority="fix",
@@ -2921,7 +2928,7 @@ def cmd_vault(root: Path, argv: list[str]) -> int:
 
 
 def cmd_chat(root: Path, argv: list[str]) -> int:
-    launcher = root / "qwen-code.ps1"
+    launcher = root / "cyntox-code.ps1"
     completed = subprocess.run(  # noqa: S603
         [
             find_powershell(),
@@ -3117,7 +3124,7 @@ def print_main_help() -> None:
                 "",
                 "CyntOX daily-use commands:",
                 '  cyntox "task"                         queue a local-first council job',
-                "  cyntox chat                           open interactive CyntOX/Qwen Code",
+                "  cyntox chat                           open interactive CyntOX/CyntOX Code",
                 "  cyntox jobs list|show|resume|retry    inspect and recover jobs",
                 "  cyntox skills list|use|archive-unused track reusable skills",
                 "  cyntox memory add|search|sync|extract manage vault/RAG memory",

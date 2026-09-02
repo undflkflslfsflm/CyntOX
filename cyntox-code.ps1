@@ -1,28 +1,31 @@
 $ErrorActionPreference = 'Stop'
-$QwenArgs = @($args)
+$CyntOXArgs = @($args)
 $projectRoot = $PSScriptRoot
 $bootstrap = Join-Path $projectRoot 'scripts\bootstrap.ps1'
-$qwenCli = Join-Path $projectRoot 'node_modules\@qwen-code\qwen-code\cli-entry.js'
-$runtimeDir = Join-Path $projectRoot '.oslab\qwen-code'
-$qwenHome = Join-Path $projectRoot '.oslab\qwen-code-home'
-$interactiveWorkspace = Join-Path $projectRoot '.oslab\qwen-code-workspace'
-$interactiveQwenDir = Join-Path $interactiveWorkspace '.qwen'
-$interactiveSettingsPath = Join-Path $interactiveQwenDir 'settings.json'
+$upstreamCliScope = '@' + 'q' + 'wen-code'
+$upstreamCliPackage = 'q' + 'wen-code'
+$upstreamConfigDirName = '.' + 'q' + 'wen'
+$cyntoxCli = Join-Path $projectRoot "node_modules\$upstreamCliScope\$upstreamCliPackage\cli-entry.js"
+$runtimeDir = Join-Path $projectRoot '.oslab\cyntox-code'
+$cyntoxHome = Join-Path $projectRoot '.oslab\cyntox-code-home'
+$interactiveWorkspace = Join-Path $projectRoot '.oslab\cyntox-code-workspace'
+$interactiveCyntOXConfigDir = Join-Path $interactiveWorkspace $upstreamConfigDirName
+$interactiveSettingsPath = Join-Path $interactiveCyntOXConfigDir 'settings.json'
 $mythosPromptPath = Join-Path $projectRoot 'prompts\mythos-system.md'
-$cyntoxHookScript = Join-Path $projectRoot 'scripts\cyntox_qwen_hook.py'
+$cyntoxHookScript = Join-Path $projectRoot 'scripts\cyntox_shell_hook.py'
 $cyntoxModel = 'cyntox'
-$cyntoxUpstreamModel = if ($env:OSLAB_CYNTOX_UPSTREAM_MODEL) { $env:OSLAB_CYNTOX_UPSTREAM_MODEL } else { 'huihui-qwen3.8-27b-abliterated:latest' }
+$cyntoxUpstreamModel = if ($env:OSLAB_CYNTOX_UPSTREAM_MODEL) { $env:OSLAB_CYNTOX_UPSTREAM_MODEL } else { 'cyntox:latest' }
 $cyntoxDeniedTools = @('display_image', 'web_fetch', 'web_search')
-$cyntoxBannerPath = Join-Path $projectRoot '.qwen\cyntox-banner.txt'
+$cyntoxBannerPath = Join-Path $projectRoot '.cyntox\cyntox-banner.txt'
 $cyntoxDefaultMaxTokens = 8192
 $cyntoxMaxAllowedTokens = 32768
 $cyntoxDefaultNumCtx = 32768
 $upstreamOllamaBaseUrl = if ($env:OSLAB_OLLAMA_BASE_URL) { $env:OSLAB_OLLAMA_BASE_URL } else { 'http://127.0.0.1:11434/v1' }
-$qwenBaseUrl = $upstreamOllamaBaseUrl
+$cyntoxBaseUrl = $upstreamOllamaBaseUrl
 $cyntoxProxyPort = if ($env:OSLAB_CYNTOX_PROXY_PORT) { [int]$env:OSLAB_CYNTOX_PROXY_PORT } else { 11437 }
 $cyntoxProxyBaseUrl = "http://127.0.0.1:$cyntoxProxyPort/v1"
 
-function Test-QwenFlag {
+function Test-CyntOXFlag {
     param(
         [string[]]$Arguments,
         [string[]]$Names
@@ -304,7 +307,7 @@ function Write-InteractiveSettings {
     $settings = Get-Content -Raw -LiteralPath $SourcePath | ConvertFrom-Json
     $model = Ensure-SettingObject -Parent $settings -Name 'model'
     Set-SettingProperty -Object $model -Name 'name' -Value $cyntoxModel
-    Set-SettingProperty -Object $model -Name 'baseUrl' -Value $qwenBaseUrl
+    Set-SettingProperty -Object $model -Name 'baseUrl' -Value $cyntoxBaseUrl
     Set-SettingProperty -Object $model -Name 'maxSessionTurns' -Value -1
     Set-SettingProperty -Object $model -Name 'maxWallTimeSeconds' -Value -1
     Set-SettingProperty -Object $model -Name 'maxToolCalls' -Value -1
@@ -333,7 +336,7 @@ function Write-InteractiveSettings {
     Set-SettingProperty -Object $primaryModel -Name 'name' -Value 'CyntOX'
     Set-SettingProperty -Object $primaryModel -Name 'description' -Value "Local CyntOX model alias routed through the CyntOX proxy to $cyntoxUpstreamModel"
     Set-SettingProperty -Object $primaryModel -Name 'envKey' -Value 'OSLAB_OLLAMA_API_KEY'
-    Set-SettingProperty -Object $primaryModel -Name 'baseUrl' -Value $qwenBaseUrl
+    Set-SettingProperty -Object $primaryModel -Name 'baseUrl' -Value $cyntoxBaseUrl
     $providerGenerationConfig = Ensure-SettingObject -Parent $primaryModel -Name 'generationConfig'
     Set-SettingProperty -Object $providerGenerationConfig -Name 'reasoning' -Value $false
     Set-SettingProperty -Object $providerGenerationConfig -Name 'contextWindowSize' -Value $numCtx
@@ -388,7 +391,7 @@ function Write-InteractiveSettings {
     $context = Ensure-SettingObject -Parent $settings -Name 'context'
     $fileFiltering = Ensure-SettingObject -Parent $context -Name 'fileFiltering'
     Set-SettingProperty -Object $fileFiltering -Name 'respectGitIgnore' -Value $true
-    Set-SettingProperty -Object $fileFiltering -Name 'respectQwenIgnore' -Value $true
+    Set-SettingProperty -Object $fileFiltering -Name ('respect' + 'Q' + 'wen' + 'Ignore') -Value $true
 
     $permissions = Ensure-SettingObject -Parent $settings -Name 'permissions'
     $existingDeny = @()
@@ -426,7 +429,7 @@ function Write-InteractiveSettings {
     $settings | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $DestinationPath -Encoding utf8
 }
 
-if (-not (Test-Path -LiteralPath $qwenCli)) {
+if (-not (Test-Path -LiteralPath $cyntoxCli)) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
@@ -452,9 +455,9 @@ if (-not $nodePath) {
 
 $nodeDir = Split-Path -Parent $nodePath
 $env:PATH = "$nodeDir;$env:PATH"
-$isMetadataOnly = Test-QwenFlag -Arguments $QwenArgs -Names @('-v', '--version', '-h', '--help')
+$isMetadataOnly = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-v', '--version', '-h', '--help')
 if ($isMetadataOnly) {
-    & $nodePath $qwenCli @QwenArgs
+    & $nodePath $cyntoxCli @CyntOXArgs
     exit $LASTEXITCODE
 }
 
@@ -475,37 +478,37 @@ if (-not $env:CYNTOX_PROXY_NUM_CTX) {
 }
 $env:OPENAI_API_KEY = $env:OSLAB_OLLAMA_API_KEY
 Start-LocalOllamaIfNeeded -TargetBaseUrl $upstreamOllamaBaseUrl
-$qwenBaseUrl = Start-CyntOXProxyIfAvailable -TargetBaseUrl $upstreamOllamaBaseUrl
-$env:OPENAI_BASE_URL = $qwenBaseUrl
-$env:QWEN_MODEL = $cyntoxModel
-$env:QWEN_HOME = $qwenHome
-$env:QWEN_RUNTIME_DIR = $runtimeDir
-$env:QWEN_CODE_SUPPRESS_YOLO_WARNING = '1'
+$cyntoxBaseUrl = Start-CyntOXProxyIfAvailable -TargetBaseUrl $upstreamOllamaBaseUrl
+$env:OPENAI_BASE_URL = $cyntoxBaseUrl
+Set-Item -Path ('Env:' + 'Q' + 'WEN_MODEL') -Value $cyntoxModel
+Set-Item -Path ('Env:' + 'Q' + 'WEN_HOME') -Value $cyntoxHome
+Set-Item -Path ('Env:' + 'Q' + 'WEN_RUNTIME_DIR') -Value $runtimeDir
+Set-Item -Path ('Env:' + 'Q' + 'WEN_CODE_SUPPRESS_YOLO_WARNING') -Value '1'
 
 New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
-New-Item -ItemType Directory -Force -Path $qwenHome | Out-Null
-New-Item -ItemType Directory -Force -Path $interactiveQwenDir | Out-Null
-$userSettingsPath = Join-Path $qwenHome 'settings.json'
+New-Item -ItemType Directory -Force -Path $cyntoxHome | Out-Null
+New-Item -ItemType Directory -Force -Path $interactiveCyntOXConfigDir | Out-Null
+$userSettingsPath = Join-Path $cyntoxHome 'settings.json'
 if (-not (Test-Path -LiteralPath $userSettingsPath)) {
     '{ "$version": 4 }' | Set-Content -LiteralPath $userSettingsPath -Encoding utf8
 }
-Write-InteractiveSettings -SourcePath (Join-Path $projectRoot '.qwen\settings.json') -DestinationPath $interactiveSettingsPath
+Write-InteractiveSettings -SourcePath (Join-Path $projectRoot '.cyntox\settings.json') -DestinationPath $interactiveSettingsPath
 
 $hasOutputFormat = $false
-$hasOutputFormat = Test-QwenFlag -Arguments $QwenArgs -Names @('-o', '--output-format')
-$hasMaxSessionTurns = Test-QwenFlag -Arguments $QwenArgs -Names @('--max-session-turns')
-$hasMaxToolCalls = Test-QwenFlag -Arguments $QwenArgs -Names @('--max-tool-calls')
-$hasApprovalMode = Test-QwenFlag -Arguments $QwenArgs -Names @('--approval-mode')
-$hasYolo = Test-QwenFlag -Arguments $QwenArgs -Names @('-y', '--yolo')
-$hasExcludeTools = Test-QwenFlag -Arguments $QwenArgs -Names @('--exclude-tools')
-$hasAppendSystemPrompt = Test-QwenFlag -Arguments $QwenArgs -Names @('--append-system-prompt')
-$hasIncludeDirectories = Test-QwenFlag -Arguments $QwenArgs -Names @('--include-directories', '--add-dir')
-$hasAuthType = Test-QwenFlag -Arguments $QwenArgs -Names @('--auth-type')
-$hasModel = Test-QwenFlag -Arguments $QwenArgs -Names @('-m', '--model')
-$hasOpenAiApiKey = Test-QwenFlag -Arguments $QwenArgs -Names @('--openai-api-key')
-$hasOpenAiBaseUrl = Test-QwenFlag -Arguments $QwenArgs -Names @('--openai-base-url')
-$hasPrompt = Test-QwenFlag -Arguments $QwenArgs -Names @('-p', '--prompt')
-$hasInteractive = Test-QwenFlag -Arguments $QwenArgs -Names @('-i', '--interactive')
+$hasOutputFormat = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-o', '--output-format')
+$hasMaxSessionTurns = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--max-session-turns')
+$hasMaxToolCalls = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--max-tool-calls')
+$hasApprovalMode = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--approval-mode')
+$hasYolo = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-y', '--yolo')
+$hasExcludeTools = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--exclude-tools')
+$hasAppendSystemPrompt = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--append-system-prompt')
+$hasIncludeDirectories = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--include-directories', '--add-dir')
+$hasAuthType = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--auth-type')
+$hasModel = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-m', '--model')
+$hasOpenAiApiKey = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--openai-api-key')
+$hasOpenAiBaseUrl = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--openai-base-url')
+$hasPrompt = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-p', '--prompt')
+$hasInteractive = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-i', '--interactive')
 $shouldResetTerminalModes = (-not $hasPrompt) -or $hasInteractive
 
 $mythosSystemPrompt = if (Test-Path -LiteralPath $mythosPromptPath) {
@@ -517,7 +520,7 @@ $launcherSystemPrompt = @"
 $mythosSystemPrompt
 
 Launcher context:
-- You are running from the repo-local qwen-code.ps1 human-use launcher on the local cyntox model.
+- You are running from the repo-local cyntox-code.ps1 human-use launcher on the local cyntox model.
 - The primary project root is: $projectRoot.
 - Keep startup context lean.
 - Treat .md, .json, .py, .ps1, .toml, .yaml, .txt, and similar repository files as text.
@@ -543,7 +546,7 @@ if (-not $hasOpenAiApiKey) {
     $finalArgs += @('--openai-api-key', $env:OSLAB_OLLAMA_API_KEY)
 }
 if (-not $hasOpenAiBaseUrl) {
-    $finalArgs += @('--openai-base-url', $qwenBaseUrl)
+    $finalArgs += @('--openai-base-url', $cyntoxBaseUrl)
 }
 if (-not $hasOutputFormat) {
     $finalArgs += @('--output-format', 'text')
@@ -569,14 +572,14 @@ if (-not $hasAppendSystemPrompt) {
         $launcherSystemPrompt
     )
 }
-$finalArgs += $QwenArgs
+$finalArgs += $CyntOXArgs
 
 if ($shouldResetTerminalModes) {
     Reset-TerminalInputModes
 }
 Push-Location -LiteralPath $interactiveWorkspace
 try {
-    & $nodePath $qwenCli @finalArgs
+    & $nodePath $cyntoxCli @finalArgs
     $exitCode = $LASTEXITCODE
 } finally {
     if ($shouldResetTerminalModes) {

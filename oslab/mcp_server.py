@@ -54,7 +54,7 @@ def handle(message: dict[str, Any]) -> dict[str, Any] | None:
             {
                 "protocolVersion": "2025-03-26",
                 "capabilities": {"tools": {"listChanged": False}},
-                "serverInfo": {"name": "qwen-os-lab-broker", "version": "0.1.0"},
+                "serverInfo": {"name": "cyntox-os-lab-broker", "version": "0.1.0"},
             },
         )
     if method in {"notifications/initialized", "notifications/cancelled"}:

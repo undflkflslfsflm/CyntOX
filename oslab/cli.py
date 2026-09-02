@@ -26,10 +26,10 @@ from oslab.artifacts import ArtifactStore
 from oslab.campaign import prove_recovery
 from oslab.config import default_config, load_config
 from oslab.database import LabDatabase
-from oslab.doctor import collect_report, write_report
+from oslab.doctor import collect_report, sanitize_report_strings, write_report
 from oslab.eval import AgenticFixLoop, EvaluationHarness
 from oslab.fuzz import replay_fixture_input, run_fixture_fuzz
-from oslab.model import OllamaProvider, QwenCodeWorker
+from oslab.model import CyntoxCodeWorker, OllamaProvider
 from oslab.process_runner import SafeProcessRunner
 from oslab.qemu import DockerQemuBackend
 from oslab.schemas import Outcome, TrajectoryEvent
@@ -42,7 +42,7 @@ from oslab.targets import (
 )
 from oslab.training import export_trajectories
 
-app = typer.Typer(no_args_is_help=True, help="Qwen OS Lab safety-bounded reliability supervisor")
+app = typer.Typer(no_args_is_help=True, help="CyntOX OS Lab safety-bounded reliability supervisor")
 model_app = typer.Typer(no_args_is_help=True, help="Probe and benchmark the local model")
 integrity_app = typer.Typer(no_args_is_help=True, help="Verify database and artifact integrity")
 target_app = typer.Typer(
@@ -374,14 +374,14 @@ def model_benchmark(
     _emit({**result, "saved": str(output)}, json_output)
 
 
-@model_app.command("qwen-code-smoke")
-def qwen_code_smoke(
+@model_app.command("cyntox-code-smoke")
+def cyntox_code_smoke(
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
     config = load_config()
 
     async def run() -> dict[str, Any]:
-        worker = QwenCodeWorker(config.project_root)
+        worker = CyntoxCodeWorker(config.project_root)
         response = await worker.complete(
             [
                 {
@@ -405,8 +405,8 @@ def qwen_code_smoke(
         if response.content != "MCP_BUDGET_OK" or proof["tool_calls"] != [
             "mcp__oslab__policy_remaining_budget"
         ]:
-            raise RuntimeError("Qwen Code did not complete the exact controlled MCP task")
-        record = ArtifactStore(config.artifacts_root).put_json(proof, "qwen-code-mcp-smoke.json")
+            raise RuntimeError("CyntOX Code did not complete the exact controlled MCP task")
+        record = ArtifactStore(config.artifacts_root).put_json(proof, "cyntox-code-mcp-smoke.json")
         return {**proof, "artifact_sha256": record.sha256}
 
     try:
@@ -1041,7 +1041,7 @@ def selftest(
     ]
     if live:
         commands.append([sys.executable, "-m", "oslab.cli", "model", "probe", "--live", "--json"])
-        commands.append([sys.executable, "-m", "oslab.cli", "model", "qwen-code-smoke", "--json"])
+        commands.append([sys.executable, "-m", "oslab.cli", "model", "cyntox-code-smoke", "--json"])
     commands.append([sys.executable, "-m", "oslab.cli", "integrity", "check", "--json"])
     rows: list[dict[str, Any]] = []
     for command in commands:
@@ -1180,11 +1180,12 @@ def _write_summary_report(config: Any, experiment: str) -> dict[str, Any]:
         "target": target,
         "integrity": integrity,
     }
+    summary = sanitize_report_strings(summary, config.project_root)
     with json_path.open("w", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(summary, indent=2, default=str) + "\n")
     with md_path.open("w", encoding="utf-8", newline="\n") as handle:
         handle.write(
-            "# Qwen OS Lab Report\n\n"
+            "# CyntOX OS Lab Report\n\n"
             f"- Experiment: {experiment}\n"
             f"- Target gate L: {target['gate_l']}\n"
             f"- Evaluation rows: {summary['evaluation'].get('rows', 0)}\n"

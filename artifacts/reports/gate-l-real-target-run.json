@@ -1,0 +1,74 @@
+{
+  "artifacts": {
+    "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+    "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "build": {
+    "artifacts": [
+      {
+        "kind": "disk",
+        "media_type": "application/octet-stream",
+        "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.oslab\\worktrees\\cyntox-open-os-db7b59178931-e3b1263e\\build\\disk.raw",
+        "relative_path": "build/disk.raw",
+        "sha256": "b588a7a8f867c2ea9fe7f2feebde0e54529a853ba93e1929a1e7afb337dc11b5",
+        "size": 1048576
+      }
+    ],
+    "base_commit": "db7b591789313d6288584c223e954e6f52880d11",
+    "build_worktree": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.oslab\\worktrees\\cyntox-open-os-db7b59178931-e3b1263e",
+    "commands": [
+      {
+        "argv": [
+          "powershell.exe",
+          "-NoProfile",
+          "-ExecutionPolicy",
+          "Bypass",
+          "-File",
+          "scripts/build_disk.ps1"
+        ],
+        "cwd": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.oslab\\worktrees\\cyntox-open-os-db7b59178931-e3b1263e",
+        "duration_ms": 195,
+        "exit_code": 0,
+        "index": 0,
+        "output_truncated": false,
+        "stderr": "",
+        "stdout": "cyntox-open-os-disk-built C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.oslab\\worktrees\\cyntox-open-os-db7b59178931-e3b1263e\\build\\disk.raw\r\n",
+        "timed_out": false
+      }
+    ],
+    "git": {
+      "base_commit_verified": "db7b591789313d6288584c223e954e6f52880d11",
+      "dirty": false,
+      "head": "7c192bf0fba4d9c7529a755920a3b00b2e7350b3",
+      "repository_root": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target"
+    },
+    "missing_artifacts": [],
+    "ok": true,
+    "post_build_status": "?? build/",
+    "pre_build_status": "",
+    "profile": "debug",
+    "source_root": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target",
+    "target": "cyntox-open-os",
+    "worktree_head": "db7b591789313d6288584c223e954e6f52880d11"
+  },
+  "build_worktree": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.oslab\\worktrees\\cyntox-open-os-db7b59178931-e3b1263e",
+  "duration_ms": 854,
+  "ended_at": "2026-09-02T21:21:02.980213+00:00",
+  "network": "none",
+  "ok": true,
+  "outcome": "PASS",
+  "profile": "debug",
+  "qemu_argv_hash": "10e6290efe1ad72f163b26becad2f495611da1d6ff76fb559d9c8db4e74e3323",
+  "readiness_patterns": [
+    "\"event\":\"READY\""
+  ],
+  "run_id": "c633373e-1cd8-4cc6-8a2e-3b3c63d1a9e5",
+  "serial_excerpt": "OSLAB_EVT {\"event\":\"READY\",\"seq\":0}\r\nOSLAB_EVT {\"event\":\"PASS\",\"seq\":1}\r\n",
+  "started_at": "2026-09-02T21:21:02.126128+00:00",
+  "stderr_excerpt": "",
+  "success_patterns": [
+    "\"event\":\"PASS\""
+  ],
+  "target": "cyntox-open-os",
+  "test_id": "smoke"
+}

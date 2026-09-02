@@ -3,8 +3,8 @@
     "provider": "ollama",
     "runtime": "Ollama",
     "runtime_version": "0.33.2",
-    "model_id": "huihui-qwen3.8-27b-abliterated:latest",
-    "architecture": "qwen35",
+    "model_id": "cyntox:latest",
+    "architecture": "cyntox-27b",
     "parameters": 27320697856,
     "quantization": "Q4_K_M",
     "format": "gguf",
@@ -19,28 +19,28 @@
   "samples": [
     {
       "seed": 1,
-      "prompt_tokens": 66,
-      "completion_tokens": 132,
-      "prompt_tokens_per_second": 149.6859995963014,
-      "output_tokens_per_second": 45.47211422595094,
-      "wall_seconds": 3.488941
+      "prompt_tokens": 142,
+      "completion_tokens": 261,
+      "prompt_tokens_per_second": 516.0221235400571,
+      "output_tokens_per_second": 46.96090945108995,
+      "wall_seconds": 6.373825
     },
     {
       "seed": 2,
-      "prompt_tokens": 66,
-      "completion_tokens": 132,
-      "prompt_tokens_per_second": 730.3308620117296,
-      "output_tokens_per_second": 45.36021682183641,
-      "wall_seconds": 3.101489
+      "prompt_tokens": 142,
+      "completion_tokens": 261,
+      "prompt_tokens_per_second": 1667.2928799549127,
+      "output_tokens_per_second": 47.00119754009058,
+      "wall_seconds": 5.741683
     },
     {
       "seed": 3,
-      "prompt_tokens": 66,
-      "completion_tokens": 132,
-      "prompt_tokens_per_second": 761.3949678714397,
-      "output_tokens_per_second": 45.28070434821685,
-      "wall_seconds": 3.016453
+      "prompt_tokens": 142,
+      "completion_tokens": 261,
+      "prompt_tokens_per_second": 1670.9617443899224,
+      "output_tokens_per_second": 46.9766054704887,
+      "wall_seconds": 5.658227
     }
   ],
-  "average_output_tokens_per_second": 45.371011798668064
+  "average_output_tokens_per_second": 46.97957082055641
 }

@@ -7,7 +7,7 @@ from oslab.model import OllamaProvider
 
 
 @pytest.mark.live
-def test_live_local_qwen_structured_response() -> None:
+def test_live_local_cyntox_structured_response() -> None:
     provider = OllamaProvider(default_config().model)
     schema = {
         "type": "object",

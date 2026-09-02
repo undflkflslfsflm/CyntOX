@@ -383,7 +383,7 @@ wheels = [
 ]
 
 [[package]]
-name = "qwen-os-lab"
+name = "cyntox-os-lab"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

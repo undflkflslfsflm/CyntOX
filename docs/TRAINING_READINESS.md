@@ -1,6 +1,6 @@
 # Training Readiness
 
-The lab is training-ready at the data-pipeline level only. It does not claim the Qwen model has improved, because no sufficient held-out trajectory corpus exists yet.
+The lab is training-ready at the data-pipeline level only. It does not claim the CyntOX model has improved, because no sufficient held-out trajectory corpus exists yet.
 
 ## Implemented
 

@@ -4,11 +4,27 @@
     "model": "Intel64 Family 6 Model 183 Stepping 1, GenuineIntel",
     "physical_cores": 24
   },
+  "cyntox_code": {
+    "global_settings_inspected": false,
+    "present": true,
+    "project_local": {
+      "launchers": [
+        "<repo>\\cyntox-code.cmd",
+        "<repo>\\cyntox-code.ps1"
+      ],
+      "package_installed": true,
+      "present": true,
+      "version": "0.22.3"
+    },
+    "project_settings": "<repo>\\.cyntox\\settings.json",
+    "reason": "global configuration is not read to avoid exposing credentials",
+    "version": "0.22.3"
+  },
   "disks": [
     {
       "device": "C:\\",
       "filesystem": "NTFS",
-      "free_bytes": 1064940658688,
+      "free_bytes": 1066701402112,
       "mountpoint": "C:\\",
       "total_bytes": 2046642089984
     },
@@ -20,12 +36,12 @@
       "total_bytes": 16000898560000
     }
   ],
-  "generated_at": "2026-08-31T20:59:49.209891+00:00",
+  "generated_at": "2026-09-02T21:21:10.459219+00:00",
   "gpu": {
     "compute_capability": "8.9",
     "driver": "581.80",
     "memory_total_mib": "24564",
-    "memory_used_mib": "18267",
+    "memory_used_mib": "1191",
     "name": "NVIDIA GeForce RTX 4090",
     "nvidia_smi": "C:\\WINDOWS\\system32\\nvidia-smi.EXE",
     "power_limit_w": "450.00",
@@ -41,39 +57,51 @@
     "version": "10.0.26200"
   },
   "memory": {
-    "available_bytes": 46172594176,
+    "available_bytes": 48995532800,
     "total_bytes": 68488650752
   },
   "model_endpoint": {
     "configured": "http://127.0.0.1:11434",
     "loopback_only": true,
-    "model_id": "huihui-qwen3.8-27b-abliterated:latest"
+    "model_id": "cyntox:latest"
   },
   "model_files": [
     {
       "layers": [
         {
           "digest": "sha256:0351f044d3580a997c93eaeb773b677a6f56bca365d26586827cca628f5fda66",
+          "from": "cyntox:latest",
           "mediaType": "application/vnd.ollama.image.model",
           "size": 17378626464
         },
         {
-          "digest": "sha256:c8cd2a698b39a7ca7d90a538c5b1bf85ae43ca74e542f3ea5b44ba80bc4a02e2",
+          "digest": "sha256:0cc97b85d6f0c538f4779b14ca7220dd639f9b00eee57c8cfafad86f03ea912f",
+          "mediaType": "application/vnd.ollama.image.system",
+          "size": 367
+        },
+        {
+          "digest": "sha256:3d8d411633bdee9643f4c2b1d8387c88213d914f7bd6a455d496ea37da6f757e",
           "mediaType": "application/vnd.ollama.image.params",
-          "size": 58
+          "size": 57
         }
       ],
-      "manifest": "C:\\Users\\vikto\\.ollama\\models\\manifests\\registry.ollama.ai\\library\\huihui-qwen3.8-27b-abliterated\\latest",
-      "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+      "manifest": "C:\\Users\\vikto\\.ollama\\models\\manifests\\registry.ollama.ai\\library\\cyntox\\latest",
+      "model_id": "cyntox:latest",
       "runtime": "ollama"
     },
     {
       "layers": [
         {
           "digest": "sha256:0351f044d3580a997c93eaeb773b677a6f56bca365d26586827cca628f5fda66",
-          "from": "huihui-qwen3.8-27b-abliterated:latest",
+          "from": "cyntox:latest",
           "mediaType": "application/vnd.ollama.image.model",
           "size": 17378626464
+        },
+        {
+          "digest": "sha256:0cc97b85d6f0c538f4779b14ca7220dd639f9b00eee57c8cfafad86f03ea912f",
+          "from": "cyntox:latest",
+          "mediaType": "application/vnd.ollama.image.system",
+          "size": 367
         },
         {
           "digest": "sha256:6321d58431712d011686fa0c1514182cef3348105a40b9729a70a860c7140895",
@@ -81,41 +109,33 @@
           "size": 57
         }
       ],
-      "manifest": "C:\\Users\\vikto\\.ollama\\models\\manifests\\registry.ollama.ai\\library\\qwen-os-lab-worker\\latest",
-      "model_id": "qwen-os-lab-worker:latest",
+      "manifest": "C:\\Users\\vikto\\.ollama\\models\\manifests\\registry.ollama.ai\\library\\cyntox-os-lab-worker\\latest",
+      "model_id": "cyntox-os-lab-worker:latest",
       "runtime": "ollama"
     }
   ],
-  "qwen_code": {
-    "global_settings_inspected": false,
-    "present": true,
-    "project_local": {
-      "executables": [
-        "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
-        "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen",
-        "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.ps1"
-      ],
-      "package": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\@qwen-code\\qwen-code\\package.json",
-      "present": true,
-      "version": "0.22.3"
-    },
-    "project_settings": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.qwen\\settings.json",
-    "reason": "global configuration is not read to avoid exposing credentials",
-    "version": "0.22.3"
-  },
   "safe_disk_benchmark": {
     "bytes": 16777216,
     "read_bytes": 16777216,
-    "read_mib_s": 1624.81,
+    "read_mib_s": 1456.7,
     "scope": "small temporary sequential safety probe",
-    "write_mib_s": 2158.81
+    "write_mib_s": 2007.1
   },
   "schema_version": 1,
   "target": {
-    "bounded_candidates": [],
+    "bounded_candidates": [
+      {
+        "markers": [
+          "Makefile",
+          "boot",
+          "kernel"
+        ],
+        "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target"
+      }
+    ],
     "project_role": "dedicated-orchestrator",
-    "real_os_present": false,
-    "selected": null
+    "real_os_present": true,
+    "selected": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target"
   },
   "tooling": {
     "clang": {
@@ -123,6 +143,21 @@
     },
     "cmake": {
       "present": false
+    },
+    "cyntox-code": {
+      "path": "<repo>\\cyntox-code.cmd",
+      "present": true,
+      "project_local": {
+        "launchers": [
+          "<repo>\\cyntox-code.cmd",
+          "<repo>\\cyntox-code.ps1"
+        ],
+        "package_installed": true,
+        "present": true,
+        "version": "0.22.3"
+      },
+      "runtime_note": "project-local package; CyntoxCodeWorker injects bundled Node on PATH",
+      "version": "0.22.3"
     },
     "docker": {
       "path": "C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker.EXE",
@@ -157,7 +192,7 @@
       "present": false
     },
     "python": {
-      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.venv\\Scripts\\python.exe",
+      "path": "<repo>\\.venv\\Scripts\\python.exe",
       "present": true,
       "version": "Python 3.12.13"
     },
@@ -167,40 +202,8 @@
     "qemu-system-x86_64": {
       "present": false
     },
-    "qwen": {
-      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
-      "present": true,
-      "project_local": {
-        "executables": [
-          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
-          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen",
-          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.ps1"
-        ],
-        "package": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\@qwen-code\\qwen-code\\package.json",
-        "present": true,
-        "version": "0.22.3"
-      },
-      "runtime_note": "project-local package; QwenCodeWorker injects bundled Node on PATH",
-      "version": "0.22.3"
-    },
-    "qwen-code": {
-      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
-      "present": true,
-      "project_local": {
-        "executables": [
-          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.CMD",
-          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen",
-          "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\.bin\\qwen.ps1"
-        ],
-        "package": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\node_modules\\@qwen-code\\qwen-code\\package.json",
-        "present": true,
-        "version": "0.22.3"
-      },
-      "runtime_note": "project-local package; QwenCodeWorker injects bundled Node on PATH",
-      "version": "0.22.3"
-    },
     "uv": {
-      "path": "C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\.venv\\Scripts\\uv.exe",
+      "path": "<repo>\\.venv\\Scripts\\uv.exe",
       "present": true,
       "version": "uv 0.8.14 (af856fb88 2025-08-28)"
     },

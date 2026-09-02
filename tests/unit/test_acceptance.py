@@ -9,8 +9,8 @@ from pathlib import Path
 from oslab import acceptance
 from oslab.acceptance import (
     ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS,
+    EXPECTED_CYNTOX_CODE_TOOLS,
     EXPECTED_GATE_SUMMARY,
-    EXPECTED_QWEN_CODE_TOOLS,
     GATE_L_BLOCKER_REPORT_PATH,
     REQUIRED_DOCS,
     REQUIRED_KEY_EVIDENCE_ARTIFACTS,
@@ -155,11 +155,11 @@ def _artifact_pair(store: ArtifactStore, label: str) -> dict[str, str]:
 
 def _test_model_identity() -> dict[str, object]:
     return {
-        "architecture": "qwen35",
+        "architecture": "cyntox-27b",
         "format": "gguf",
         "runtime": "Ollama",
         "runtime_version": "0.33.2",
-        "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+        "model_id": "cyntox:latest",
         "parameters": 27320697856,
         "quantization": "Q4_K_M",
     }
@@ -340,7 +340,7 @@ def _write_required_artifact_payloads(
             "model_id": model["model_id"],
         },
         "model_files": [],
-        "qwen_code": {"present": True, "version": "0.22.3", "project_local": True},
+        "cyntox_code": {"present": True, "version": "0.22.3", "project_local": True},
         "target": {"project_role": "orchestrator", "real_os_present": False, "selected": None},
         "safe_disk_benchmark": {"bytes": 1024, "write_mib_s": 1.0, "read_mib_s": 1.0},
     }
@@ -379,7 +379,7 @@ def _write_required_artifact_payloads(
         "measured": {
             "average_output_tokens_per_second": 45.0,
             "structured_json_smoke": "PASS",
-            "qwen_code_mcp_smoke": "PASS",
+            "cyntox_code_mcp_smoke": "PASS",
             "validated_worker_context_tokens": 16384,
         },
         "profiles": {"fast": "enabled", "deep": "enabled", "long": "enabled", "oracle": "disabled"},
@@ -539,7 +539,7 @@ def _write_required_artifact_payloads(
 
 
 def _write_selftest_proof_artifact(
-    artifact_root: Path, marker: str, *, qwen_result: str = "MCP_BUDGET_OK"
+    artifact_root: Path, marker: str, *, cyntox_result: str = "MCP_BUDGET_OK"
 ) -> str:
     commands = [
         ["uv", "lock", "--check"],
@@ -556,7 +556,7 @@ def _write_selftest_proof_artifact(
         ["python", "-m", "oslab.cli", "training", "dry-run", "--json"],
         ["python", "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
         ["python", "-m", "oslab.cli", "model", "probe", "--live", "--json"],
-        ["python", "-m", "oslab.cli", "model", "qwen-code-smoke", "--json"],
+        ["python", "-m", "oslab.cli", "model", "cyntox-code-smoke", "--json"],
         ["python", "-m", "oslab.cli", "integrity", "check", "--json"],
     ]
     rows = []
@@ -566,9 +566,9 @@ def _write_selftest_proof_artifact(
             stdout = json.dumps(
                 {
                     "identity": {
-                        "architecture": "qwen35",
+                        "architecture": "cyntox-27b",
                         "format": "gguf",
-                        "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+                        "model_id": "cyntox:latest",
                         "parameters": 27320697856,
                         "quantization": "Q4_K_M",
                         "runtime": "Ollama",
@@ -577,16 +577,16 @@ def _write_selftest_proof_artifact(
                     "response": {"structured": {"status": "ok", "sum": 4}},
                 }
             )
-        elif argv[-3:] == ["model", "qwen-code-smoke", "--json"]:
+        elif argv[-3:] == ["model", "cyntox-code-smoke", "--json"]:
             stdout = json.dumps(
                 {
-                    "declared_tools": EXPECTED_QWEN_CODE_TOOLS,
+                    "declared_tools": EXPECTED_CYNTOX_CODE_TOOLS,
                     "tool_calls": ["mcp__oslab__policy_remaining_budget"],
                     "response": {
-                        "content": qwen_result,
+                        "content": cyntox_result,
                         "model": {
-                            "model_id": "qwen-os-lab-worker:latest",
-                            "runtime": "Qwen Code",
+                            "model_id": "cyntox-os-lab-worker:latest",
+                            "runtime": "CyntOX Code",
                             "runtime_version": "0.22.3",
                         },
                     },
@@ -661,7 +661,7 @@ def _create_complete_fixture_proof(root: Path) -> None:
         "goal_status": "blocked_on_gate_l",
         "source_commit_verified": source_commit[:7],
         "source_commit_full": source_commit,
-        "branch": "codex/qwen-os-lab",
+        "branch": "codex/cyntox-os-lab",
         "blocked_gate": blocked_gate,
         "verified_commands": [
             {
@@ -712,11 +712,11 @@ def _create_complete_fixture_proof(root: Path) -> None:
         "gate_summary": EXPECTED_GATE_SUMMARY,
         "key_artifacts": {"requirements_trace": REQUIREMENTS_TRACE_PATH},
         "model": _test_model_identity(),
-        "qwen_code": {
+        "cyntox_code": {
             "version": "0.22.3",
-            "wrapper_model": "qwen-os-lab-worker:latest",
+            "wrapper_model": "cyntox-os-lab-worker:latest",
             "smoke_result": "MCP_BUDGET_OK",
-            "visible_tools": EXPECTED_QWEN_CODE_TOOLS,
+            "visible_tools": EXPECTED_CYNTOX_CODE_TOOLS,
         },
         "key_evidence_artifacts": key_evidence_artifacts,
     }
@@ -865,7 +865,7 @@ def test_acceptance_audit_rejects_selftest_without_dependency_checks(tmp_path: P
         ["python", "-m", "oslab.cli", "training", "dry-run", "--json"],
         ["python", "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
         ["python", "-m", "oslab.cli", "model", "probe", "--live", "--json"],
-        ["python", "-m", "oslab.cli", "model", "qwen-code-smoke", "--json"],
+        ["python", "-m", "oslab.cli", "model", "cyntox-code-smoke", "--json"],
         ["python", "-m", "oslab.cli", "integrity", "check", "--json"],
     ]
     stale_payload = {
@@ -1148,7 +1148,7 @@ def test_acceptance_audit_rejects_live_output_that_disagrees_with_proof(tmp_path
     proof_path = tmp_path / "PROOF.json"
     proof = json.loads(proof_path.read_text(encoding="utf-8"))
     bad_sha = _write_selftest_proof_artifact(
-        tmp_path / "artifacts", "main-mismatch", qwen_result="WRONG_RESULT"
+        tmp_path / "artifacts", "main-mismatch", cyntox_result="WRONG_RESULT"
     )
     for row in proof["verified_commands"]:
         if row.get("scope") == "main checkout" and row.get("command", "").endswith(

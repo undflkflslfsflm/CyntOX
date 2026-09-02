@@ -20,12 +20,12 @@ def test_ollama_provider_retries_transient_5xx() -> None:
                 json={
                     "capabilities": ["completion"],
                     "details": {
-                        "family": "qwen",
+                        "family": "cyntox",
                         "format": "gguf",
                         "parameter_size": "27B",
                         "quantization_level": "Q4_K_M",
                     },
-                    "model_info": {"qwen35.context_length": 8192},
+                    "model_info": {"general.context_length": 8192},
                 },
             )
         if request.url.path == "/api/chat":

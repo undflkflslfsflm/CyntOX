@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-31T14:25:27+00:00",
+  "generated_at": "2026-09-02T17:46:30.781238Z",
   "installed_commands": {
     "airllm": false,
     "ktransformers": false,
@@ -21,22 +21,22 @@
   },
   "selected_runtime": "ollama",
   "selected_model": {
-    "architecture": "qwen35",
+    "architecture": "cyntox-27b",
     "context_limit": 262144,
     "format": "gguf",
-    "model_id": "huihui-qwen3.8-27b-abliterated:latest",
+    "model_id": "cyntox:latest",
     "parameters": 27320697856,
     "quantization": "Q4_K_M",
     "runtime_version": "0.33.2"
   },
   "measured": {
-    "average_output_tokens_per_second": 45.371011798668064,
+    "average_output_tokens_per_second": 46.97957082055641,
     "structured_json_smoke": "PASS",
-    "qwen_code_mcp_smoke": "PASS",
+    "cyntox_code_mcp_smoke": "PASS",
     "validated_worker_context_tokens": 16384
   },
   "profiles": {
-    "fast": "enabled: resident Ollama Qwen worker",
+    "fast": "enabled: resident Ollama CyntOX worker",
     "deep": "enabled: same resident model, larger budget",
     "long": "enabled cautiously: retrieval first, larger context only when needed",
     "oracle": "disabled: no compatible larger/offloaded local runtime and model files detected"

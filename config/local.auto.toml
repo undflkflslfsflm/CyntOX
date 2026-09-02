@@ -2,7 +2,7 @@
 [model]
 provider = "ollama"
 endpoint = "http://127.0.0.1:11434"
-model_id = "huihui-qwen3.8-27b-abliterated:latest"
+model_id = "cyntox:latest"
 timeout_seconds = 180.0
 context_tokens = 32768
 output_tokens = 8192

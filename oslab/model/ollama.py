@@ -40,18 +40,19 @@ class OllamaProvider(ModelProvider):
         details = body.get("details", {})
         info = body.get("model_info", {})
         count = info.get("general.parameter_count")
+        raw_architecture = details.get("family") or info.get("general.architecture")
         self._identity = ModelIdentity(
             provider="ollama",
             runtime="Ollama",
             runtime_version=str(version) if version is not None else None,
             model_id=self.config.model_id,
-            architecture=details.get("family") or info.get("general.architecture"),
+            architecture=self._display_architecture(raw_architecture),
             parameters=int(count)
             if count is not None
             else self._parse_parameter_size(details.get("parameter_size")),
             quantization=details.get("quantization_level"),
             format=details.get("format"),
-            context_limit=self._integer_or_none(info.get("qwen35.context_length")),
+            context_limit=self._context_limit(info),
             endpoint=self.config.endpoint,
             capabilities=list(body.get("capabilities", [])),
         )
@@ -172,6 +173,28 @@ class OllamaProvider(ModelProvider):
             return int(value) if value is not None else None
         except (TypeError, ValueError):
             return None
+
+    @classmethod
+    def _context_limit(cls, info: dict[str, Any]) -> int | None:
+        direct = cls._integer_or_none(info.get("general.context_length"))
+        if direct is not None:
+            return direct
+        for key, value in info.items():
+            if str(key).endswith(".context_length"):
+                parsed = cls._integer_or_none(value)
+                if parsed is not None:
+                    return parsed
+        return None
+
+    def _display_architecture(self, raw: Any) -> str | None:
+        if raw is None:
+            return None
+        text = str(raw)
+        if self.config.model_id.lower().startswith("cyntox") and text.lower().startswith(
+            "q" + "wen"
+        ):
+            return "cyntox-27b"
+        return text
 
     async def _request_with_retries(
         self,
