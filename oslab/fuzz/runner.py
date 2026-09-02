@@ -143,7 +143,10 @@ async def replay_fixture_input(config: LabConfig, mode: str, input_path: Path) -
 async def _minimize_and_replay(
     backend: DockerQemuBackend, campaign: FuzzCampaign, rows: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    selected = next((row for row in rows if row["mode"] == "crash"), None)
+    selected = next(
+        (row for row in rows if row["mode"] == "crash" and row.get("outcome") == Outcome.CRASH),
+        None,
+    )
     if selected is None:
         selected_value = next(
             (value for value in campaign.unique_findings.values() if value["mode"] == "crash"),

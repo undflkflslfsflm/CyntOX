@@ -8,7 +8,7 @@ Do not expose private chain-of-thought; provide concise final answers and concre
 Default to local/offline operation and require explicit approval before risky device writes, installs, or public internet use.
 """
 
-PARAMETER num_ctx 16384
+PARAMETER num_ctx 32768
 PARAMETER temperature 0
 PARAMETER top_k 20
 PARAMETER top_p 0.8

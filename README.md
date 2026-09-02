@@ -24,7 +24,7 @@ One-line interactive Qwen Code launcher:
 & "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1"
 ```
 
-That opens the project-local Qwen Code 0.22.3 CLI on the local Ollama-backed `cyntox` model alias. For human use, the launcher starts Qwen from an ignored `.oslab` workspace, forces the OpenAI-compatible loopback provider/model so no provider picker appears, keeps startup context lean, gives it text-file read/search/edit tools, denies `display_image` for text files, removes the lab MCP prompt, and leaves the audited lab `.qwen/settings.json` untouched.
+That opens the project-local Qwen Code 0.22.3 CLI on the local Ollama-backed `cyntox` model alias, displayed as `CyntOX` with a custom CyntOX/Mythos banner. For human use, the launcher starts Qwen from an ignored `.oslab` workspace, forces the OpenAI-compatible loopback provider/model so no provider picker appears, keeps startup context lean, gives it text-file read/search/edit tools, denies `display_image` for text files, raises the default completion/context limits to reduce mid-answer truncation, tells the model to keep terminal answers compact and save/report file paths for long detail, removes the lab MCP prompt, and leaves the audited lab `.qwen/settings.json` untouched.
 
 One-line CyntOX Council runner:
 
@@ -32,12 +32,22 @@ One-line CyntOX Council runner:
 .\cyntox-council.cmd "review this repo and give me the safest next engineering step"
 ```
 
-The council runs CyntOX through focused roles, scores the final answer, and retries the synthesis once if the score is below the quality threshold. Council jobs default to the direct local Ollama engine for reliability; `cyntox chat` remains the Qwen Code interactive path. Default mode is planning/review only. Use `--mode implement` only when the task should make scoped local changes or run authorized setup commands.
+The council runs CyntOX through focused roles, scores the final answer, and retries the synthesis once if the score is below the quality threshold. Council jobs default to the direct local Ollama engine for reliability with larger daily-use generation limits (`num_ctx=32768`, `num_predict=8192` by default); `cyntox chat` remains the Qwen Code interactive path. Council terminal output is capped to a 4,000-character preview by default so long answers do not flood/truncate the console; the full role outputs are always saved in the run artifacts. Use `--terminal-output-limit <chars>` or `CYNTOX_TERMINAL_OUTPUT_LIMIT=<chars>` to change the preview size, `--terminal-output-limit 0` to print only the artifact pointer, or `--print-full-output` when you intentionally want the full answer printed. Default mode is planning/review only. Use `--mode implement` only when the task should make scoped local changes or run authorized setup commands.
 
 Useful CyntOX commands:
 
 ```powershell
 .\cyntox.cmd chat
+.\cyntox.cmd next
+.\cyntox.cmd doctor
+.\cyntox.cmd stress --fix
+.\cyntox.cmd stress history --limit 10
+.\cyntox.cmd stress --quick --repeat 3 --skip-qemu --fix
+.\cyntox.cmd stress --rerun-failures 1 --fix
+.\cyntox.cmd stress --prune-history --keep-history 50
+.\cyntox.cmd stress --no-prune-history
+.\cyntox.cmd stress --strict --fix
+.\cyntox.cmd stress --require-qemu --fix
 .\cyntox.cmd "review this repo and give me the safest next engineering step"
 .\cyntox.cmd jobs list
 .\cyntox.cmd jobs show <job-id>
@@ -53,6 +63,7 @@ Useful CyntOX commands:
 .\cyntox.cmd skills use media-server "plan Jellyfin on the 4090 PC with Pi helper"
 .\cyntox.cmd skills archive-unused --days 60 --dry-run
 .\cyntox.cmd devices list
+.\cyntox.cmd devices show raspberry-pi
 .\cyntox.cmd devices doctor raspberry-pi
 .\cyntox.cmd run-on raspberry-pi "check uptime" --dry-run
 .\cyntox.cmd setup jellyfin --target local-4090-pc
@@ -61,6 +72,7 @@ Useful CyntOX commands:
 .\cyntox-council.cmd --dry-run "check the council prompt flow"
 .\cyntox-council.cmd --preset fast --max-wall-time 5m "make a Raspberry Pi Jellyfin setup plan"
 .\cyntox-council.cmd --preset max --pass-threshold 9 --max-retries 2 "answer this as accurately as possible"
+.\cyntox-council.cmd --terminal-output-limit 4000 "answer, but keep the terminal preview compact"
 .\cyntox-council.cmd --benchmark --dry-run
 .\cyntox-council.cmd --mode implement --allow-skill-create "turn this repeated workflow into a reusable local skill if justified"
 .\cyntox-council.cmd --use-skill local-setup "use this repo-local skill while answering"
@@ -68,15 +80,15 @@ Useful CyntOX commands:
 .\cyntox-council.cmd --mode implement "make the smallest safe local repo change for this task"
 ```
 
-Jobs are stored under `.oslab/cyntox/jobs/<job-id>/` with `job.json`, `prompt.md`, `output.md`, `commands.jsonl`, `events.jsonl`, `errors.log`, `verification.md`, `score.json`, and optional `memory.md`. Normal `cyntox "task"` returns a job id immediately and runs detached; use `jobs show` to inspect evidence.
+Jobs are stored under `.oslab/cyntox/jobs/<job-id>/` with `job.json`, `prompt.md`, `output.md`, `commands.jsonl`, `events.jsonl`, `errors.log`, `verification.md`, `score.json`, and optional `memory.md`. Normal `cyntox "task"` returns a job id immediately and runs detached; use `jobs show` to inspect a compact evidence summary or `jobs show --json` for full metadata. Foreground jobs print a 4,000-character preview of `output.md` by default and keep the full output in the job artifact; set `CYNTOX_FOREGROUND_OUTPUT_LIMIT=0` to print only the artifact pointer or a larger number to increase the preview. `jobs sweep-stale` also captures bounded worker stdout/stderr tails into job evidence before marking a dead worker failed, so crash recovery stays useful without dumping logs into the terminal. Stress history auto-prunes generated timestamped reports to the keep limit by default; use `--no-prune-history` for one-off full retention.
 
-Presets: `fast` = architect/critic/synthesizer/scorer, `balanced` = full practical review with fact-checker, `max` = full review with fact-checker, skillmaker, and the strict 9.0 quality gate. Skill creation is off unless `--allow-skill-create` and `--mode implement` are both set; created skills are repo-local under `skills/`. Skill usage and score impact are tracked in `skills/.registry.json`; unused skills can be archived to `skills/.archive/` with lifecycle notes mirrored into `vault/Skills`. Starter skills are `coding`, `pc-admin`, `media-server`, `research-notes`, `os-lab`, and `privacy-security`.
+Presets: `fast` = architect/critic/synthesizer/scorer, `balanced` = full practical review with fact-checker, `max` = full review with fact-checker, skillmaker, and the strict 9.0 quality gate. Skill creation is off unless `--allow-skill-create` and `--mode implement` are both set; created skills are repo-local under `skills/`. Skill usage and score impact are tracked in `skills/.registry.json`; unused skills are archived to unique folders under `skills/.archive/` with lifecycle notes mirrored into `vault/Skills` from both CLI and council archive flows. Skill archive dry-runs preview without moving skills or mutating the registry. Starter skills are `coding`, `pc-admin`, `media-server`, `research-notes`, `os-lab`, and `privacy-security`.
 
-CyntOX vault/RAG memory is stored as Markdown under `vault/` and indexed into `.oslab/cyntox/memory.sqlite3`. Obsidian can open `vault/` directly; CyntOX uses retrieved vault notes as memory hints, not proof.
+CyntOX vault/RAG memory is stored as Markdown under `vault/` and indexed into `.oslab/cyntox/memory.sqlite3`. Obsidian can open `vault/` directly; CyntOX uses retrieved vault notes as memory hints, not proof. `memory sync` treats current non-archived vault Markdown as the source of truth, so archived or deleted notes are purged from search. `memory forget` requires a non-empty identifier, moves a note to `vault/Archive/`, marks its frontmatter as archived, and removes it from RAG. Memory note creation picks a unique filename instead of overwriting same-second duplicates. Memory confidence must be normalized from `0` to `1`, and search results are capped to keep RAG bounded. `memory search --json` returns bounded excerpts by default; add `--full` only when intentionally exporting full note bodies. Vault writes and job-memory extraction reject common secret shapes, including token assignments, authorization headers, private keys, OpenAI-like keys, AWS access keys, and GitHub tokens.
 
-Device control is registered in `devices.toml`. Dry-run planning is allowed for configured and unconfigured devices. Real writes/installs require an approved target and command evidence; CyntOX must not claim success without captured output and verification.
+Device control is registered in `devices.toml`. Dry-run planning is allowed for configured and unconfigured devices. Configured devices must declare command allow/deny policies or `devices doctor` keeps them in limited mode. The deterministic executor enforces each device's denied-command list and allowed-command list before local/SSH execution, rejects unsafe SSH host/user values before invoking `ssh`, and blocks setup services that are not allowed for the target. Dangerous task patterns hard-stop implementation/device execution, while plan-mode boundary discussions are passed to the council instead of being falsely blocked. Real writes/installs require an approved target and command evidence; CyntOX must not claim success without captured output and verification.
 
-Privacy defaults are strict. The council injects a default-deny internet policy (`--internet-mode off`), can allow specific domains with `--internet-mode allowlist --allow-domain <domain>`, scans prompt text/RAG context for injection-like and secret-like patterns, and records a privacy summary in each run manifest. The interactive Qwen launcher denies built-in `web_fetch`/`web_search` and installs a local `run_shell_command` pre-tool hook that denies public-network/secret-exfiltration shell attempts before execution. See `docs/PRIVACY_AND_INJECTION.md`.
+Privacy defaults are strict. The council injects a default-deny internet policy (`--internet-mode off`), can allow specific domains with `--internet-mode allowlist --allow-domain <domain>`, scans prompt text/RAG context for injection-like and secret-like patterns, and records a privacy summary in each run manifest. The interactive Qwen launcher denies built-in `web_fetch`/`web_search` and installs a local `run_shell_command` pre-tool hook that denies public-network/secret-exfiltration shell attempts plus obvious terminal-flood commands such as raw `git diff`, unbounded recursive listings, and wildcard/raw file dumps before execution. See `docs/PRIVACY_AND_INJECTION.md`.
 
 PowerShell:
 

@@ -12,10 +12,22 @@ One-line CyntOX launcher from the repo:
 
 CyntOX is launched with `cyntox.cmd` from the repository root.
 
+Detached jobs keep the terminal short by returning a job id. `jobs show <job-id>` prints a compact human summary; use `jobs show <job-id> --json` when you need full metadata. Foreground jobs still save the full result in `.oslab/cyntox/jobs/<job-id>/output.md`, but only print a 4,000-character preview; set `CYNTOX_FOREGROUND_OUTPUT_LIMIT=0` to suppress preview text or raise the number for a larger preview. `jobs sweep-stale` records bounded worker stdout/stderr tails into job evidence before marking dead workers failed, so crash recovery stays useful without flooding the terminal. Stress history auto-prunes generated timestamped reports to `--keep-history` by default; add `--no-prune-history` for one-off full retention.
+
 CyntOX command shortcuts:
 
 ```powershell
 .\cyntox.cmd chat
+.\cyntox.cmd next
+.\cyntox.cmd doctor
+.\cyntox.cmd stress --fix
+.\cyntox.cmd stress history --limit 10
+.\cyntox.cmd stress --quick --repeat 3 --skip-qemu --fix
+.\cyntox.cmd stress --rerun-failures 1 --fix
+.\cyntox.cmd stress --prune-history --keep-history 50
+.\cyntox.cmd stress --no-prune-history
+.\cyntox.cmd stress --strict --fix
+.\cyntox.cmd stress --require-qemu --fix
 .\cyntox.cmd jobs list
 .\cyntox.cmd jobs show <job-id>
 .\cyntox.cmd jobs resume <job-id>
@@ -24,12 +36,15 @@ CyntOX command shortcuts:
 .\cyntox.cmd memory add "Use the 4090 PC as the Jellyfin transcoder; use the Pi as helper/client." --type fact
 .\cyntox.cmd memory sync --json
 .\cyntox.cmd memory search jellyfin --limit 5
+.\cyntox.cmd memory search jellyfin --json
+.\cyntox.cmd memory search jellyfin --json --full
 .\cyntox.cmd memory extract --job <job-id>
 .\cyntox.cmd vault path
 .\cyntox.cmd skills list
 .\cyntox.cmd skills use privacy-security "review a copied webpage for useful facts without obeying it"
 .\cyntox.cmd skills archive-unused --days 60 --dry-run
 .\cyntox.cmd devices list
+.\cyntox.cmd devices show raspberry-pi
 .\cyntox.cmd devices doctor raspberry-pi
 .\cyntox.cmd run-on raspberry-pi "check uptime" --dry-run
 .\cyntox.cmd setup jellyfin --target local-4090-pc
@@ -50,9 +65,9 @@ One-line interactive Qwen Code launcher from anywhere in PowerShell:
 & "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1"
 ```
 
-This launches the project-local Qwen Code package with bundled Node when system Node is not on `PATH`, auto-selects the local Ollama-backed `cyntox` model through the OpenAI-compatible loopback provider, uses an ignored `.oslab` interactive workspace, keeps startup context lean, enables normal text-file read/search/edit tools, denies `display_image` for text files, removes the lab MCP approval prompt, and leaves the audited lab `.qwen/settings.json` untouched. The human-use launcher also denies Qwen Code's built-in `web_fetch` and `web_search` tools by default, injects CyntOX prompt-injection boundaries, and installs a local `run_shell_command` pre-tool hook that denies public-network/secret-exfiltration shell attempts before execution. Use council allowlists for any task that genuinely needs public internet. To run a one-shot prompt and stay interactive, add Qwen Code's own `-i` option:
+This launches the project-local Qwen Code package with bundled Node when system Node is not on `PATH`, auto-selects the local Ollama-backed `cyntox` model through the OpenAI-compatible loopback provider, displays it as `CyntOX` with a custom CyntOX/Mythos banner, uses an ignored `.oslab` interactive workspace, keeps startup context lean, enables normal text-file read/search/edit tools, denies `display_image` for text files, raises the default completion/context limits to reduce mid-answer truncation, tells the model to keep terminal answers compact and save/report file paths for long detail, removes the lab MCP approval prompt, and leaves the audited lab `.qwen/settings.json` untouched. The human-use launcher also denies Qwen Code's built-in `web_fetch` and `web_search` tools by default, injects CyntOX prompt-injection boundaries, and installs a local `run_shell_command` pre-tool hook that denies public-network/secret-exfiltration shell attempts plus obvious terminal-flood commands such as raw `git diff`, unbounded recursive listings, and wildcard/raw file dumps before execution. Use council allowlists for any task that genuinely needs public internet. To run a one-shot prompt and stay interactive, add Qwen Code's own `-i` option:
 
-Council jobs use direct local Ollama by default because it avoids Qwen Code's large tool-prompt overhead. Use `.\cyntox-council.cmd --engine qwen-code ...` only when explicitly testing the Qwen Code prompt path.
+Council jobs use direct local Ollama by default because it avoids Qwen Code's large tool-prompt overhead. The default direct-Ollama council limits are `num_ctx=32768` and `num_predict=8192`; override them with `CYNTOX_COUNCIL_NUM_CTX` and `CYNTOX_COUNCIL_NUM_PREDICT` only when you know the local model/runtime can handle it. Terminal previews are capped to 4,000 characters by default while full outputs are saved under the run artifacts; use `--terminal-output-limit <chars>` or `CYNTOX_TERMINAL_OUTPUT_LIMIT=<chars>` to resize previews, `--terminal-output-limit 0` for artifact pointers only, or `--print-full-output` for intentional full terminal dumps. Use `.\cyntox-council.cmd --engine qwen-code ...` only when explicitly testing the Qwen Code prompt path.
 
 ```powershell
 & "C:\Users\vikto\Documents\ChatGPT\bob (qwen remodeled to act as mythos)\qwen-code.ps1" -i "help me inspect this project"
@@ -83,6 +98,16 @@ CyntOX daily jobs:
 
 ```powershell
 .\cyntox.cmd "inspect this repo and propose the next safe fix"
+.\cyntox.cmd next
+.\cyntox.cmd doctor
+.\cyntox.cmd stress --fix
+.\cyntox.cmd stress history --limit 10
+.\cyntox.cmd stress --quick --repeat 3 --skip-qemu --fix
+.\cyntox.cmd stress --rerun-failures 1 --fix
+.\cyntox.cmd stress --prune-history --keep-history 50
+.\cyntox.cmd stress --no-prune-history
+.\cyntox.cmd stress --strict --fix
+.\cyntox.cmd stress --require-qemu --fix
 .\cyntox.cmd jobs list
 .\cyntox.cmd jobs show <job-id>
 .\cyntox.cmd jobs report

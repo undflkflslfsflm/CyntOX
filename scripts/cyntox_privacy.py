@@ -14,9 +14,15 @@ URL_RE = re.compile(r"\bhttps?://[^\s<>\]\"')]+", re.IGNORECASE)
 PROMPT_INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     (
         "ignore-prior-instructions",
-        re.compile(r"\bignore (?:all )?(?:previous|prior|above|system|developer) instructions\b", re.IGNORECASE),
+        re.compile(
+            r"\bignore (?:all )?(?:previous|prior|above|system|developer) instructions\b",
+            re.IGNORECASE,
+        ),
     ),
-    ("override-role", re.compile(r"\byou are now\b|\bact as (?:system|developer|admin|root)\b", re.IGNORECASE)),
+    (
+        "override-role",
+        re.compile(r"\byou are now\b|\bact as (?:system|developer|admin|root)\b", re.IGNORECASE),
+    ),
     (
         "hidden-prompt-request",
         re.compile(
@@ -33,9 +39,18 @@ PROMPT_INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ),
     (
         "disable-safety",
-        re.compile(r"\b(disable|bypass|turn off|ignore).{0,40}\b(safety|guardrail|policy|permission|privacy)\b", re.IGNORECASE | re.DOTALL),
+        re.compile(
+            r"\b(disable|bypass|turn off|ignore).{0,40}\b(safety|guardrail|policy|permission|privacy)\b",
+            re.IGNORECASE | re.DOTALL,
+        ),
     ),
-    ("covert-instruction", re.compile(r"\bdo not (?:tell|inform|warn) (?:the )?user\b|\bsecretly\b|\bsilently\b", re.IGNORECASE)),
+    (
+        "covert-instruction",
+        re.compile(
+            r"\bdo not (?:tell|inform|warn) (?:the )?user\b|\bsecretly\b|\bsilently\b",
+            re.IGNORECASE,
+        ),
+    ),
     (
         "network-exfiltration",
         re.compile(
@@ -48,8 +63,17 @@ PROMPT_INJECTION_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
 SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("password-assignment", re.compile(r"\bpassword\s*[:=]", re.IGNORECASE)),
     ("token-assignment", re.compile(r"\b(api[_-]?key|secret|token)\s*[:=]", re.IGNORECASE)),
+    (
+        "authorization-header",
+        re.compile(
+            r"\b(?:authorization|x-api-key)\s*[:=]\s*(?:bearer\s+)?[A-Za-z0-9._~+/=-]{8,}",
+            re.IGNORECASE,
+        ),
+    ),
     ("aws-access-key", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
     ("openai-like-key", re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b")),
+    ("github-token", re.compile(r"\bgh[psu]_[A-Za-z0-9_]{20,}\b")),
+    ("github-fine-grained-token", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b")),
     ("private-key", re.compile(r"-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----")),
 )
 
@@ -158,7 +182,11 @@ def evaluate_network_policy(urls: list[str], policy: PrivacyPolicy) -> dict[str,
         if policy.internet_mode == "allowlist" and domain_allowed(domain, policy.allowed_domains):
             allowed.append(url)
             continue
-        reason = "external internet disabled" if policy.internet_mode == "off" else "domain not allowlisted"
+        reason = (
+            "external internet disabled"
+            if policy.internet_mode == "off"
+            else "domain not allowlisted"
+        )
         denied.append({"url": url, "domain": domain, "reason": reason})
     return {
         "internet_mode": policy.internet_mode,
@@ -186,18 +214,28 @@ def render_policy_prompt(policy: PrivacyPolicy, *, scan: dict[str, Any] | None =
         urls = scan.get("urls") or []
         decision = evaluate_network_policy([str(url) for url in urls], policy)
         if injection:
-            lines.append(f"Input warning: prompt-injection-like patterns detected: {', '.join(map(str, injection))}.")
+            lines.append(
+                f"Input warning: prompt-injection-like patterns detected: {', '.join(map(str, injection))}."
+            )
         if secrets:
-            lines.append(f"Input warning: secret-like patterns detected: {', '.join(map(str, secrets))}. Do not quote or store them.")
+            lines.append(
+                f"Input warning: secret-like patterns detected: {', '.join(map(str, secrets))}. Do not quote or store them."
+            )
         denied = decision.get("denied_urls") or []
         if denied:
-            denied_domains = sorted({str(item.get("domain")) for item in denied if isinstance(item, dict)})
-            lines.append(f"Input warning: public URL(s) blocked by policy: {', '.join(denied_domains)}.")
+            denied_domains = sorted(
+                {str(item.get("domain")) for item in denied if isinstance(item, dict)}
+            )
+            lines.append(
+                f"Input warning: public URL(s) blocked by policy: {', '.join(denied_domains)}."
+            )
     return "\n".join(lines)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CyntOX privacy and prompt-injection guard utilities.")
+    parser = argparse.ArgumentParser(
+        description="CyntOX privacy and prompt-injection guard utilities."
+    )
     parser.add_argument("--internet-mode", choices=("off", "allowlist", "open"), default="off")
     parser.add_argument("--allow-domain", action="append", default=[])
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -205,12 +243,16 @@ def build_parser() -> argparse.ArgumentParser:
     policy = subparsers.add_parser("policy", help="Print the active privacy policy prompt.")
     policy.add_argument("--json", action="store_true")
 
-    scan = subparsers.add_parser("scan", help="Scan text or a project file for privacy/injection risk signals.")
+    scan = subparsers.add_parser(
+        "scan", help="Scan text or a project file for privacy/injection risk signals."
+    )
     scan.add_argument("text", nargs="*")
     scan.add_argument("--file")
     scan.add_argument("--json", action="store_true")
 
-    check_url = subparsers.add_parser("check-url", help="Check URL(s) against the current internet policy.")
+    check_url = subparsers.add_parser(
+        "check-url", help="Check URL(s) against the current internet policy."
+    )
     check_url.add_argument("urls", nargs="+")
     check_url.add_argument("--json", action="store_true")
     return parser
@@ -231,10 +273,12 @@ def main(argv: list[str] | None = None) -> int:
         text_parts = list(args.text)
         if args.file:
             path = ensure_project_child(root, root / args.file)
-            text_parts.append(path.read_text(encoding="utf-8"))
+            text_parts.append(path.read_text(encoding="utf-8", errors="replace"))
         text = " ".join(text_parts)
         scan_result = scan_text(text)
-        scan_result["network_policy"] = evaluate_network_policy([str(url) for url in scan_result["urls"]], policy)
+        scan_result["network_policy"] = evaluate_network_policy(
+            [str(url) for url in scan_result["urls"]], policy
+        )
         if args.json:
             print(json.dumps(scan_result, indent=2))
         else:
@@ -247,7 +291,6 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     parser.error(f"unknown command: {args.command}")
-    return 2
 
 
 if __name__ == "__main__":

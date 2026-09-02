@@ -26,8 +26,9 @@ HOP_BY_HOP_HEADERS = {
 }
 MYTHOS_SENTINEL = "CYNTOX_MYTHOS_SYSTEM_PROMPT_V1"
 NO_THINK_PREFIX = "/no_think"
-DEFAULT_MAX_TOKENS = 2048
-DEFAULT_NUM_CTX = 16384
+DEFAULT_MAX_TOKENS = 8192
+MAX_ALLOWED_TOKENS = 32768
+DEFAULT_NUM_CTX = 32768
 
 
 def is_grammar_error(payload: bytes) -> bool:
@@ -36,7 +37,9 @@ def is_grammar_error(payload: bytes) -> bool:
 
 def is_context_error(payload: bytes) -> bool:
     lowered = payload.lower()
-    return b"exceeds the available context size" in lowered or b"exceed_context_size_error" in lowered
+    return (
+        b"exceeds the available context size" in lowered or b"exceed_context_size_error" in lowered
+    )
 
 
 def filtered_headers(headers: Iterable[tuple[str, str]]) -> dict[str, str]:
@@ -88,10 +91,14 @@ def inject_mythos_prompt(body: bytes | None, system_prompt: str) -> bytes | None
 
     messages = payload["messages"]
     for message in messages:
-        if isinstance(message, dict) and content_contains_text(message.get("content"), MYTHOS_SENTINEL):
+        if isinstance(message, dict) and content_contains_text(
+            message.get("content"), MYTHOS_SENTINEL
+        ):
             return body
 
-    mythos_block = f"{NO_THINK_PREFIX}\n[{MYTHOS_SENTINEL}]\n{system_prompt.strip()}\n[/{MYTHOS_SENTINEL}]"
+    mythos_block = (
+        f"{NO_THINK_PREFIX}\n[{MYTHOS_SENTINEL}]\n{system_prompt.strip()}\n[/{MYTHOS_SENTINEL}]"
+    )
     for message in messages:
         if isinstance(message, dict) and message.get("role") == "user":
             message["content"] = prepend_text_to_content(message.get("content", ""), mythos_block)
@@ -104,7 +111,7 @@ def inject_mythos_prompt(body: bytes | None, system_prompt: str) -> bytes | None
 def generation_token_cap() -> int:
     raw = os.environ.get("CYNTOX_PROXY_MAX_TOKENS", "").strip()
     if raw.isdigit():
-        return max(64, min(int(raw), 8192))
+        return max(64, min(int(raw), MAX_ALLOWED_TOKENS))
     return DEFAULT_MAX_TOKENS
 
 
@@ -113,6 +120,13 @@ def generation_context_size() -> int:
     if raw.isdigit():
         return max(1024, min(int(raw), 262144))
     return DEFAULT_NUM_CTX
+
+
+def generation_settings() -> dict[str, int]:
+    return {
+        "max_tokens": generation_token_cap(),
+        "num_ctx": generation_context_size(),
+    }
 
 
 def harden_generation_body(body: bytes | None, *, upstream_model: str = "") -> bytes | None:
@@ -126,7 +140,11 @@ def harden_generation_body(body: bytes | None, *, upstream_model: str = "") -> b
         return body
 
     requested_model = payload.get("model")
-    if upstream_model and requested_model in {"cyntox", "cyntox:latest"}:
+    if (
+        upstream_model
+        and isinstance(requested_model, str)
+        and requested_model.lower() in {"cyntox", "cyntox:latest"}
+    ):
         payload["model"] = upstream_model
     payload["reasoning_effort"] = "low"
     payload["enable_thinking"] = False
@@ -177,7 +195,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         if self.path == "/__cyntox_proxy_health":
-            self.respond_json(200, {"ok": True})
+            self.respond_json(
+                200,
+                {
+                    "ok": True,
+                    "service": "cyntox-openai-proxy",
+                    "upstream_model": self.server.upstream_model,
+                    "target_base": self.server.target_base,
+                    **generation_settings(),
+                },
+            )
             return
         self.forward()
 
@@ -202,7 +229,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         url = f"{self.server.target_base}{self.path}"
         headers = filtered_headers(self.headers.items())
 
-        def attempt_payload(payload_body: bytes | None) -> tuple[int, bytes, urllib.error.HTTPError] | None:
+        def attempt_payload(
+            payload_body: bytes | None,
+        ) -> tuple[int, bytes, urllib.error.HTTPError] | None:
             request = urllib.request.Request(  # noqa: S310
                 url,
                 data=payload_body if self.command != "GET" else None,
@@ -231,7 +260,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 except urllib.error.HTTPError as error:
                     payload = error.read()
                     last_error = (error.code, payload, error)
-                    if error.code == 400 and is_grammar_error(payload) and attempt < self.server.retries:
+                    if (
+                        error.code == 400
+                        and is_grammar_error(payload)
+                        and attempt < self.server.retries
+                    ):
                         time.sleep(0.25 * (attempt + 1))
                         continue
                     break
@@ -256,10 +289,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if last_error is None:
                 return
 
-        if last_error is None:
-            self.respond_json(502, {"error": "upstream request failed"})
-            return
-
         status, payload, error = last_error
         self.send_response(status)
         for key, value in error.headers.items():
@@ -273,7 +302,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Loopback OpenAI-compatible retry proxy for CyntOX/Ollama.")
+    parser = argparse.ArgumentParser(
+        description="Loopback OpenAI-compatible retry proxy for CyntOX/Ollama."
+    )
     parser.add_argument("--listen-host", default="127.0.0.1")
     parser.add_argument("--listen-port", type=int, default=11435)
     parser.add_argument("--target-base", default="http://127.0.0.1:11434")

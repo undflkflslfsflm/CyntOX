@@ -8,6 +8,8 @@ from oslab.model import ModelRouter, ResourceScheduler, WorkloadKind
 
 def test_model_router_profiles_are_evidence_bounded(tmp_path: Path) -> None:
     config = default_config(tmp_path)
+    assert config.model.context_tokens == 32768
+    assert config.model.output_tokens == 8192
     router = ModelRouter(config, {"ollama"})
     profiles = router.profiles()
     assert profiles["fast"].enabled

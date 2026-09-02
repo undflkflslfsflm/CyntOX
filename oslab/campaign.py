@@ -190,7 +190,13 @@ def _git_commit(root: Path) -> str:
     if git is None:
         return "unavailable"
     result = subprocess.run(  # noqa: S603 - resolved git binary and constant arguments
-        [git, "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=False
+        [git, "rev-parse", "HEAD"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
     )
     return result.stdout.strip() if result.returncode == 0 else "unborn"
 
@@ -204,6 +210,8 @@ def _dirty_hash(root: Path) -> str:
         cwd=root,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     return hashlib.sha256(result.stdout.encode()).hexdigest()

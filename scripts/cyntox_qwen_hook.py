@@ -4,12 +4,13 @@ import json
 import os
 import re
 import sys
+from collections.abc import Mapping
 from typing import Any
 
 try:
     from scripts import cyntox_privacy
 except ModuleNotFoundError:  # pragma: no cover - direct script execution path
-    import cyntox_privacy  # type: ignore[no-redef]
+    import cyntox_privacy  # type: ignore[import-not-found,no-redef]
 
 
 SHELL_TOOL_NAMES = {"run_shell_command", "shell"}
@@ -23,6 +24,44 @@ NETWORK_COMMAND_RE = re.compile(
 SECRET_WORD_RE = re.compile(
     r"\b(api[_ -]?key|token|password|secret|private key|\.env|vault|system prompt|developer message)\b",
     re.IGNORECASE,
+)
+OUTPUT_BOUND_RE = re.compile(
+    r"(--stat|--shortstat|--name-only|--name-status|--numstat|--summary|--check|--quiet)"
+    r"|((?:^|[\s])(?:-n|--max-count)\s*=?\s*\d+\b)"
+    r"|((?:^|[\s])-(?:TotalCount|Tail|First|Last)\s+\d+\b)"
+    r"|(\bSelect-Object\b.{0,80}(?:^|[\s])-(?:First|Last)\s+\d+\b)"
+    r"|(\b(?:Out-File|Set-Content|Add-Content|Export-Clixml|Export-Csv)\b)"
+    r"|([^\d]>{1,2}\s*[A-Za-z0-9_.\\/: -]+)",
+    re.IGNORECASE | re.DOTALL,
+)
+UNBOUNDED_OUTPUT_RULES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(r"\bgit\s+diff\b", re.IGNORECASE),
+        "Use `git diff --stat`, `git diff --name-only`, a path-scoped diff, or redirect the full diff to a file.",
+    ),
+    (
+        re.compile(r"\bgit\s+show\b", re.IGNORECASE),
+        "Use `git show --stat`, `git show --name-only`, or redirect the full output to a file.",
+    ),
+    (
+        re.compile(r"\bgit\s+log\b", re.IGNORECASE),
+        "Use `git log --oneline -n 30` or another explicit max-count.",
+    ),
+    (
+        re.compile(
+            r"\b(?:Get-ChildItem|gci|dir|ls)\b[^\n\r|;]*(?:^|[\s])-(?:Recurse)\b",
+            re.IGNORECASE,
+        ),
+        "Use `-Depth`, pipe to `Select-Object -First <n>`, or redirect full recursive listings to a file.",
+    ),
+    (
+        re.compile(r"\b(?:Get-Content|gc|type|cat)\b[^\n\r|;]*(?:\*|-Raw|\blog\b)", re.IGNORECASE),
+        "Use `Get-Content -TotalCount <n>`, `Get-Content -Tail <n>`, or the text-file read tool for bounded reads.",
+    ),
+    (
+        re.compile(r"\brg\s+(?:--files\s+)?[\"']?\.[\"']?(?:\s|$)", re.IGNORECASE),
+        "Use a specific pattern/path or add a bounded preview instead of dumping the whole tree.",
+    ),
 )
 
 
@@ -48,18 +87,29 @@ def command_from_tool_input(tool_input: object) -> str:
     return json.dumps(tool_input, sort_keys=True)
 
 
-def policy_from_env(env: dict[str, str] | None = None) -> cyntox_privacy.PrivacyPolicy:
-    env = env or os.environ
-    mode = env.get("CYNTOX_INTERNET_MODE", "off").strip().lower() or "off"
+def policy_from_env(env: Mapping[str, str] | None = None) -> cyntox_privacy.PrivacyPolicy:
+    active_env: Mapping[str, str] = os.environ if env is None else env
+    mode = active_env.get("CYNTOX_INTERNET_MODE", "off").strip().lower() or "off"
     domains = tuple(
         domain.strip()
-        for domain in re.split(r"[,;]", env.get("CYNTOX_ALLOW_DOMAINS", ""))
+        for domain in re.split(r"[,;]", active_env.get("CYNTOX_ALLOW_DOMAINS", ""))
         if domain.strip()
     )
     return cyntox_privacy.PrivacyPolicy(mode, domains)
 
 
-def evaluate_pre_tool_use(payload: dict[str, Any], env: dict[str, str] | None = None) -> dict[str, Any]:
+def unbounded_output_reason(command: str) -> str | None:
+    if OUTPUT_BOUND_RE.search(command):
+        return None
+    for pattern, hint in UNBOUNDED_OUTPUT_RULES:
+        if pattern.search(command):
+            return f"CyntOX terminal flood guard blocked likely unbounded output. {hint}"
+    return None
+
+
+def evaluate_pre_tool_use(
+    payload: dict[str, Any], env: Mapping[str, str] | None = None
+) -> dict[str, Any]:
     tool_name = str(payload.get("tool_name") or "")
     if tool_name not in SHELL_TOOL_NAMES:
         return hook_response("allow", "CyntOX shell privacy guard only handles shell tools.")
@@ -68,24 +118,45 @@ def evaluate_pre_tool_use(payload: dict[str, Any], env: dict[str, str] | None = 
     if not command.strip():
         return hook_response("deny", "CyntOX blocked an empty or unreadable shell command.")
 
+    flood_reason = unbounded_output_reason(command)
+    if flood_reason:
+        return hook_response("deny", flood_reason)
+
     policy = policy_from_env(env)
     scan = cyntox_privacy.scan_text(command)
-    network_policy = cyntox_privacy.evaluate_network_policy([str(url) for url in scan["urls"]], policy)
+    network_policy = cyntox_privacy.evaluate_network_policy(
+        [str(url) for url in scan["urls"]], policy
+    )
     denied_urls = network_policy.get("denied_urls") or []
 
     if denied_urls:
-        domains = sorted({str(item.get("domain")) for item in denied_urls if isinstance(item, dict)})
-        return hook_response("deny", f"CyntOX privacy blocks public network access to: {', '.join(domains)}.")
+        domains = sorted(
+            {str(item.get("domain")) for item in denied_urls if isinstance(item, dict)}
+        )
+        return hook_response(
+            "deny", f"CyntOX privacy blocks public network access to: {', '.join(domains)}."
+        )
 
     if SECRET_WORD_RE.search(command) and NETWORK_COMMAND_RE.search(command):
-        return hook_response("deny", "CyntOX privacy blocks shell commands that combine network activity with secret-like data.")
+        return hook_response(
+            "deny",
+            "CyntOX privacy blocks shell commands that combine network activity with secret-like data.",
+        )
 
     if NETWORK_COMMAND_RE.search(command):
         if policy.internet_mode == "off":
-            return hook_response("deny", "CyntOX privacy blocks network-like shell commands while internet mode is off.")
-        return hook_response("ask", "CyntOX detected a network-like shell command. Confirm the destination and data scope.")
+            return hook_response(
+                "deny",
+                "CyntOX privacy blocks network-like shell commands while internet mode is off.",
+            )
+        return hook_response(
+            "ask",
+            "CyntOX detected a network-like shell command. Confirm the destination and data scope.",
+        )
 
-    return hook_response("ask", "CyntOX shell privacy guard requires confirmation before shell execution.")
+    return hook_response(
+        "ask", "CyntOX shell privacy guard requires confirmation before shell execution."
+    )
 
 
 def main() -> int:

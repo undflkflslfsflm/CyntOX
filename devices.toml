@@ -3,7 +3,9 @@
 # Safety model:
 # - configured=false means CyntOX may plan/dry-run only.
 # - approved_writes=false blocks first write/install on that device.
-# - allow/deny lists are policy hints for the deterministic executor and council prompts.
+# - deny lists are enforced by the deterministic executor before local/SSH execution.
+# - allow lists are enforced for deterministic executor commands and guide council prompts.
+# - SSH host/user values must be plain target names, not options or whitespace-containing strings.
 
 [devices.local-4090-pc]
 name = "Local 4090 PC"

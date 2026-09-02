@@ -1898,6 +1898,8 @@ def _check_clean_checkout_matches_verified_source(
         cwd=project_root,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if source_check.returncode != 0:
@@ -1916,6 +1918,8 @@ def _check_clean_checkout_matches_verified_source(
             cwd=clean_worktree,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=False,
         )
         if head.returncode != 0:
@@ -1939,6 +1943,8 @@ def _check_clean_checkout_matches_verified_source(
             cwd=clean_worktree,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=False,
         )
         if status.returncode != 0:
@@ -2194,6 +2200,8 @@ def _check_post_verified_commit_changes(
         cwd=project_root,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if completed.returncode != 0:
@@ -2226,6 +2234,8 @@ def _check_git_worktree_clean(project_root: Path, checks: list[dict[str, Any]]) 
         cwd=project_root,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if completed.returncode != 0:

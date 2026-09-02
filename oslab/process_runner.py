@@ -127,7 +127,9 @@ class _WindowsKillOnCloseJob:
         process_handle = self._process_handle(process)
         if process_handle is None:
             return False
-        ok = self._kernel32.AssignProcessToJobObject(self._handle, self._wintypes.HANDLE(process_handle))
+        ok = self._kernel32.AssignProcessToJobObject(
+            self._handle, self._wintypes.HANDLE(process_handle)
+        )
         return bool(ok)
 
     def close(self) -> None:
@@ -234,13 +236,12 @@ class SafeProcessRunner:
         if process.returncode is not None:
             return
         if os.name == "nt":
+            root_pid = process.pid
             if windows_job is not None:
                 windows_job.close()
                 with contextlib.suppress(TimeoutError):
                     await asyncio.wait_for(process.wait(), 2)
-                if process.returncode is not None:
-                    return
-            await self._kill_windows_tree(process.pid)
+            await self._kill_windows_tree(root_pid)
         else:
             kill_process_group = cast(Callable[[int, int], None], os.__dict__.get("killpg"))
             if kill_process_group is None:

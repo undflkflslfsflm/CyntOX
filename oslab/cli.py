@@ -1027,7 +1027,13 @@ def selftest(
     rows: list[dict[str, Any]] = []
     for command in commands:
         completed = __import__("subprocess").run(
-            command, cwd=config.project_root, capture_output=True, text=True, check=False
+            command,
+            cwd=config.project_root,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
         )
         rows.append(
             {
@@ -1204,6 +1210,8 @@ def _resolve_commit(root: Path, reference: str) -> str:
         cwd=root,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         check=False,
     )
     if completed.returncode != 0:

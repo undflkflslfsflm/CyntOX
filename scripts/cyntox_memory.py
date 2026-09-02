@@ -8,7 +8,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from oslab.database import LabDatabase
 from oslab.memory import MemoryIndex
@@ -16,7 +16,7 @@ from oslab.memory import MemoryIndex
 try:
     from scripts import cyntox_privacy
 except ModuleNotFoundError:  # pragma: no cover - direct script execution path
-    import cyntox_privacy  # type: ignore[no-redef]
+    import cyntox_privacy  # type: ignore[import-not-found,no-redef]
 
 
 VAULT_DIRS = {
@@ -32,11 +32,19 @@ VAULT_DIRS = {
 DEFAULT_VAULT_DIR = "vault"
 DEFAULT_MEMORY_DB = ".oslab/cyntox/memory.sqlite3"
 DEFAULT_CYNTOX_JOBS_DIR = ".oslab/cyntox/jobs"
+MAX_MEMORY_SEARCH_LIMIT = 20
+MEMORY_JSON_EXCERPT_LIMIT = 800
 SECRET_PATTERNS = (
     re.compile(r"\bpassword\s*[:=]", re.IGNORECASE),
     re.compile(r"\b(api[_-]?key|secret|token)\s*[:=]", re.IGNORECASE),
+    re.compile(
+        r"\b(?:authorization|x-api-key)\s*[:=]\s*(?:bearer\s+)?[A-Za-z0-9._~+/=-]{8,}",
+        re.IGNORECASE,
+    ),
     re.compile(r"\bAKIA[0-9A-Z]{16}\b"),
     re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b"),
+    re.compile(r"\bgh[psu]_[A-Za-z0-9_]{20,}\b"),
+    re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"),
     re.compile(r"-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----"),
 )
 STOPWORDS = {
@@ -123,8 +131,33 @@ def slugify(value: str) -> str:
     return slug[:80].strip("-") or "note"
 
 
+def unique_markdown_path(directory: Path, stem: str, suffix_hint: str) -> Path:
+    candidate = directory / f"{stem}.md"
+    if not candidate.exists():
+        return candidate
+    candidate = directory / f"{stem}-{suffix_hint}.md"
+    if not candidate.exists():
+        return candidate
+    for counter in range(2, 1000):
+        candidate = directory / f"{stem}-{suffix_hint}-{counter}.md"
+        if not candidate.exists():
+            return candidate
+    raise RuntimeError(f"Could not choose a unique note path in {directory}")
+
+
 def contains_secret(text: str) -> bool:
     return any(pattern.search(text) for pattern in SECRET_PATTERNS)
+
+
+def validate_confidence(confidence: float) -> None:
+    if not 0 <= confidence <= 1:
+        raise ValueError("Memory confidence must be between 0 and 1.")
+
+
+def normalize_memory_limit(limit: int) -> int:
+    if limit < 1:
+        raise ValueError("Memory search limit must be at least 1.")
+    return min(limit, MAX_MEMORY_SEARCH_LIMIT)
 
 
 def normalize_fts_query(query: str) -> str:
@@ -194,6 +227,19 @@ def parse_frontmatter(content: str) -> dict[str, Any]:
     return metadata
 
 
+def update_frontmatter(content: str, updates: dict[str, Any]) -> str:
+    metadata = parse_frontmatter(content)
+    body = content
+    if content.startswith("---\n"):
+        end = content.find("\n---", 4)
+        if end != -1:
+            body = content[end + len("\n---") :].lstrip("\n")
+    metadata.update(updates)
+    if body:
+        return f"{render_frontmatter(metadata)}\n\n{body.rstrip()}\n"
+    return f"{render_frontmatter(metadata)}\n"
+
+
 def init_vault(root: Path, vault_dir: str = DEFAULT_VAULT_DIR) -> Path:
     base = vault_root(root, vault_dir)
     for dirname in VAULT_DIRS.values():
@@ -243,15 +289,15 @@ def write_note(
 ) -> Path:
     if note_type not in VAULT_DIRS or note_type == "archive":
         raise ValueError(f"Unsupported note type: {note_type}")
+    validate_confidence(confidence)
     if contains_secret(content) or contains_secret(title):
         raise ValueError("Refusing to store secret-looking memory.")
     now = utc_now()
     base = init_vault(root, vault_dir)
     note_id = hashlib.sha256(f"{isoformat(now)}\n{title}\n{content}".encode()).hexdigest()[:16]
-    filename = f"{now.strftime('%Y%m%d-%H%M%S')}-{slugify(title)}.md"
-    path = base / VAULT_DIRS[note_type] / filename
-    if path.exists():
-        path = base / VAULT_DIRS[note_type] / f"{now.strftime('%Y%m%d-%H%M%S')}-{slugify(title)}-{note_id}.md"
+    note_dir = base / VAULT_DIRS[note_type]
+    stem = f"{now.strftime('%Y%m%d-%H%M%S')}-{slugify(title)}"
+    path = unique_markdown_path(note_dir, stem, note_id)
 
     all_tags = list(dict.fromkeys([*(tags or []), f"cyntox/{note_type}", "cyntox"]))
     path.write_text(
@@ -295,7 +341,7 @@ def iter_vault_notes(root: Path, vault_dir: str = DEFAULT_VAULT_DIR) -> list[Vau
         relative_parts = path.relative_to(base).parts
         if relative_parts and relative_parts[0] == VAULT_DIRS["archive"]:
             continue
-        content = path.read_text(encoding="utf-8")
+        content = path.read_text(encoding="utf-8", errors="replace")
         digest = hashlib.sha256(content.encode()).hexdigest()
         notes.append(
             VaultNote(
@@ -315,19 +361,30 @@ def sync_vault(
     db_path: str = DEFAULT_MEMORY_DB,
 ) -> dict[str, Any]:
     notes = iter_vault_notes(root, vault_dir)
-    if not notes:
-        return {"vault": str(vault_root(root, vault_dir)), "synced": 0}
-
+    indexable_notes = [note for note in notes if not contains_secret(note.content)]
+    skipped_secret_sources = [note.source for note in notes if contains_secret(note.content)]
+    vault_prefix = vault_root(root, vault_dir).relative_to(root).as_posix()
     database = memory_database(root, db_path)
     database.migrate()
     with database.transaction() as connection:
-        for note in notes:
-            connection.execute("DELETE FROM memory_fts WHERE source = ?", (note.source,))
+        existing_sources = [
+            str(row["source"])
+            for row in connection.execute("SELECT source FROM memory_fts").fetchall()
+        ]
+        for source in existing_sources:
+            if source == vault_prefix or source.startswith(f"{vault_prefix}/"):
+                connection.execute("DELETE FROM memory_fts WHERE source = ?", (source,))
+        for note in indexable_notes:
             connection.execute(
                 "INSERT INTO memory_fts(source, content, commit_id, content_hash) VALUES (?, ?, ?, ?)",
                 (note.source, note.content, "cyntox-vault", note.content_hash),
             )
-    return {"vault": str(vault_root(root, vault_dir)), "synced": len(notes)}
+    return {
+        "vault": str(vault_root(root, vault_dir)),
+        "synced": len(indexable_notes),
+        "skipped_secret": len(skipped_secret_sources),
+        "skipped_secret_sources": skipped_secret_sources,
+    }
 
 
 def search_memory(
@@ -338,6 +395,7 @@ def search_memory(
     vault_dir: str = DEFAULT_VAULT_DIR,
     db_path: str = DEFAULT_MEMORY_DB,
 ) -> list[dict[str, Any]]:
+    limit = normalize_memory_limit(limit)
     sync_vault(root, vault_dir=vault_dir, db_path=db_path)
     safe_query = normalize_fts_query(query)
     if not safe_query:
@@ -364,6 +422,22 @@ def excerpt(text: str, limit: int = 600) -> str:
     return compact[:limit].rstrip() + " ..."
 
 
+def search_hit_for_cli(
+    hit: dict[str, Any], *, include_full_content: bool = False
+) -> dict[str, Any]:
+    content = str(hit.get("content") or "")
+    rendered = {
+        "source": hit.get("source"),
+        "content_hash": hit.get("content_hash"),
+        "score": hit.get("score"),
+        "metadata": hit.get("metadata"),
+        "excerpt": excerpt(content, MEMORY_JSON_EXCERPT_LIMIT),
+    }
+    if include_full_content:
+        rendered["content"] = content
+    return rendered
+
+
 def render_rag_context(
     root: Path,
     query: str,
@@ -383,10 +457,13 @@ def render_rag_context(
     ]
     for hit in hits:
         content = str(hit["content"])
-        metadata = hit.get("metadata") if isinstance(hit.get("metadata"), dict) else {}
+        metadata_raw = hit.get("metadata")
+        metadata = cast(dict[str, Any], metadata_raw) if isinstance(metadata_raw, dict) else {}
         created_at = metadata.get("created_at") or "unknown-date"
         confidence = metadata.get("confidence")
-        confidence_text = f"{confidence}" if isinstance(confidence, int | float | str) else "unknown"
+        confidence_text = (
+            f"{confidence}" if isinstance(confidence, int | float | str) else "unknown"
+        )
         stale = metadata.get("stale")
         stale_text = " | stale/review" if stale or metadata.get("review") else ""
         scan = cyntox_privacy.scan_text(content)
@@ -534,6 +611,9 @@ def forget_memory(
     vault_dir: str = DEFAULT_VAULT_DIR,
     db_path: str = DEFAULT_MEMORY_DB,
 ) -> Path:
+    identifier = identifier.strip()
+    if not identifier:
+        raise ValueError("Memory forget identifier must not be empty.")
     base = vault_root(root, vault_dir)
     archive = base / VAULT_DIRS["archive"]
     matches: list[VaultNote] = []
@@ -547,13 +627,31 @@ def forget_memory(
     if not matches:
         raise ValueError(f"No vault memory matched: {identifier}")
     if len(matches) > 1:
-        raise ValueError(f"Multiple vault memories matched {identifier}; use a more specific id/source.")
+        raise ValueError(
+            f"Multiple vault memories matched {identifier}; use a more specific id/source."
+        )
 
     note = matches[0]
     archive.mkdir(parents=True, exist_ok=True)
     target = archive / note.path.name
     if target.exists():
-        target = archive / f"{note.path.stem}-{utc_now().strftime('%Y%m%d%H%M%S')}{note.path.suffix}"
+        target = (
+            archive / f"{note.path.stem}-{utc_now().strftime('%Y%m%d%H%M%S')}{note.path.suffix}"
+        )
+    archived_at = isoformat(utc_now())
+    note.path.write_text(
+        update_frontmatter(
+            note.content,
+            {
+                "updated_at": archived_at,
+                "archived": True,
+                "archived_at": archived_at,
+                "archive_reason": "memory forget",
+                "archive_source": note.source,
+            },
+        ),
+        encoding="utf-8",
+    )
     shutil.move(str(note.path), str(target))
 
     database = memory_database(root, db_path)
@@ -575,7 +673,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     add = subparsers.add_parser("add", help="Add a memory note.")
     add.add_argument("text", nargs="+")
-    add.add_argument("--type", choices=[key for key in VAULT_DIRS if key != "archive"], default="fact")
+    add.add_argument(
+        "--type", choices=[key for key in VAULT_DIRS if key != "archive"], default="fact"
+    )
     add.add_argument("--title")
     add.add_argument("--confidence", type=float, default=0.8)
 
@@ -583,15 +683,24 @@ def build_parser() -> argparse.ArgumentParser:
     search.add_argument("query", nargs="+")
     search.add_argument("--limit", type=int, default=5)
     search.add_argument("--json", action="store_true")
+    search.add_argument(
+        "--full",
+        action="store_true",
+        help="Include full note content in --json output. Default JSON uses bounded excerpts.",
+    )
 
     sync = subparsers.add_parser("sync", help="Sync vault markdown into SQLite FTS.")
     sync.add_argument("--json", action="store_true")
 
-    extract = subparsers.add_parser("extract", help="Extract compact safe memory from a CyntOX job.")
+    extract = subparsers.add_parser(
+        "extract", help="Extract compact safe memory from a CyntOX job."
+    )
     extract.add_argument("--job", required=True)
     extract.add_argument("--jobs-dir", default=DEFAULT_CYNTOX_JOBS_DIR)
 
-    forget = subparsers.add_parser("forget", help="Archive one matching memory and remove it from RAG.")
+    forget = subparsers.add_parser(
+        "forget", help="Archive one matching memory and remove it from RAG."
+    )
     forget.add_argument("identifier")
     return parser
 
@@ -628,9 +737,26 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "search":
         query = " ".join(args.query).strip()
-        hits = search_memory(root, query, limit=args.limit, vault_dir=args.vault_dir, db_path=args.memory_db)
+        try:
+            hits = search_memory(
+                root, query, limit=args.limit, vault_dir=args.vault_dir, db_path=args.memory_db
+            )
+        except ValueError as error:
+            print(error)
+            return 1
         if args.json:
-            print(json.dumps({"query": query, "hits": hits}, indent=2))
+            print(
+                json.dumps(
+                    {
+                        "query": query,
+                        "hits": [
+                            search_hit_for_cli(hit, include_full_content=args.full) for hit in hits
+                        ],
+                        "full_content": bool(args.full),
+                    },
+                    indent=2,
+                )
+            )
         else:
             for hit in hits:
                 print(f"{hit['source']} score={hit['score']:.4f}")
@@ -639,7 +765,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "sync":
         result = sync_vault(root, vault_dir=args.vault_dir, db_path=args.memory_db)
-        print(json.dumps(result, indent=2) if args.json else f"Synced {result['synced']} notes.")
+        if args.json:
+            print(json.dumps(result, indent=2))
+        else:
+            skipped = int(result.get("skipped_secret") or 0)
+            suffix = f" Skipped {skipped} secret-looking note(s)." if skipped else ""
+            print(f"Synced {result['synced']} notes.{suffix}")
         return 0
     if args.command == "extract":
         try:
@@ -657,14 +788,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "forget":
         try:
-            target = forget_memory(root, args.identifier, vault_dir=args.vault_dir, db_path=args.memory_db)
+            target = forget_memory(
+                root, args.identifier, vault_dir=args.vault_dir, db_path=args.memory_db
+            )
         except ValueError as error:
             print(error)
             return 1
         print(target)
         return 0
     parser.error(f"unknown command: {args.command}")
-    return 2
 
 
 if __name__ == "__main__":

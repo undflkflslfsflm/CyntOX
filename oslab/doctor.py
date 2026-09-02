@@ -44,6 +44,7 @@ def _run(argv: list[str], timeout: float = 10.0) -> dict[str, Any]:
             argv,
             capture_output=True,
             text=True,
+            encoding="utf-8",
             errors="replace",
             timeout=timeout,
             check=False,

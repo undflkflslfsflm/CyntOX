@@ -20,8 +20,8 @@ from typing import Any
 try:
     from scripts import cyntox_memory, cyntox_privacy
 except ModuleNotFoundError:  # pragma: no cover - direct script execution path
-    import cyntox_memory  # type: ignore[no-redef]
-    import cyntox_privacy  # type: ignore[no-redef]
+    import cyntox_memory  # type: ignore[import-not-found,no-redef]
+    import cyntox_privacy  # type: ignore[import-not-found,no-redef]
 
 
 @dataclass(frozen=True)
@@ -137,6 +137,15 @@ PRESETS: dict[str, tuple[str, ...]] = {
 DEFAULT_PRESET = "max"
 DEFAULT_ENGINE = "ollama"
 DEFAULT_OLLAMA_MODEL = "huihui-qwen3.8-27b-abliterated:latest"
+DEFAULT_OLLAMA_NUM_CTX = 32768
+DEFAULT_OLLAMA_NUM_PREDICT = 8192
+MAX_OLLAMA_NUM_CTX = 262144
+MAX_OLLAMA_NUM_PREDICT = 32768
+DEFAULT_TERMINAL_OUTPUT_LIMIT = 4_000
+MAX_TERMINAL_OUTPUT_LIMIT = 200_000
+DEFAULT_ROLE_OUTPUT_BUDGET_WORDS = 450
+DEFAULT_FINAL_OUTPUT_BUDGET_WORDS = 900
+DEFAULT_SCORER_OUTPUT_BUDGET_WORDS = 180
 REGISTRY_FILENAME = ".registry.json"
 ARCHIVE_DIRNAME = ".archive"
 BENCHMARK_TASKS = {
@@ -193,6 +202,33 @@ def parse_duration_seconds(value: str) -> int:
     return total
 
 
+def bounded_env_int(name: str, *, default: int, minimum: int, maximum: int) -> int:
+    raw = os.environ.get(name, "").strip()
+    if raw.isdigit():
+        return max(minimum, min(int(raw), maximum))
+    return default
+
+
+def ollama_generation_options() -> dict[str, int | float]:
+    return {
+        "num_ctx": bounded_env_int(
+            "CYNTOX_COUNCIL_NUM_CTX",
+            default=DEFAULT_OLLAMA_NUM_CTX,
+            minimum=1024,
+            maximum=MAX_OLLAMA_NUM_CTX,
+        ),
+        "num_predict": bounded_env_int(
+            "CYNTOX_COUNCIL_NUM_PREDICT",
+            default=DEFAULT_OLLAMA_NUM_PREDICT,
+            minimum=64,
+            maximum=MAX_OLLAMA_NUM_PREDICT,
+        ),
+        "temperature": 0,
+        "top_k": 20,
+        "top_p": 0.8,
+    }
+
+
 def truncate(text: str, limit: int) -> str:
     if len(text) <= limit:
         return text
@@ -200,10 +236,20 @@ def truncate(text: str, limit: int) -> str:
     return f"{text[:limit]}\n\n[... truncated {omitted} chars ...]"
 
 
+def terminal_preview(text: str, *, limit: int | None, artifact: Path | None = None) -> str:
+    if limit is None or len(text) <= limit:
+        return text
+    artifact_hint = f"; full output saved to {artifact}" if artifact else ""
+    if limit <= 0:
+        return f"[terminal output suppressed{artifact_hint}]"
+    omitted = len(text) - limit
+    return f"{text[:limit]}\n\n[... terminal preview truncated {omitted} chars{artifact_hint} ...]"
+
+
 def read_text_if_exists(path: Path) -> str:
     if not path.exists():
         return ""
-    return path.read_text(encoding="utf-8").strip()
+    return path.read_text(encoding="utf-8", errors="replace").strip()
 
 
 def utc_now_iso() -> str:
@@ -263,7 +309,9 @@ def discover_skill_names(root: Path, skills_dir: str) -> list[str]:
     )
 
 
-def sync_skill_registry(root: Path, skills_dir: str, *, now: str | None = None) -> dict[str, Any]:
+def sync_skill_registry(
+    root: Path, skills_dir: str, *, now: str | None = None, save: bool = True
+) -> dict[str, Any]:
     now = now or utc_now_iso()
     registry = load_registry(root, skills_dir)
     skills = registry.setdefault("skills", {})
@@ -277,11 +325,14 @@ def sync_skill_registry(root: Path, skills_dir: str, *, now: str | None = None) 
             entry.setdefault("use_count", 0)
             entry.setdefault("archived_at", None)
             entry.setdefault("archive_path", None)
-    save_registry(root, skills_dir, registry)
+    if save:
+        save_registry(root, skills_dir, registry)
     return registry
 
 
-def mark_skills_used(root: Path, skills_dir: str, names: list[str], *, now: str | None = None) -> dict[str, Any]:
+def mark_skills_used(
+    root: Path, skills_dir: str, names: list[str], *, now: str | None = None
+) -> dict[str, Any]:
     now = now or utc_now_iso()
     registry = sync_skill_registry(root, skills_dir, now=now)
     skills = registry.setdefault("skills", {})
@@ -334,6 +385,21 @@ def record_skill_score(
     return registry
 
 
+def unique_skill_archive_target(archive_base: Path, name: str, now_dt: dt.datetime) -> Path:
+    target = archive_base / name
+    if not target.exists():
+        return target
+    timestamp = now_dt.strftime("%Y%m%d%H%M%S")
+    target = archive_base / f"{name}-{timestamp}"
+    if not target.exists():
+        return target
+    for counter in range(2, 1000):
+        target = archive_base / f"{name}-{timestamp}-{counter}"
+        if not target.exists():
+            return target
+    raise RuntimeError(f"Could not choose a unique skill archive path in {archive_base}")
+
+
 def archive_unused_skills(
     root: Path,
     skills_dir: str,
@@ -350,7 +416,7 @@ def archive_unused_skills(
     now_text = now_dt.replace(microsecond=0).isoformat().replace("+00:00", "Z")
     base = ensure_project_child(root, root / skills_dir)
     archive_base = ensure_project_child(root, base / ARCHIVE_DIRNAME)
-    registry = sync_skill_registry(root, skills_dir, now=now_text)
+    registry = sync_skill_registry(root, skills_dir, now=now_text, save=not dry_run)
     skills = registry.setdefault("skills", {})
     assert isinstance(skills, dict)
     archived: list[dict[str, str]] = []
@@ -359,7 +425,9 @@ def archive_unused_skills(
         entry = skills.get(name)
         if not isinstance(entry, dict):
             continue
-        reference_time = entry.get("last_used_at") or entry.get("created_at") or entry.get("last_seen_at")
+        reference_time = (
+            entry.get("last_used_at") or entry.get("created_at") or entry.get("last_seen_at")
+        )
         if not isinstance(reference_time, str):
             continue
         parsed_time = parse_iso_utc(reference_time)
@@ -367,9 +435,7 @@ def archive_unused_skills(
             continue
 
         source = base / name
-        target = archive_base / name
-        if target.exists():
-            target = archive_base / f"{name}-{now_dt.strftime('%Y%m%d%H%M%S')}"
+        target = unique_skill_archive_target(archive_base, name, now_dt)
         archived.append({"name": name, "source": str(source), "target": str(target)})
         if dry_run:
             continue
@@ -382,6 +448,26 @@ def archive_unused_skills(
     if not dry_run:
         save_registry(root, skills_dir, registry)
     return archived
+
+
+def mirror_skill_archive_notes(
+    root: Path, archived: list[dict[str, str]], *, source: str
+) -> list[str]:
+    notes: list[str] = []
+    for item in archived:
+        note = cyntox_memory.write_note(
+            root,
+            note_type="skill",
+            title=f"Skill archived: {item['name']}",
+            content=f"Skill {item['name']} archived from {item['source']} to {item['target']}.",
+            tags=["cyntox/skill-lifecycle"],
+            source=source,
+            confidence=0.9,
+        )
+        notes.append(str(note))
+    if notes:
+        cyntox_memory.sync_vault(root)
+    return notes
 
 
 def load_repo_skills(root: Path, skills_dir: str, *, active_names: list[str] | None = None) -> str:
@@ -397,7 +483,7 @@ def load_repo_skills(root: Path, skills_dir: str, *, active_names: list[str] | N
             continue
         skill_name = skill_md.parent.name
         try:
-            text = skill_md.read_text(encoding="utf-8")
+            text = skill_md.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
         description = ""
@@ -406,7 +492,9 @@ def load_repo_skills(root: Path, skills_dir: str, *, active_names: list[str] | N
             description = match.group(1).strip()
         entries.append(f"- {skill_name}: {description or 'No description found.'}")
         if skill_name in active_set:
-            active_blocks.append(f"## Active skill: {skill_name}\n\n{truncate(text.strip(), 12_000)}")
+            active_blocks.append(
+                f"## Active skill: {skill_name}\n\n{truncate(text.strip(), 12_000)}"
+            )
     if not entries:
         return "No repo-local skills found."
     if active_blocks:
@@ -477,12 +565,12 @@ def build_role_prompt(
         "only when the user's task clearly authorizes that exact scope. Do not touch external "
         "machines unless a reachable host and authorization are explicit."
         if mode == "implement"
-        else
-        "You are in PLAN mode. Do not edit files, run installers, change services, SSH to hosts, "
+        else "You are in PLAN mode. Do not edit files, run installers, change services, SSH to hosts, "
         "or mutate external systems. Provide analysis, commands, checks, and recommendations only."
     )
 
     if role_name == "synthesizer":
+        output_budget_words = DEFAULT_FINAL_OUTPUT_BUDGET_WORDS
         return_format = (
             "Return the final council answer only. Answer as the user-facing Mythos/CyntOX assistant, "
             "not as the internal coordinator/synthesizer role, unless the user explicitly asks about "
@@ -497,17 +585,20 @@ def build_role_prompt(
             "verification step such as `git status --short` plus reading the relevant source file."
         )
     elif role_name == "scorer":
+        output_budget_words = DEFAULT_SCORER_OUTPUT_BUDGET_WORDS
         return_format = (
             "Score the latest synthesized answer only. Return one compact JSON object on its own line "
             "with numeric 0-10 keys correctness, usefulness, safety, specificity, honesty, overall, "
             "and a must_fix array. Then add three concise bullets. Do not include private chain-of-thought."
         )
     elif role_name == "skillmaker":
+        output_budget_words = DEFAULT_SCORER_OUTPUT_BUDGET_WORDS
         return_format = (
             "Return exactly one JSON object and no other prose. Use create_skill false unless a reusable "
             "repo-local skill is clearly justified. Do not include private chain-of-thought."
         )
     else:
+        output_budget_words = DEFAULT_ROLE_OUTPUT_BUDGET_WORDS
         return_format = (
             "Return concise role output with these labels: Findings, Recommendation, Evidence Needed, "
             "Risks. Do not include private chain-of-thought."
@@ -554,6 +645,13 @@ def build_role_prompt(
         Treat retrieved memory as useful context, not proof. If you rely on it, mention the source
         or clearly label it as remembered/unverified when appropriate.
 
+        Output budget:
+        Keep this role output under {output_budget_words} words unless the user explicitly asks for a
+        longer report. Never paste huge logs, repeated text, full JSON blobs, or raw command output;
+        summarize them and point to the relevant artifact/file path when available. If a complete answer
+        would exceed the budget, give the densest useful answer plus a short "continue with" checklist
+        instead of running into a token/output cap.
+
         Output rule:
         {return_format}
         """
@@ -566,6 +664,19 @@ def find_powershell() -> str:
         if found:
             return found
     raise RuntimeError("PowerShell was not found.")
+
+
+def safe_text_capture_kwargs(timeout: float | None = None) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "text": True,
+        "encoding": "utf-8",
+        "errors": "replace",
+        "capture_output": True,
+        "check": False,
+    }
+    if timeout is not None:
+        kwargs["timeout"] = timeout
+    return kwargs
 
 
 def run_qwen_role(root: Path, prompt: str, max_wall_time: str) -> subprocess.CompletedProcess[str]:
@@ -587,10 +698,7 @@ def run_qwen_role(root: Path, prompt: str, max_wall_time: str) -> subprocess.Com
     return subprocess.run(  # noqa: S603
         command,
         cwd=root,
-        text=True,
-        capture_output=True,
-        timeout=timeout,
-        check=False,
+        **safe_text_capture_kwargs(timeout=timeout),
     )
 
 
@@ -619,16 +727,23 @@ def start_ollama_serve() -> str | None:
     executable = shutil.which("ollama")
     if not executable:
         return "ollama executable was not found on PATH"
-    kwargs: dict[str, object] = {
-        "stdout": subprocess.DEVNULL,
-        "stderr": subprocess.DEVNULL,
-        "stdin": subprocess.DEVNULL,
-    }
     creation_flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-    if creation_flags:
-        kwargs["creationflags"] = creation_flags
     try:
-        subprocess.Popen([executable, "serve"], **kwargs)  # noqa: S603
+        if creation_flags:
+            subprocess.Popen(  # noqa: S603
+                [executable, "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                creationflags=creation_flags,
+            )
+        else:
+            subprocess.Popen(  # noqa: S603
+                [executable, "serve"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+            )
     except Exception as error:  # noqa: BLE001
         return f"failed to start ollama serve: {error}"
     return None
@@ -651,7 +766,9 @@ def ensure_ollama_api_ready() -> str | None:
     return f"Ollama API is not reachable at {base_url} after starting ollama serve"
 
 
-def run_ollama_role(prompt: str, max_wall_time: str, model: str) -> subprocess.CompletedProcess[str]:
+def run_ollama_role(
+    prompt: str, max_wall_time: str, model: str
+) -> subprocess.CompletedProcess[str]:
     timeout = parse_duration_seconds(max_wall_time) + 75
     ready_error = ensure_ollama_api_ready()
     if ready_error:
@@ -662,13 +779,7 @@ def run_ollama_role(prompt: str, max_wall_time: str, model: str) -> subprocess.C
         "stream": False,
         "think": False,
         "keep_alive": "10m",
-        "options": {
-            "num_ctx": 16384,
-            "num_predict": 2048,
-            "temperature": 0,
-            "top_k": 20,
-            "top_p": 0.8,
-        },
+        "options": ollama_generation_options(),
     }
     request = urllib.request.Request(  # noqa: S310
         f"{ollama_api_base()}/api/generate",
@@ -758,11 +869,11 @@ def write_benchmark_report(
     dry_run: bool,
     results: list[dict[str, object]],
 ) -> dict[str, object]:
-    scores = [
-        float(result["score"])
-        for result in results
-        if isinstance(result.get("score"), int | float)
-    ]
+    scores: list[float] = []
+    for result in results:
+        raw_score = result.get("score")
+        if isinstance(raw_score, int | float):
+            scores.append(float(raw_score))
     average_score = round(sum(scores) / len(scores), 4) if scores else None
     payload: dict[str, object] = {
         "created_at": utc_now_iso(),
@@ -800,7 +911,9 @@ def write_benchmark_report(
             f"passed={result.get('passed_threshold')} code={result.get('returncode')}"
         )
     md_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
-    (out_dir / "latest-benchmark.md").write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
+    (out_dir / "latest-benchmark.md").write_text(
+        md_path.read_text(encoding="utf-8"), encoding="utf-8"
+    )
     payload["json_report"] = str(json_path)
     payload["markdown_report"] = str(md_path)
     return payload
@@ -816,7 +929,9 @@ def parse_score(output: str) -> tuple[float | None, dict[str, object] | None]:
         overall = parsed.get("overall")
         if isinstance(overall, int | float):
             return float(overall), parsed
-    match = re.search(r"\boverall\b[^0-9]*(10(?:\.0)?|[0-9](?:\.[0-9])?)", output, flags=re.IGNORECASE)
+    match = re.search(
+        r"\boverall\b[^0-9]*(10(?:\.0)?|[0-9](?:\.[0-9])?)", output, flags=re.IGNORECASE
+    )
     if match:
         return float(match.group(1)), None
     return None, None
@@ -852,7 +967,11 @@ def create_repo_skill(root: Path, skills_dir: str, proposal: dict[str, Any]) -> 
     raw_name = proposal.get("name")
     description = proposal.get("description")
     instructions = proposal.get("instructions")
-    if not isinstance(raw_name, str) or not isinstance(description, str) or not isinstance(instructions, str):
+    if (
+        not isinstance(raw_name, str)
+        or not isinstance(description, str)
+        or not isinstance(instructions, str)
+    ):
         raise ValueError("Skill proposal requires string name, description, and instructions.")
 
     name = slugify_skill_name(raw_name)
@@ -899,7 +1018,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("task", nargs="*", help="Task for the council. Quote it as one string.")
     parser.add_argument("--task-file", help="Read the task from a UTF-8 text file.")
-    parser.add_argument("--preset", choices=tuple(PRESETS), default=DEFAULT_PRESET, help="Council quality/speed preset.")
+    parser.add_argument(
+        "--preset",
+        choices=tuple(PRESETS),
+        default=DEFAULT_PRESET,
+        help="Council quality/speed preset.",
+    )
     parser.add_argument("--roles", help="Comma-separated role list. Overrides --preset.")
     parser.add_argument("--mode", choices=("plan", "implement"), default="plan")
     parser.add_argument("--engine", choices=("ollama", "qwen-code"), default=DEFAULT_ENGINE)
@@ -908,28 +1032,117 @@ def build_parser() -> argparse.ArgumentParser:
         default=os.environ.get("CYNTOX_UPSTREAM_MODEL", DEFAULT_OLLAMA_MODEL),
         help="Local Ollama model used by --engine ollama.",
     )
-    parser.add_argument("--max-wall-time", default="3m", help="Per-role local model wall-clock budget.")
-    parser.add_argument("--pass-threshold", type=float, default=9.0, help="Minimum accepted scorer overall score.")
-    parser.add_argument("--max-retries", type=int, default=1, help="Final synthesis retries when score is too low.")
-    parser.add_argument("--benchmark", action="store_true", help="Run the built-in six-task answer-quality benchmark.")
-    parser.add_argument("--allow-skill-create", action="store_true", help="Allow skillmaker to create repo-local skills.")
-    parser.add_argument("--use-skill", action="append", default=[], help="Mark and expose a repo-local skill as used; repeatable.")
-    parser.add_argument("--archive-unused-days", type=int, help="Archive repo-local skills not used for N days.")
-    parser.add_argument("--archive-dry-run", action="store_true", help="Preview skill archives without moving files.")
-    parser.add_argument("--skills-dir", default="skills", help="Repo-local skill library directory.")
-    parser.add_argument("--use-memory", dest="use_memory", action="store_true", default=True, help="Inject relevant CyntOX vault/RAG memory.")
-    parser.add_argument("--no-memory", dest="use_memory", action="store_false", help="Disable CyntOX vault/RAG memory injection.")
-    parser.add_argument("--memory-query", help="Override the RAG search query; defaults to the task text.")
-    parser.add_argument("--memory-limit", type=int, default=5, help="Maximum RAG memory hits to inject.")
-    parser.add_argument("--vault-dir", default=cyntox_memory.DEFAULT_VAULT_DIR, help="CyntOX vault directory.")
-    parser.add_argument("--memory-db", default=cyntox_memory.DEFAULT_MEMORY_DB, help="SQLite FTS memory database.")
-    parser.add_argument("--save-memory", dest="save_memory", action="store_true", default=False, help="Save final council output into the CyntOX vault.")
-    parser.add_argument("--no-save-memory", dest="save_memory", action="store_false", help="Do not save final council output into the CyntOX vault.")
-    parser.add_argument("--internet-mode", choices=("off", "allowlist", "open"), default="off", help="External internet policy for the council prompt.")
-    parser.add_argument("--allow-domain", action="append", default=[], help="Public domain allowed when --internet-mode allowlist is used; repeatable.")
-    parser.add_argument("--out-dir", default=".oslab/council/runs", help="Directory for council artifacts.")
-    parser.add_argument("--dry-run", action="store_true", help="Write prompts/manifest without calling Qwen.")
-    parser.add_argument("--verbose", action="store_true", help="Print every role output, not just final synthesis.")
+    parser.add_argument(
+        "--max-wall-time", default="3m", help="Per-role local model wall-clock budget."
+    )
+    parser.add_argument(
+        "--pass-threshold", type=float, default=9.0, help="Minimum accepted scorer overall score."
+    )
+    parser.add_argument(
+        "--max-retries", type=int, default=1, help="Final synthesis retries when score is too low."
+    )
+    parser.add_argument(
+        "--benchmark",
+        action="store_true",
+        help="Run the built-in six-task answer-quality benchmark.",
+    )
+    parser.add_argument(
+        "--allow-skill-create",
+        action="store_true",
+        help="Allow skillmaker to create repo-local skills.",
+    )
+    parser.add_argument(
+        "--use-skill",
+        action="append",
+        default=[],
+        help="Mark and expose a repo-local skill as used; repeatable.",
+    )
+    parser.add_argument(
+        "--archive-unused-days", type=int, help="Archive repo-local skills not used for N days."
+    )
+    parser.add_argument(
+        "--archive-dry-run",
+        action="store_true",
+        help="Preview skill archives without moving files.",
+    )
+    parser.add_argument(
+        "--skills-dir", default="skills", help="Repo-local skill library directory."
+    )
+    parser.add_argument(
+        "--use-memory",
+        dest="use_memory",
+        action="store_true",
+        default=True,
+        help="Inject relevant CyntOX vault/RAG memory.",
+    )
+    parser.add_argument(
+        "--no-memory",
+        dest="use_memory",
+        action="store_false",
+        help="Disable CyntOX vault/RAG memory injection.",
+    )
+    parser.add_argument(
+        "--memory-query", help="Override the RAG search query; defaults to the task text."
+    )
+    parser.add_argument(
+        "--memory-limit", type=int, default=5, help="Maximum RAG memory hits to inject."
+    )
+    parser.add_argument(
+        "--vault-dir", default=cyntox_memory.DEFAULT_VAULT_DIR, help="CyntOX vault directory."
+    )
+    parser.add_argument(
+        "--memory-db", default=cyntox_memory.DEFAULT_MEMORY_DB, help="SQLite FTS memory database."
+    )
+    parser.add_argument(
+        "--save-memory",
+        dest="save_memory",
+        action="store_true",
+        default=False,
+        help="Save final council output into the CyntOX vault.",
+    )
+    parser.add_argument(
+        "--no-save-memory",
+        dest="save_memory",
+        action="store_false",
+        help="Do not save final council output into the CyntOX vault.",
+    )
+    parser.add_argument(
+        "--internet-mode",
+        choices=("off", "allowlist", "open"),
+        default="off",
+        help="External internet policy for the council prompt.",
+    )
+    parser.add_argument(
+        "--allow-domain",
+        action="append",
+        default=[],
+        help="Public domain allowed when --internet-mode allowlist is used; repeatable.",
+    )
+    parser.add_argument(
+        "--out-dir", default=".oslab/council/runs", help="Directory for council artifacts."
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Write prompts/manifest without calling Qwen."
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Print every role output, not just final synthesis."
+    )
+    parser.add_argument(
+        "--terminal-output-limit",
+        type=int,
+        default=bounded_env_int(
+            "CYNTOX_TERMINAL_OUTPUT_LIMIT",
+            default=DEFAULT_TERMINAL_OUTPUT_LIMIT,
+            minimum=0,
+            maximum=MAX_TERMINAL_OUTPUT_LIMIT,
+        ),
+        help="Maximum characters printed for each model output; full artifacts are always saved.",
+    )
+    parser.add_argument(
+        "--print-full-output",
+        action="store_true",
+        help="Print full model outputs to the terminal instead of a bounded preview.",
+    )
     return parser
 
 
@@ -946,6 +1159,9 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(str(error))
     if args.max_retries < 0:
         parser.error("--max-retries must be 0 or greater.")
+    if args.terminal_output_limit < 0:
+        parser.error("--terminal-output-limit must be 0 or greater.")
+    terminal_output_limit = None if args.print_full_output else args.terminal_output_limit
     if args.archive_unused_days is not None:
         try:
             archived = archive_unused_skills(
@@ -960,6 +1176,12 @@ def main(argv: list[str] | None = None) -> int:
         if archived:
             for item in archived:
                 print(f"{action}: {item['name']} -> {item['target']}", flush=True)
+            if not args.archive_dry_run and not args.dry_run:
+                mirror_skill_archive_notes(
+                    root,
+                    archived,
+                    source="cyntox-council --archive-unused-days",
+                )
         else:
             print("No unused repo-local skills matched the archive threshold.", flush=True)
         return 0
@@ -985,6 +1207,8 @@ def main(argv: list[str] | None = None) -> int:
                 str(args.pass_threshold),
                 "--max-retries",
                 str(args.max_retries),
+                "--terminal-output-limit",
+                str(args.terminal_output_limit),
                 "--out-dir",
                 args.out_dir,
                 "--skills-dir",
@@ -1018,20 +1242,22 @@ def main(argv: list[str] | None = None) -> int:
                 child_args.insert(0, "--allow-skill-create")
             if args.verbose:
                 child_args.insert(0, "--verbose")
+            if args.print_full_output:
+                child_args.insert(0, "--print-full-output")
             code = main(child_args)
             manifest_path = newest_manifest_since(benchmark_out_dir, before)
             score: float | None = None
             passed_threshold = False
             if manifest_path:
                 try:
-                    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    child_manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
                 except json.JSONDecodeError:
-                    manifest = {}
-                if isinstance(manifest, dict):
-                    raw_score = manifest.get("latest_score")
+                    child_manifest = {}
+                if isinstance(child_manifest, dict):
+                    raw_score = child_manifest.get("latest_score")
                     if isinstance(raw_score, int | float):
                         score = float(raw_score)
-                    passed_threshold = bool(manifest.get("passed_threshold"))
+                    passed_threshold = bool(child_manifest.get("passed_threshold"))
             benchmark_results.append(
                 {
                     "name": name,
@@ -1065,13 +1291,14 @@ def main(argv: list[str] | None = None) -> int:
         task_parts.append(read_text_if_exists(Path(args.task_file)))
     task = " ".join(part for part in task_parts if part).strip()
     if not task:
-        parser.error("Provide a task, for example: .\\cyntox-council.cmd \"review my Jellyfin plan\"")
+        parser.error('Provide a task, for example: .\\cyntox-council.cmd "review my Jellyfin plan"')
 
     timestamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     run_dir = root / args.out_dir / timestamp
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / "task.txt").write_text(task + "\n", encoding="utf-8")
 
+    results: list[dict[str, object]] = []
     manifest: dict[str, object] = {
         "created_at": timestamp,
         "mode": args.mode,
@@ -1094,7 +1321,7 @@ def main(argv: list[str] | None = None) -> int:
         "allow_domains": args.allow_domain,
         "dry_run": args.dry_run,
         "task": task,
-        "results": [],
+        "results": results,
     }
 
     prior_outputs: list[tuple[str, str]] = []
@@ -1104,7 +1331,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         sync_skill_registry(root, args.skills_dir)
         if args.use_skill:
-            mark_skills_used(root, args.skills_dir, [slugify_skill_name(name) for name in args.use_skill])
+            mark_skills_used(
+                root, args.skills_dir, [slugify_skill_name(name) for name in args.use_skill]
+            )
     except ValueError as error:
         parser.error(str(error))
     active_skill_names = [slugify_skill_name(name) for name in args.use_skill]
@@ -1158,7 +1387,7 @@ def main(argv: list[str] | None = None) -> int:
             output = f"DRY RUN: prompt written to {prompt_path}"
             output_path.write_text(output + "\n", encoding="utf-8")
             prior_outputs.append((role_name, output))
-            manifest["results"].append(
+            results.append(
                 {
                     "role": role_name,
                     "returncode": 0,
@@ -1179,7 +1408,7 @@ def main(argv: list[str] | None = None) -> int:
         except subprocess.TimeoutExpired as error:
             output = f"ERROR: council role timed out after {error.timeout} seconds."
             output_path.write_text(output + "\n", encoding="utf-8")
-            manifest["results"].append(
+            results.append(
                 {
                     "role": role_name,
                     "returncode": 124,
@@ -1196,7 +1425,7 @@ def main(argv: list[str] | None = None) -> int:
             output = f"{output}\n\n[stderr]\n{completed.stderr.strip()}".strip()
         output_path.write_text(output + "\n", encoding="utf-8")
         prior_outputs.append((role_name, output))
-        manifest["results"].append(
+        results.append(
             {
                 "role": role_name,
                 "returncode": completed.returncode,
@@ -1206,11 +1435,18 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         if args.verbose:
-            print(output, flush=True)
+            print(
+                terminal_preview(output, limit=terminal_output_limit, artifact=output_path),
+                flush=True,
+            )
 
         if completed.returncode != 0:
             (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-            print(f"Council stopped at role {role_name}; return code {completed.returncode}.", file=sys.stderr, flush=True)
+            print(
+                f"Council stopped at role {role_name}; return code {completed.returncode}.",
+                file=sys.stderr,
+                flush=True,
+            )
             print(f"See: {output_path}", file=sys.stderr, flush=True)
             return completed.returncode
 
@@ -1228,9 +1464,13 @@ def main(argv: list[str] | None = None) -> int:
                     prior_outputs.append(("skill_create_error", str(error)))
                 if created:
                     created_skills.append(str(created))
-                    repo_skills = load_repo_skills(root, args.skills_dir, active_names=active_skill_names)
+                    repo_skills = load_repo_skills(
+                        root, args.skills_dir, active_names=active_skill_names
+                    )
                     privacy_scan = cyntox_privacy.scan_text("\n\n".join([task, rag_context]))
-                    privacy_context = cyntox_privacy.render_policy_prompt(privacy_policy, scan=privacy_scan)
+                    privacy_context = cyntox_privacy.render_policy_prompt(
+                        privacy_policy, scan=privacy_scan
+                    )
                     manifest["privacy_scan"] = privacy_scan
                     prior_outputs.append(("skill_created", f"Created repo-local skill: {created}"))
             elif proposal and proposal.get("create_skill") is True:
@@ -1265,7 +1505,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         for retry_role_name in ("synthesizer", "scorer"):
             role = ROLE_LIBRARY[retry_role_name]
-            index = len(manifest["results"]) + 1
+            index = len(results) + 1
             prompt = build_role_prompt(
                 root=root,
                 role_name=retry_role_name,
@@ -1295,10 +1535,17 @@ def main(argv: list[str] | None = None) -> int:
             except subprocess.TimeoutExpired as error:
                 output = f"ERROR: retry role timed out after {error.timeout} seconds."
                 output_path.write_text(output + "\n", encoding="utf-8")
-                manifest["results"].append(
-                    {"role": retry_role_name, "returncode": 124, "prompt": str(prompt_path), "output": str(output_path)}
+                results.append(
+                    {
+                        "role": retry_role_name,
+                        "returncode": 124,
+                        "prompt": str(prompt_path),
+                        "output": str(output_path),
+                    }
                 )
-                (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+                (run_dir / "manifest.json").write_text(
+                    json.dumps(manifest, indent=2), encoding="utf-8"
+                )
                 print(output, file=sys.stderr, flush=True)
                 return 124
 
@@ -1307,7 +1554,7 @@ def main(argv: list[str] | None = None) -> int:
                 output = f"{output}\n\n[stderr]\n{completed.stderr.strip()}".strip()
             output_path.write_text(output + "\n", encoding="utf-8")
             prior_outputs.append((f"{retry_role_name}_retry{retries_used}", output))
-            manifest["results"].append(
+            results.append(
                 {
                     "role": retry_role_name,
                     "retry": retries_used,
@@ -1317,9 +1564,14 @@ def main(argv: list[str] | None = None) -> int:
                 }
             )
             if args.verbose:
-                print(output, flush=True)
+                print(
+                    terminal_preview(output, limit=terminal_output_limit, artifact=output_path),
+                    flush=True,
+                )
             if completed.returncode != 0:
-                (run_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+                (run_dir / "manifest.json").write_text(
+                    json.dumps(manifest, indent=2), encoding="utf-8"
+                )
                 print(
                     f"Council stopped at retry role {retry_role_name}; return code {completed.returncode}.",
                     file=sys.stderr,
@@ -1359,7 +1611,18 @@ def main(argv: list[str] | None = None) -> int:
 
     if final_output:
         print("\n=== CYNTOX COUNCIL FINAL ===\n", flush=True)
-        print(final_output, flush=True)
+        final_artifact = next(
+            (
+                Path(str(result["output"]))
+                for result in reversed(results)
+                if result.get("role") == "synthesizer" and result.get("output")
+            ),
+            run_dir / "synthesizer.md",
+        )
+        print(
+            terminal_preview(final_output, limit=terminal_output_limit, artifact=final_artifact),
+            flush=True,
+        )
         if latest_score is not None:
             print(f"\nCouncil score: {latest_score}/10", flush=True)
         if created_skills:
@@ -1371,7 +1634,10 @@ def main(argv: list[str] | None = None) -> int:
             for note_path in saved_memory_notes:
                 print(f"- {note_path}", flush=True)
     elif args.dry_run and "synthesizer" in roles:
-        print("\nDry run completed. Synthesizer prompt was written; no model output was generated.", flush=True)
+        print(
+            "\nDry run completed. Synthesizer prompt was written; no model output was generated.",
+            flush=True,
+        )
     else:
         print("\nCouncil completed. No synthesizer role was included.", flush=True)
     print(f"\nArtifacts: {run_dir}", flush=True)
