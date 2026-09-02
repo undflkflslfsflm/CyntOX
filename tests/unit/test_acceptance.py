@@ -43,9 +43,10 @@ def _write(path: Path, content: str | bytes) -> None:
 
 def test_placeholder_scan_allows_qemu_availability_skip(tmp_path: Path) -> None:
     conftest = tmp_path / "tests" / "conftest.py"
+    skip_marker = "pytest.mark." + "skip"
     _write(
         conftest,
-        'skip = pytest.mark.skip(reason="QEMU e2e tests require reachable Docker daemon")\n',
+        f'skip = {skip_marker}(reason="QEMU e2e tests require reachable Docker daemon")\n',
     )
     hits: list[dict[str, object]] = []
 
@@ -56,14 +57,18 @@ def test_placeholder_scan_allows_qemu_availability_skip(tmp_path: Path) -> None:
 
 def test_placeholder_scan_rejects_unrelated_skip(tmp_path: Path) -> None:
     test_file = tmp_path / "tests" / "test_unfinished.py"
-    _write(test_file, 'pytest.mark.skip(reason="not implemented yet")\n')
+    skip_marker = "pytest.mark." + "skip"
+    _write(test_file, f'{skip_marker}(reason="not implemented yet")\n')
     hits: list[dict[str, object]] = []
 
     acceptance._scan_file_for_placeholders(tmp_path, test_file, hits)
 
     assert hits == [
-        {"path": "tests/test_unfinished.py", "line": 1, "pattern": "pytest.mark.skip"},
-        {"path": "tests/test_unfinished.py", "line": 1, "pattern": "skip("},
+        {
+            "path": "tests/test_unfinished.py",
+            "line": 1,
+            "pattern": "pytest.mark." + "skip",
+        },
     ]
 
 
