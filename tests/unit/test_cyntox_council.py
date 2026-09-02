@@ -90,7 +90,12 @@ def test_parse_score_reads_text_fallback() -> None:
     assert parsed is None
 
 
-def test_dry_run_benchmark_creates_distinct_runs(tmp_path: Path) -> None:
+def test_dry_run_benchmark_creates_distinct_runs(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    root = tmp_path / "repo"
+    root.mkdir()
+    out_dir = root / ".oslab" / "benchmark"
+    monkeypatch.setattr(cyntox_council, "project_root", lambda: root)
+
     code = cyntox_council.main(
         [
             "--benchmark",
@@ -98,18 +103,54 @@ def test_dry_run_benchmark_creates_distinct_runs(tmp_path: Path) -> None:
             "--preset",
             "fast",
             "--out-dir",
-            str(tmp_path),
+            str(out_dir),
         ]
     )
     assert code == 0
-    run_dirs = [path for path in tmp_path.iterdir() if path.is_dir()]
+    run_dirs = [path for path in out_dir.iterdir() if path.is_dir()]
     assert len(run_dirs) == len(cyntox_council.BENCHMARK_TASKS)
-    latest_report = json.loads((tmp_path / "latest-benchmark.json").read_text(encoding="utf-8"))
+    latest_report = json.loads((out_dir / "latest-benchmark.json").read_text(encoding="utf-8"))
     assert latest_report["task_count"] == len(cyntox_council.BENCHMARK_TASKS)
     assert latest_report["average_score"] is None
 
 
+def test_dry_run_council_does_not_mutate_skill_registry(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    root = tmp_path / "repo"
+    root.mkdir()
+    cyntox_council.create_repo_skill(
+        root,
+        "skills",
+        {
+            "create_skill": True,
+            "name": "dry-skill",
+            "description": "Dry-run validation skill.",
+            "instructions": "Only for dry-run validation.",
+        },
+    )
+    before = (root / "skills" / ".registry.json").read_text(encoding="utf-8")
+    monkeypatch.setattr(cyntox_council, "project_root", lambda: root)
+
+    code = cyntox_council.main(
+        [
+            "--dry-run",
+            "--no-memory",
+            "--use-skill",
+            "dry-skill",
+            "--out-dir",
+            str(root / ".oslab" / "runs"),
+            "validate dry run",
+        ]
+    )
+
+    after = (root / "skills" / ".registry.json").read_text(encoding="utf-8")
+    assert code == 0
+    assert before == after
+
+
 def test_scored_run_below_threshold_returns_nonzero(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    root = tmp_path / "repo"
+    root.mkdir()
+
     def fake_run_role(
         _root: Path,
         prompt: str,
@@ -138,6 +179,7 @@ def test_scored_run_below_threshold_returns_nonzero(tmp_path: Path, monkeypatch)
         return subprocess.CompletedProcess(["fake"], 0, "thin answer", "")
 
     monkeypatch.setattr(cyntox_council, "run_role", fake_run_role)
+    monkeypatch.setattr(cyntox_council, "project_root", lambda: root)
 
     code = cyntox_council.main(
         [
@@ -149,19 +191,21 @@ def test_scored_run_below_threshold_returns_nonzero(tmp_path: Path, monkeypatch)
             "--max-retries",
             "0",
             "--out-dir",
-            str(tmp_path),
+            str(root / ".oslab" / "runs"),
             "answer weakly",
         ]
     )
 
     assert code == 1
-    manifest_path = next(tmp_path.glob("*/manifest.json"))
+    manifest_path = next((root / ".oslab" / "runs").glob("*/manifest.json"))
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["latest_score"] == 8.5
     assert manifest["passed_threshold"] is False
 
 
 def test_council_final_terminal_output_is_bounded(tmp_path: Path, monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
+    root = tmp_path / "repo"
+    root.mkdir()
     long_answer = "A" * 200
 
     def fake_run_role(
@@ -192,6 +236,7 @@ def test_council_final_terminal_output_is_bounded(tmp_path: Path, monkeypatch, c
         return subprocess.CompletedProcess(["fake"], 0, long_answer, "")
 
     monkeypatch.setattr(cyntox_council, "run_role", fake_run_role)
+    monkeypatch.setattr(cyntox_council, "project_root", lambda: root)
 
     code = cyntox_council.main(
         [
@@ -201,7 +246,7 @@ def test_council_final_terminal_output_is_bounded(tmp_path: Path, monkeypatch, c
             "--terminal-output-limit",
             "24",
             "--out-dir",
-            str(tmp_path),
+            str(root / ".oslab" / "runs"),
             "answer at length",
         ]
     )
@@ -210,7 +255,7 @@ def test_council_final_terminal_output_is_bounded(tmp_path: Path, monkeypatch, c
     output = capsys.readouterr().out
     assert "terminal preview truncated 176 chars" in output
     assert long_answer not in output
-    synthesizer_output = next(tmp_path.glob("*/01-synthesizer.md"))
+    synthesizer_output = next((root / ".oslab" / "runs").glob("*/01-synthesizer.md"))
     assert synthesizer_output.read_text(encoding="utf-8").strip() == long_answer
 
 

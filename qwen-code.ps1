@@ -504,6 +504,9 @@ $hasAuthType = Test-QwenFlag -Arguments $QwenArgs -Names @('--auth-type')
 $hasModel = Test-QwenFlag -Arguments $QwenArgs -Names @('-m', '--model')
 $hasOpenAiApiKey = Test-QwenFlag -Arguments $QwenArgs -Names @('--openai-api-key')
 $hasOpenAiBaseUrl = Test-QwenFlag -Arguments $QwenArgs -Names @('--openai-base-url')
+$hasPrompt = Test-QwenFlag -Arguments $QwenArgs -Names @('-p', '--prompt')
+$hasInteractive = Test-QwenFlag -Arguments $QwenArgs -Names @('-i', '--interactive')
+$shouldResetTerminalModes = (-not $hasPrompt) -or $hasInteractive
 
 $mythosSystemPrompt = if (Test-Path -LiteralPath $mythosPromptPath) {
     (Get-Content -LiteralPath $mythosPromptPath -Raw).Trim()
@@ -568,13 +571,17 @@ if (-not $hasAppendSystemPrompt) {
 }
 $finalArgs += $QwenArgs
 
-Reset-TerminalInputModes
+if ($shouldResetTerminalModes) {
+    Reset-TerminalInputModes
+}
 Push-Location -LiteralPath $interactiveWorkspace
 try {
     & $nodePath $qwenCli @finalArgs
     $exitCode = $LASTEXITCODE
 } finally {
-    Reset-TerminalInputModes
+    if ($shouldResetTerminalModes) {
+        Reset-TerminalInputModes
+    }
     Pop-Location
 }
 

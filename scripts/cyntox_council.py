@@ -294,7 +294,7 @@ def load_registry(root: Path, skills_dir: str) -> dict[str, Any]:
 def save_registry(root: Path, skills_dir: str, registry: dict[str, Any]) -> Path:
     path = registry_path(root, skills_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(registry, indent=2, sort_keys=True), encoding="utf-8")
+    path.write_text(json.dumps(registry, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return path
 
 
@@ -1328,15 +1328,19 @@ def main(argv: list[str] | None = None) -> int:
     final_output = ""
     latest_score: float | None = None
     latest_scorecard: dict[str, object] | None = None
+    active_skill_names = [slugify_skill_name(name) for name in args.use_skill]
     try:
-        sync_skill_registry(root, args.skills_dir)
-        if args.use_skill:
-            mark_skills_used(
-                root, args.skills_dir, [slugify_skill_name(name) for name in args.use_skill]
-            )
+        sync_skill_registry(root, args.skills_dir, save=not args.dry_run)
+        if active_skill_names:
+            if args.dry_run:
+                existing_names = set(discover_skill_names(root, args.skills_dir))
+                missing = [name for name in active_skill_names if name not in existing_names]
+                if missing:
+                    raise ValueError(f"Unknown repo-local skill(s): {', '.join(missing)}")
+            else:
+                mark_skills_used(root, args.skills_dir, active_skill_names)
     except ValueError as error:
         parser.error(str(error))
-    active_skill_names = [slugify_skill_name(name) for name in args.use_skill]
     repo_skills = load_repo_skills(root, args.skills_dir, active_names=active_skill_names)
     created_skills: list[str] = []
     if args.use_memory:
