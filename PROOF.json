@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-02T17:32:00Z",
+  "generated_at": "2026-09-02T17:30:58Z",
   "goal_status": "blocked_on_gate_l",
   "source_commit_verified": "6151eb0",
   "source_commit_full": "6151eb06762c64e0f252eb276fa5404653f91be4",
@@ -101,8 +101,8 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
       "exit_code": 0,
-      "artifact_sha256": "b9c29c30afddddae75db78439c296d82e1c9b07f50445203bd7c826ae3244f2b",
-      "stdout_summary": "Seed audit artifact from the previous accepted proof; used only to break the non-recursive audit-artifact chain before saving the refreshed current audit artifact."
+      "artifact_sha256": "2431801869e63e960ea9e5bb149bffe33576e7ea28bdadd2577f0b5ce6f9bf77",
+      "stdout_summary": "Acceptance audit passed on the refreshed proof seed: gate summary, required docs/artifacts/support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, selftest proof artifacts, clean-checkout source commit, live Ollama/Qwen Code stdout, recorded audit artifact freshness, Gate L blocker, requirements trace, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
     }
   ],
   "gate_summary": {
