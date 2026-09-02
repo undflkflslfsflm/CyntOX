@@ -1012,7 +1012,7 @@ def selftest(
         [sys.executable, "-m", "pytest", "-q"],
         [sys.executable, "-m", "ruff", "format", "--check", "."],
         [sys.executable, "-m", "ruff", "check", "."],
-        [sys.executable, "-m", "mypy", "oslab"],
+        [sys.executable, "-m", "mypy", "oslab", "scripts"],
         [sys.executable, "-m", "oslab.cli", "target", "inspect", "--json"],
         [sys.executable, "-m", "oslab.cli", "target", "manifest-template", "--json"],
         [sys.executable, "-m", "oslab.cli", "target", "blocker-report", "--json"],

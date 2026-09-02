@@ -6,6 +6,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from oslab import acceptance
 from oslab.acceptance import (
     ACCEPTANCE_ARTIFACT_REQUIRED_CHECKS,
     EXPECTED_GATE_SUMMARY,
@@ -38,6 +39,32 @@ def _write(path: Path, content: str | bytes) -> None:
         path.write_bytes(content)
     else:
         path.write_text(content, encoding="utf-8", newline="\n")
+
+
+def test_placeholder_scan_allows_qemu_availability_skip(tmp_path: Path) -> None:
+    conftest = tmp_path / "tests" / "conftest.py"
+    _write(
+        conftest,
+        'skip = pytest.mark.skip(reason="QEMU e2e tests require reachable Docker daemon")\n',
+    )
+    hits: list[dict[str, object]] = []
+
+    acceptance._scan_file_for_placeholders(tmp_path, conftest, hits)
+
+    assert hits == []
+
+
+def test_placeholder_scan_rejects_unrelated_skip(tmp_path: Path) -> None:
+    test_file = tmp_path / "tests" / "test_unfinished.py"
+    _write(test_file, 'pytest.mark.skip(reason="not implemented yet")\n')
+    hits: list[dict[str, object]] = []
+
+    acceptance._scan_file_for_placeholders(tmp_path, test_file, hits)
+
+    assert hits == [
+        {"path": "tests/test_unfinished.py", "line": 1, "pattern": "pytest.mark.skip"},
+        {"path": "tests/test_unfinished.py", "line": 1, "pattern": "skip("},
+    ]
 
 
 def _write_artifact_index(root: Path) -> None:
@@ -530,7 +557,7 @@ def _write_selftest_proof_artifact(
         ["python", "-m", "pytest", "-q"],
         ["python", "-m", "ruff", "format", "--check", "."],
         ["python", "-m", "ruff", "check", "."],
-        ["python", "-m", "mypy", "oslab"],
+        ["python", "-m", "mypy", "oslab", "scripts"],
         ["python", "-m", "oslab.cli", "target", "inspect", "--json"],
         ["python", "-m", "oslab.cli", "target", "manifest-template", "--json"],
         ["python", "-m", "oslab.cli", "target", "blocker-report", "--json"],

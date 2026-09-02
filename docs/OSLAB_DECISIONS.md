@@ -261,3 +261,19 @@
 - Context: the audited lab Qwen profile intentionally exposes only two read-only MCP tools and caps sessions at six turns for smoke-proof determinism. That profile is too narrow for human interactive use: Qwen cannot reliably inspect text files such as `FINAL_REPORT.md`, and the six-turn cap stops normal conversation.
 - Decision: make `qwen-code.ps1` launch Qwen from an ignored `.oslab/qwen-code-workspace` with generated human-use settings derived from the known-good local Ollama provider. The human profile auto-selects the `cyntox` Ollama alias through the OpenAI-compatible loopback provider, removes the six-turn/tool/wall-clock caps, skips bulky startup context, exposes only essential text read/search/edit tools eagerly, keeps other tools discoverable, denies `display_image`, removes the lab MCP server prompt, and adds the real project root as an included directory.
 - Consequence: the one-line Qwen launcher opens directly on `cyntox` for normal interactive repo work without mutating `.qwen/settings.json`; the lab smoke path remains fail-closed and continues to prove the constrained two-MCP-tool boundary.
+
+## D-034 — Keep CyntOX terminal output bounded by default
+
+- Status: accepted
+- Date: 2026-09-02
+- Context: long reports, raw JSON, broad search output, and repeated logs can exhaust the visible chat/terminal context even when the underlying job succeeds. The user hit a response-truncation failure while inspecting broad output.
+- Decision: make CyntOX terminal JSON compact and parseable by default, keep full artifacts on disk, require `--json --full` or redirection for intentional full dumps, show head+tail previews for long model/job outputs, and have the Qwen shell hook block broad unbounded `rg`, raw OS-lab JSON, full CyntOX JSON, and unbounded `ConvertTo-Json` terminal dumps unless the command is bounded or redirected.
+- Consequence: normal daily use returns dense summaries and artifact paths instead of flooding context, while machine/export workflows still have an explicit path to full data.
+
+## D-035 — Include CyntOX scripts in OS-lab selftest coverage
+
+- Status: accepted
+- Date: 2026-09-02
+- Context: the CyntOX daily assistant layer lives in `scripts/`, but the OS-lab selftest previously ran strict typing only over `oslab/`. Acceptance also treated the intentional QEMU availability skip in `tests/conftest.py` as an unresolved placeholder.
+- Decision: change `oslab selftest` to run `mypy oslab scripts`, update the acceptance expected command list accordingly, and allow only the specific QEMU availability skip wording in `tests/conftest.py` while continuing to reject ordinary skipped or unfinished tests.
+- Consequence: future proof runs cover the daily assistant code as well as the lab core, and acceptance stays strict without failing on the deliberate external-Docker/QEMU gate.

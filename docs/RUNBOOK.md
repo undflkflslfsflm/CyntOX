@@ -12,7 +12,7 @@ One-line CyntOX launcher from the repo:
 
 CyntOX is launched with `cyntox.cmd` from the repository root.
 
-Detached jobs keep the terminal short by returning a job id. `jobs show <job-id>` prints a compact human summary; use `jobs show <job-id> --json` when you need full metadata. Foreground jobs still save the full result in `.oslab/cyntox/jobs/<job-id>/output.md`, but only print a 4,000-character preview; set `CYNTOX_FOREGROUND_OUTPUT_LIMIT=0` to suppress preview text or raise the number for a larger preview. `jobs sweep-stale` records bounded worker stdout/stderr tails into job evidence before marking dead workers failed, so crash recovery stays useful without flooding the terminal. Stress history auto-prunes generated timestamped reports to `--keep-history` by default; add `--no-prune-history` for one-off full retention.
+Detached jobs keep the terminal short by returning a job id. `jobs show <job-id>` prints a compact human summary; use `jobs show <job-id> --json` for compact parseable metadata or `jobs show <job-id> --json --full` when you intentionally need full metadata. Foreground jobs still save the full result in `.oslab/cyntox/jobs/<job-id>/output.md`, but only print a 4,000-character preview; set `CYNTOX_FOREGROUND_OUTPUT_LIMIT=0` to suppress preview text or raise the number for a larger preview. `jobs sweep-stale` records bounded worker stdout/stderr tails into job evidence before marking dead workers failed, so crash recovery stays useful without flooding the terminal. Stress history auto-prunes generated timestamped reports to `--keep-history` by default; add `--no-prune-history` for one-off full retention.
 
 CyntOX command shortcuts:
 
@@ -171,7 +171,7 @@ Device safety:
 .\.venv\Scripts\python.exe -m oslab.cli acceptance audit --save --json
 ```
 
-`selftest` runs `uv lock --check`, frozen/offline `pnpm install`, pytest, format check, lint, strict typing, target inspection, training export, cleanup dry-run, live Ollama smoke, Qwen Code MCP smoke, and artifact/database integrity. The QEMU and live tests require Docker Desktop/WSL2, Ollama, and the local Qwen model to be available.
+`selftest` runs `uv lock --check`, frozen/offline `pnpm install`, pytest, format check, lint, strict typing for both `oslab` and `scripts`, target inspection, training export, cleanup dry-run, live Ollama smoke, Qwen Code MCP smoke, and artifact/database integrity. The QEMU and live tests require Docker Desktop/WSL2, Ollama, and the local Qwen model to be available.
 `acceptance audit` checks the final proof files, gate summary, required artifact contents, key evidence CAS artifacts, artifact snapshot, referenced selftest proof blobs, clean-checkout source commit, live smoke stdout, recorded audit artifact, clean Git state, and proof-only post-verification changes. The recorded audit artifact must include the semantic-content, key-evidence, clean-checkout, and live-output checks, match the final gate summary and Gate L blocker, and decisive evidence blobs must exist with valid nested serial/stderr artifact references.
 
 ## Real OS Target

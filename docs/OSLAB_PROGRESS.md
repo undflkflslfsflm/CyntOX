@@ -2,12 +2,12 @@
 
 ## Current position
 
-- Active milestone: local fixture/framework proof complete; overall goal blocked at Gate L
+- Active milestone: local fixture/framework proof complete; CyntOX daily-use overlay hardened; final proof bundle must be refreshed from current HEAD before acceptance can be claimed again; overall goal still blocked at Gate L
 - Branch: `codex/qwen-os-lab`
 - Validated primary model: `huihui-qwen3.8-27b-abliterated:latest`, Qwen3.8 27.3B Q4_K_M through Ollama 0.33.2
 - Validated Qwen Code worker: 0.22.3 with wrapper model `qwen-os-lab-worker:latest`, two read-only MCP tools, and fail-closed tool-set checking
 - Real OS target: absent from the bounded discovery scope; fixture work continues independently
-- Next action: provide an authorized real OS source path and existing build entry point, then run `oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json`
+- Next action: refresh proof evidence from the latest local code state after hardening, and provide an authorized real OS source path plus existing build entry point to unlock Gate L with `oslab target inspect --repo <AUTHORIZED_OS_SOURCE_PATH> --json`
 
 ## Ledger
 
@@ -53,6 +53,8 @@
 | 2026-09-01 | Spec workflow aliases | Pass | Added and verified the exact top-level workflow spellings requested by the spec: `oslab eval --suite seeded --seeds 1,2,3 --base-commit HEAD --json` and `oslab campaign --target fixture --budget 10m --seed 7 --iterations 6 --base-commit HEAD --json`. Unit tests prove both aliases route to the existing evaluation/campaign payloads without dropping the original subcommands. |
 | 2026-09-01 | One-line launcher | Pass | Added `oslab.ps1` and `oslab.cmd` at the repository root. Verified `.\oslab.ps1 --help`, `.\oslab.cmd --help`, and the quoted from-anywhere PowerShell form against a path containing spaces and parentheses; acceptance now treats both launchers as required support files. |
 | 2026-09-01 | Interactive Qwen Code launcher | Pass | Added `qwen-code.ps1` and `qwen-code.cmd` at the repository root. Verified `.\qwen-code.ps1 --version`, `.\qwen-code.cmd --version`, `.\qwen-code.ps1 --help -i "hello"`, and the quoted from-anywhere PowerShell form. The launcher now starts Qwen from an ignored `.oslab` interactive workspace, auto-selects `cyntox`, leaves `.qwen/settings.json` untouched, removes the six-turn cap, avoids bulky startup context, removes the lab MCP prompt, denies `display_image`, and successfully reads `README.md` as text from outside the repo. |
+| 2026-09-02 | CyntOX terminal-output hardening | Pass | Fixed the response-truncation class by capping foreground/council previews, adding shared compact JSON output for CyntOX CLI/privacy/memory commands, keeping `--json --full` as the explicit full-dump mode, showing head+tail previews for long outputs, and extending the Qwen shell hook to block broad unbounded `rg`, raw OS-lab JSON, full CyntOX JSON, and unbounded `ConvertTo-Json` terminal dumps unless redirected or bounded. Verified `ruff format --check`, `ruff check`, `mypy oslab scripts`, focused output/privacy/memory/hook tests, full pytest, live compact privacy/memory JSON probes, `qwen-code.ps1 --version`, generated Qwen settings, and repeated `cyntox stress --fix --rerun-failures 1`. |
+| 2026-09-02 | Selftest and acceptance-hardening follow-up | Pass | OS-lab `selftest` now type-checks `scripts` alongside `oslab`, so the CyntOX daily assistant layer is covered by proof runs. Acceptance placeholder scanning now allows only the deliberate QEMU availability skip in `tests/conftest.py` while still rejecting ordinary skipped/unfinished tests. `oslab acceptance audit --save --json` was run into `.oslab/cyntox/reports/acceptance-audit-current.json` and correctly exposed stale proof/index metadata after post-proof CyntOX commits; this is not a local quality failure, but final acceptance must not be claimed until proof artifacts are regenerated from current HEAD. |
 
 ## Remaining acceptance work
 
