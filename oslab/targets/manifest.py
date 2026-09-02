@@ -472,7 +472,7 @@ def _inspect_source_git(
             [
                 {
                     "field": "source.root",
-                    "reason": "source root must be inside a Git repository",
+                    "reason": "source root must be a Git repository root",
                     "stderr": top.stderr.strip(),
                 }
             ],

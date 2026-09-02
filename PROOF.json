@@ -95,10 +95,10 @@
     },
     {
       "scope": "main checkout",
-      "command": ".\\qwen-code.ps1 --max-wall-time 2m -p \"Reply exactly: QWENTHOS_OK\"",
+      "command": ".\\qwen-code.ps1 --max-wall-time 2m -p \"Reply exactly: CYNTOX_OK\"",
       "exit_code": 0,
-      "stdout": "QWENTHOS_OK",
-      "stdout_summary": "Human-use launcher forced the OpenAI-compatible loopback provider and selected the local qwenthos Ollama alias without opening the provider picker."
+      "stdout": "CYNTOX_OK",
+      "stdout_summary": "Human-use launcher forced the OpenAI-compatible loopback provider and selected the local cyntox Ollama alias without opening the provider picker."
     },
     {
       "scope": "main checkout",

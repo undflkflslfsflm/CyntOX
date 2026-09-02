@@ -1,5 +1,5 @@
 {
-  "name": "qwen-os-lab-local-tools",
+  "name": "cyntox",
   "private": true,
   "packageManager": "pnpm@10.15.1",
   "devDependencies": {
