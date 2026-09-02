@@ -1,8 +1,8 @@
 # Final Report
 
-Generated: 2026-09-01
+Generated: 2026-09-02
 
-Overall status: blocked only on Gate L. The local framework, fixture proof, model integration, Qwen Code constrained MCP integration, fuzzing, evaluation, training export, docs, scripts, and clean-checkout verification are complete. The real OS target gate cannot pass until the authorized OS source path and build entry point are supplied.
+Overall status: blocked only on Gate L. The local framework, fixture proof, model integration, Qwen Code constrained MCP integration, CyntOX daily assistant hardening, fuzzing, evaluation, training export, docs, scripts, and clean-checkout verification are complete. The real OS target gate cannot pass until the authorized OS source path and build entry point are supplied.
 
 ## Confirmed Working
 
@@ -19,9 +19,10 @@ Overall status: blocked only on Gate L. The local framework, fixture proof, mode
 - Evaluation matrix A-E ran for seeds 1,2,3 with raw JSON/CSV and report output.
 - Training dry-run exported and reloaded 16 verified JSONL/Parquet trajectory records; repeated dry-runs are byte-stable and do not dirty clean checkouts.
 - One-line launchers `oslab.ps1`/`oslab.cmd` and `qwen-code.ps1`/`qwen-code.cmd` work from paths containing spaces/parentheses. The lab launchers forward to the project-local `oslab` CLI; the Qwen Code launchers start the project-local Qwen Code 0.22.3 CLI through bundled Node when system Node is unavailable. Human Qwen launches now auto-select the local `cyntox` Ollama alias through the OpenAI-compatible loopback provider, use an ignored `.oslab` interactive workspace, keep context lean, enable text-file inspection, remove the lab MCP prompt, deny `display_image` for text, and leave the audited lab `.qwen/settings.json` untouched.
-- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `bfcf1d2`, including `uv lock --check`, frozen/offline `pnpm install`, `oslab target blocker-report --json`, `oslab acceptance trace --json`, `73 passed`, and `ruff format --check .`.
+- CyntOX daily-use commands keep terminal output bounded by default: foreground/council previews are capped, CyntOX JSON is compact and whole-response capped, full dumps require explicit `--json --full`/redirection, and the Qwen shell hook blocks broad terminal-flood commands before execution.
+- `oslab selftest --live --json` passed in both the main checkout and a clean checkout at `6151eb0`, including `uv lock --check`, frozen/offline `pnpm install`, `mypy oslab scripts`, `oslab target blocker-report --json`, `oslab acceptance trace --json`, `oslab acceptance artifact-index --json`, `210 passed`, 3 expected QEMU-gated skips, and `ruff format --check .`.
 - The CLI accepts both subcommand-style and spec-style campaign/evaluation workflows, including `oslab campaign --target fixture --budget 10m --seed 7 --iterations 6 --base-commit HEAD --json` and `oslab eval --suite seeded --seeds 1,2,3 --base-commit HEAD --json`.
-- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, real selftest proof artifacts, clean-checkout source commit, live Ollama/Qwen Code stdout, the current requirements trace, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. The recorded audit-artifact check rejects stale or inconsistent audit blobs, and the key-evidence check rejects missing/corrupt/semantically invalid decisive artifacts. Saved audit artifact: `b9c29c30afddddae75db78439c296d82e1c9b07f50445203bd7c826ae3244f2b`.
+- `oslab acceptance audit --save --json` provides a machine-checkable acceptance proof over the gate summary, required docs/artifacts, required support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, real selftest proof artifacts, clean-checkout source commit, live Ollama/Qwen Code stdout, the current requirements trace, the recorded acceptance-audit artifact, Gate L blocker, proof-only post-verification changes, clean Git status, and unresolved placeholders. The recorded audit-artifact check rejects stale or inconsistent audit blobs, and the key-evidence check rejects missing/corrupt/semantically invalid decisive artifacts. Saved audit artifact is refreshed after the proof-only seed commit.
 - Real target onboarding now has a typed `oslab-target.toml` schema, a tracked example manifest, a `target manifest-template` command, a `target validate-manifest` command, manifest-backed real-target build execution, and manifest-backed QEMU serial smoke boot/test execution. The validator rejects path traversal, source-root escapes, missing smoke tests, serial PASS smoke tests without success patterns, non-isolated QEMU networking, QEMU network devices, branch-like or unresolved base commits, inherited parent Git repositories, and shell-eval command wrappers before any real target build is attempted. Manifest-backed builds run from detached disposable Git worktrees at `source.base_commit`, pass only the declared environment allowlist, and hash declared build artifacts. Manifest-backed smoke runs boot the disposable-worktree artifacts through Docker-backed QEMU with `-nic none`, loopback QMP, declared serial readiness/success pattern checks, and serial/stderr artifact capture.
 
 ## Tested but Limited
@@ -56,11 +57,11 @@ What was attempted: bounded target discovery, main and clean live selftests, cur
 
 ## Final Verification
 
-- Main checkout selftest at `bfcf1d26045e4eca48de566ccd7b0aca38b859b9`: PASS, proof artifact `947f56f30971854e00e0e581f903c83060023d133106f6786750ee9678d4e630`; checkout remained clean afterward.
-- Main checkout safe subset: PASS, `68 passed, 5 deselected`.
-- Clean checkout bootstrap at `bfcf1d26045e4eca48de566ccd7b0aca38b859b9`: PASS
-- Clean checkout selftest: PASS, proof artifact `c3dc0486ff5619f4fa01c0d73ac9a48a1fc0510453e76a1d1c1d263d2815c8f7`; checkout remained clean afterward.
-- Acceptance audit: PASS, artifact `b9c29c30afddddae75db78439c296d82e1c9b07f50445203bd7c826ae3244f2b`.
+- Main checkout selftest at `6151eb06762c64e0f252eb276fa5404653f91be4`: PASS, proof artifact `9c531f81130566e71c8774e9454f9a01fd7bd5d834a531e00dab70c2ce8bfb0a`; checkout remained clean afterward.
+- Main checkout safe subset: PASS, `208 passed, 5 deselected, 2 warnings`.
+- Clean checkout bootstrap at `6151eb06762c64e0f252eb276fa5404653f91be4`: PASS
+- Clean checkout selftest: PASS, proof artifact `7fba749b8a0f891acb98952066a9cbf2ba5dd6dbf3defcfbc0f588a7851e2ae9`; checkout remained clean afterward.
+- Acceptance audit: pending refreshed artifact after proof-only seed commit.
 - Artifact index: `artifacts/ARTIFACT_INDEX.snapshot.json`
 - Requirements trace: `artifacts/reports/requirements-trace.json`
 - Machine proof: `PROOF.json`

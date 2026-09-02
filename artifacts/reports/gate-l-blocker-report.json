@@ -17,13 +17,13 @@
     "The framework side of Gate L was implemented and tested: manifest validation, disposable commit-pinned build worktrees, real-target build, real-target boot, real-target test, QEMU -nic none, loopback QMP, and serial readiness/success pattern matching."
   ],
   "concrete_evidence": {
-    "source_commit_verified": "bfcf1d2",
-    "source_commit_full": "bfcf1d26045e4eca48de566ccd7b0aca38b859b9",
-    "main_selftest_proof_sha256": "947f56f30971854e00e0e581f903c83060023d133106f6786750ee9678d4e630",
-    "clean_selftest_proof_sha256": "c3dc0486ff5619f4fa01c0d73ac9a48a1fc0510453e76a1d1c1d263d2815c8f7",
-    "main_pytest_summary": "73 passed, 2 warnings in 79.62s (0:01:19)",
-    "clean_pytest_summary": "73 passed, 2 warnings in 78.09s (0:01:18)",
-    "safe_subset_summary": "68 passed, 5 deselected",
+    "source_commit_verified": "6151eb0",
+    "source_commit_full": "6151eb06762c64e0f252eb276fa5404653f91be4",
+    "main_selftest_proof_sha256": "9c531f81130566e71c8774e9454f9a01fd7bd5d834a531e00dab70c2ce8bfb0a",
+    "clean_selftest_proof_sha256": "7fba749b8a0f891acb98952066a9cbf2ba5dd6dbf3defcfbc0f588a7851e2ae9",
+    "main_pytest_summary": "210 passed, 3 skipped, 2 warnings in 45.04s",
+    "clean_pytest_summary": "210 passed, 3 skipped, 2 warnings in 46.16s",
+    "safe_subset_summary": "",
     "target_inspect": {
       "fixture_status": "ready",
       "gate_l": "blocked_missing_external_input",

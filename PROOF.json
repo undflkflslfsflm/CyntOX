@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-09-01T03:07:43Z",
+  "generated_at": "2026-09-02T17:32:00Z",
   "goal_status": "blocked_on_gate_l",
-  "source_commit_verified": "bfcf1d2",
-  "source_commit_full": "bfcf1d26045e4eca48de566ccd7b0aca38b859b9",
+  "source_commit_verified": "6151eb0",
+  "source_commit_full": "6151eb06762c64e0f252eb276fa5404653f91be4",
   "branch": "codex/qwen-os-lab",
   "blocked_gate": {
     "gate": "L",
@@ -15,34 +15,25 @@
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m ruff format --check .",
       "exit_code": 0,
-      "stdout": "69 files already formatted"
+      "stdout": "86 files already formatted"
     },
     {
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m ruff check .",
-      "exit_code": 0
+      "exit_code": 0,
+      "stdout": "All checks passed!"
     },
     {
       "scope": "main checkout",
-      "command": ".venv\\Scripts\\python.exe -m mypy oslab",
+      "command": ".venv\\Scripts\\python.exe -m mypy oslab scripts",
       "exit_code": 0,
-      "stdout": "Success: no issues found in 45 source files"
+      "stdout": "Success: no issues found in 53 source files"
     },
     {
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m pytest -m \"not live and not qemu\" -q",
       "exit_code": 0,
-      "stdout": "68 passed, 5 deselected"
-    },
-    {
-      "scope": "main checkout",
-      "command": ".venv\\Scripts\\uv.exe lock --check",
-      "exit_code": 0
-    },
-    {
-      "scope": "main checkout",
-      "command": "pnpm install --frozen-lockfile --offline",
-      "exit_code": 0
+      "stdout_summary": "208 passed, 5 deselected, 2 warnings in 27.32s."
     },
     {
       "scope": "main checkout",
@@ -60,7 +51,7 @@
       "scope": "external working directory",
       "command": "& \"C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\oslab.ps1\" target inspect --json",
       "exit_code": 0,
-      "stdout_summary": "Quoted one-line launcher resolved the project root from another directory and returned fixture ready with Gate L blocked on missing real OS input."
+      "stdout_summary": "Quoted one-line launcher resolved the project root from D:\\Apps and returned fixture ready with Gate L blocked on missing real OS input."
     },
     {
       "scope": "main checkout",
@@ -76,56 +67,42 @@
     },
     {
       "scope": "main checkout",
-      "command": ".\\qwen-code.ps1 --help -i \"hello\"",
+      "command": ".\\cyntox.cmd doctor --json",
       "exit_code": 0,
-      "stdout_summary": "Qwen Code help printed successfully and the -i flag passed through to Qwen Code rather than being consumed by PowerShell."
-    },
-    {
-      "scope": "external working directory",
-      "command": "& \"C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\qwen-code.ps1\" --version",
-      "exit_code": 0,
-      "stdout": "0.22.3"
-    },
-    {
-      "scope": "external working directory",
-      "command": "& \"C:\\Users\\vikto\\Documents\\ChatGPT\\bob (qwen remodeled to act as mythos)\\qwen-code.ps1\" --max-wall-time 2m -p \"Read README.md in the primary project root and answer only with its first Markdown heading.\"",
-      "exit_code": 0,
-      "stdout": "# Qwen OS Lab",
-      "stdout_summary": "Human-use launcher started from outside the repository, used the ignored .oslab interactive workspace, left .qwen/settings.json untouched, and read README.md as text instead of invoking display_image."
+      "stdout_summary": "Compact JSON returned successfully with output_limit=12000; status WARN only for Docker/QEMU daemon unavailable and no git remote."
     },
     {
       "scope": "main checkout",
-      "command": ".\\qwen-code.ps1 --max-wall-time 2m -p \"Reply exactly: CYNTOX_OK\"",
+      "command": ".\\cyntox.cmd stress --fix --rerun-failures 1",
       "exit_code": 0,
-      "stdout": "CYNTOX_OK",
-      "stdout_summary": "Human-use launcher forced the OpenAI-compatible loopback provider and selected the local cyntox Ollama alias without opening the provider picker."
+      "stdout_summary": "CyntOX stress completed with local format/lint/type/full-test/process-leak checks OK; status WARN only because Docker/QEMU and git remote remain external blockers."
     },
     {
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "947f56f30971854e00e0e581f903c83060023d133106f6786750ee9678d4e630",
-      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 73 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; target blocker-report passed; requirements trace generation passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the main checkout clean."
+      "proof_sha256": "9c531f81130566e71c8774e9454f9a01fd7bd5d834a531e00dab70c2ce8bfb0a",
+      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 210 passed, 3 QEMU-gated skips, 2 warnings; Ruff format and lint passed; mypy oslab scripts passed; target inspect, manifest-template, blocker-report, requirements trace, artifact-index, training dry-run, cleanup dry-run, live Ollama, Qwen Code MCP smoke, and integrity checks passed."
     },
     {
       "scope": "clean checkout",
       "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
       "exit_code": 0,
-      "worktree": ".oslab\\clean-checkouts\\bfcf1d2"
+      "worktree": ".oslab\\clean-checkouts\\6151eb0"
     },
     {
       "scope": "clean checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
       "exit_code": 0,
-      "proof_sha256": "c3dc0486ff5619f4fa01c0d73ac9a48a1fc0510453e76a1d1c1d263d2815c8f7",
-      "stdout_summary": "uv lock check passed; frozen offline pnpm install passed; 73 passed; Ruff format check passed; Ruff lint passed; mypy passed; target inspect passed; target manifest-template passed; target blocker-report passed; requirements trace generation passed; training dry-run passed; cleanup dry-run passed; live Ollama passed; Qwen Code MCP smoke passed; integrity passed. Repeated verification left the clean checkout clean."
+      "proof_sha256": "7fba749b8a0f891acb98952066a9cbf2ba5dd6dbf3defcfbc0f588a7851e2ae9",
+      "stdout_summary": "Clean checkout at source commit 6151eb0 bootstrapped successfully; selftest passed the same 16-command live proof path including mypy oslab scripts and acceptance artifact-index generation."
     },
     {
       "scope": "main checkout",
       "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
       "exit_code": 0,
       "artifact_sha256": "b9c29c30afddddae75db78439c296d82e1c9b07f50445203bd7c826ae3244f2b",
-      "stdout_summary": "Acceptance audit passed: gate summary, required docs/artifacts/support files, semantic required-artifact contents, key evidence CAS artifacts, artifact-index hashes, selftest proof artifacts, live Ollama/Qwen Code stdout, recorded audit artifact freshness, Gate L blocker, requirements trace, proof-only post-verification changes, clean Git status, and unresolved-placeholder checks."
+      "stdout_summary": "Seed audit artifact from the previous accepted proof; used only to break the non-recursive audit-artifact chain before saving the refreshed current audit artifact."
     }
   ],
   "gate_summary": {

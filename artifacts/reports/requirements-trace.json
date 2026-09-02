@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-09-01T03:07:43Z",
+  "generated_at": "2026-09-02T17:32:00Z",
   "goal_status": "blocked_on_gate_l",
-  "source_commit_full": "bfcf1d26045e4eca48de566ccd7b0aca38b859b9",
-  "main_selftest_proof_sha256": "947f56f30971854e00e0e581f903c83060023d133106f6786750ee9678d4e630",
-  "clean_selftest_proof_sha256": "c3dc0486ff5619f4fa01c0d73ac9a48a1fc0510453e76a1d1c1d263d2815c8f7",
+  "source_commit_full": "6151eb06762c64e0f252eb276fa5404653f91be4",
+  "main_selftest_proof_sha256": "9c531f81130566e71c8774e9454f9a01fd7bd5d834a531e00dab70c2ce8bfb0a",
+  "clean_selftest_proof_sha256": "7fba749b8a0f891acb98952066a9cbf2ba5dd6dbf3defcfbc0f588a7851e2ae9",
   "trace": [
     {
       "gate": "A",
