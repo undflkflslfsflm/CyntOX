@@ -267,7 +267,7 @@
 - Status: accepted
 - Date: 2026-09-02
 - Context: long reports, raw JSON, broad search output, and repeated logs can exhaust the visible chat/terminal context even when the underlying job succeeds. The user hit a response-truncation failure while inspecting broad output.
-- Decision: make CyntOX terminal JSON compact and parseable by default, keep full artifacts on disk, require `--json --full` or redirection for intentional full dumps, show head+tail previews for long model/job outputs, and have the Qwen shell hook block broad unbounded `rg`, raw OS-lab JSON, full CyntOX JSON, and unbounded `ConvertTo-Json` terminal dumps unless the command is bounded or redirected.
+- Decision: make CyntOX terminal JSON compact, parseable, and whole-response capped by default, keep full artifacts on disk, require `--json --full` or redirection for intentional full dumps, show head+tail previews for long model/job outputs, and have the Qwen shell hook block broad unbounded `rg`, raw OS-lab JSON, full CyntOX JSON, and unbounded `ConvertTo-Json` terminal dumps unless the command is bounded or redirected.
 - Consequence: normal daily use returns dense summaries and artifact paths instead of flooding context, while machine/export workflows still have an explicit path to full data.
 
 ## D-035 — Include CyntOX scripts in OS-lab selftest coverage
@@ -277,3 +277,11 @@
 - Context: the CyntOX daily assistant layer lives in `scripts/`, but the OS-lab selftest previously ran strict typing only over `oslab/`. Acceptance also treated the intentional QEMU availability skip in `tests/conftest.py` as an unresolved placeholder.
 - Decision: change `oslab selftest` to run `mypy oslab scripts`, update the acceptance expected command list accordingly, and allow only the specific QEMU availability skip wording in `tests/conftest.py` while continuing to reject ordinary skipped or unfinished tests.
 - Consequence: future proof runs cover the daily assistant code as well as the lab core, and acceptance stays strict without failing on the deliberate external-Docker/QEMU gate.
+
+## D-036 — Make the artifact index regenerable
+
+- Status: accepted
+- Date: 2026-09-02
+- Context: the final artifact index is a machine-checkable hash snapshot, but manual regeneration is easy to get wrong after post-proof commits.
+- Decision: add `oslab acceptance artifact-index --json`/`--write`, derive the snapshot from the required docs/artifacts/support files, and include the read-only generator in `oslab selftest --live --json`.
+- Consequence: proof refreshes have a repeatable command for artifact-index metadata, and selftest evidence proves the generator remains runnable before final acceptance is claimed.

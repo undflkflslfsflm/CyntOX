@@ -112,6 +112,40 @@ def test_terminal_json_compacts_long_strings_and_lists() -> None:
     assert parsed["items"][-1] == {"_truncated_items": 15}
 
 
+def test_terminal_json_enforces_whole_response_limit() -> None:
+    payload = {
+        "rows": [
+            {
+                "name": f"row-{index}",
+                "blob": "A" * 5_000,
+                "values": list(range(200)),
+            }
+            for index in range(300)
+        ]
+    }
+
+    rendered = cyntox_output.terminal_json(payload)
+    parsed = json.loads(rendered)
+
+    assert len(rendered) <= cyntox_output.TERMINAL_JSON_OUTPUT_LIMIT
+    assert parsed["_cyntox_terminal"]["output_truncated"] is True
+    assert parsed["_cyntox_terminal"]["first_pass_chars"] > len(rendered)
+
+
+def test_terminal_json_preserves_top_level_data_key_when_strictly_compacted() -> None:
+    payload = {
+        "data": [{"blob": "A" * 5_000} for _ in range(30)],
+        "other": "keep-me",
+    }
+
+    rendered = cyntox_output.terminal_json(payload, output_limit=6_000)
+    parsed = json.loads(rendered)
+
+    assert len(rendered) <= 6_000
+    assert parsed["other"] == "keep-me"
+    assert parsed["_cyntox_terminal"]["output_truncated"] is True
+
+
 def test_doctor_report_is_ok_with_daily_output_limits(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     root = tmp_path / "repo"
     root.mkdir()

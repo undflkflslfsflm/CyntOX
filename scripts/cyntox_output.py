@@ -8,6 +8,12 @@ TERMINAL_JSON_STRING_LIMIT = 1_200
 TERMINAL_JSON_LIST_LIMIT = 25
 TERMINAL_JSON_DICT_LIMIT = 80
 TERMINAL_JSON_DEPTH_LIMIT = 6
+TERMINAL_JSON_OUTPUT_LIMIT = 12_000
+TERMINAL_JSON_STRICT_STRING_LIMIT = 400
+TERMINAL_JSON_STRICT_LIST_LIMIT = 10
+TERMINAL_JSON_STRICT_DICT_LIMIT = 40
+TERMINAL_JSON_STRICT_DEPTH_LIMIT = 4
+TERMINAL_JSON_FALLBACK_PREVIEW_LIMIT = 2_000
 
 
 def middle_truncated_text(text: str, limit: int) -> str:
@@ -88,24 +94,142 @@ def compact_terminal_json_value(
     return str(value)
 
 
-def terminal_json(
-    payload: Any, *, full: bool = False, full_artifact: Path | str | None = None
-) -> str:
-    if full:
-        return json.dumps(payload, indent=2)
-    changed = [False]
-    compacted = compact_terminal_json_value(payload, changed=changed)
+def _terminal_metadata(
+    *,
+    compacted: bool,
+    string_limit: int,
+    list_limit: int,
+    dict_limit: int,
+    depth_limit: int,
+    output_limit: int,
+    full_artifact: Path | str | None,
+) -> dict[str, Any]:
     metadata: dict[str, Any] = {
-        "compacted": changed[0],
-        "string_limit": TERMINAL_JSON_STRING_LIMIT,
-        "list_limit": TERMINAL_JSON_LIST_LIMIT,
-        "dict_limit": TERMINAL_JSON_DICT_LIMIT,
-        "depth_limit": TERMINAL_JSON_DEPTH_LIMIT,
+        "compacted": compacted,
+        "string_limit": string_limit,
+        "list_limit": list_limit,
+        "dict_limit": dict_limit,
+        "depth_limit": depth_limit,
+        "output_limit": output_limit,
     }
     if full_artifact is not None:
         metadata["full_artifact"] = str(full_artifact)
+    return metadata
+
+
+def _attach_terminal_metadata(compacted: Any, metadata: dict[str, Any]) -> dict[str, Any]:
     if isinstance(compacted, dict):
-        compacted = {**compacted, "_cyntox_terminal": metadata}
-    else:
-        compacted = {"data": compacted, "_cyntox_terminal": metadata}
-    return json.dumps(compacted, indent=2)
+        return {**compacted, "_cyntox_terminal": metadata}
+    return {"data": compacted, "_cyntox_terminal": metadata}
+
+
+def _bounded_fallback(
+    rendered: str,
+    *,
+    strict_rendered: str,
+    output_limit: int,
+    metadata: dict[str, Any],
+) -> str:
+    fallback_metadata = {
+        **metadata,
+        "compacted": True,
+        "output_truncated": True,
+        "first_pass_chars": len(rendered),
+        "strict_pass_chars": len(strict_rendered),
+    }
+    message = (
+        "CyntOX terminal JSON exceeded the safe output limit. "
+        "Use --json --full redirected to a file when you intentionally need every field."
+    )
+    preview_limit = min(TERMINAL_JSON_FALLBACK_PREVIEW_LIMIT, max(0, output_limit // 3))
+    payload: dict[str, Any] = {
+        "summary": message,
+        "preview": middle_truncated_text(rendered, preview_limit),
+        "_cyntox_terminal": fallback_metadata,
+    }
+    fallback = json.dumps(payload, indent=2)
+    if output_limit > 0 and len(fallback) > output_limit:
+        payload.pop("preview", None)
+        fallback = json.dumps(payload, indent=2)
+    return fallback
+
+
+def _render_terminal_json(
+    payload: Any,
+    *,
+    string_limit: int,
+    list_limit: int,
+    dict_limit: int,
+    depth_limit: int,
+    output_limit: int,
+    full_artifact: Path | str | None,
+) -> tuple[str, dict[str, Any], Any]:
+    changed = [False]
+    compacted = compact_terminal_json_value(
+        payload,
+        changed=changed,
+        string_limit=string_limit,
+        list_limit=list_limit,
+        dict_limit=dict_limit,
+        depth_limit=depth_limit,
+    )
+    metadata = _terminal_metadata(
+        compacted=changed[0],
+        string_limit=string_limit,
+        list_limit=list_limit,
+        dict_limit=dict_limit,
+        depth_limit=depth_limit,
+        output_limit=output_limit,
+        full_artifact=full_artifact,
+    )
+    return json.dumps(_attach_terminal_metadata(compacted, metadata), indent=2), metadata, compacted
+
+
+def terminal_json(
+    payload: Any,
+    *,
+    full: bool = False,
+    full_artifact: Path | str | None = None,
+    output_limit: int = TERMINAL_JSON_OUTPUT_LIMIT,
+) -> str:
+    if full:
+        return json.dumps(payload, indent=2)
+    rendered, metadata, _compacted = _render_terminal_json(
+        payload,
+        string_limit=TERMINAL_JSON_STRING_LIMIT,
+        list_limit=TERMINAL_JSON_LIST_LIMIT,
+        dict_limit=TERMINAL_JSON_DICT_LIMIT,
+        depth_limit=TERMINAL_JSON_DEPTH_LIMIT,
+        output_limit=output_limit,
+        full_artifact=full_artifact,
+    )
+    if output_limit <= 0 or len(rendered) <= output_limit:
+        return rendered
+
+    strict_rendered, strict_metadata, strict_compacted = _render_terminal_json(
+        payload,
+        string_limit=TERMINAL_JSON_STRICT_STRING_LIMIT,
+        list_limit=TERMINAL_JSON_STRICT_LIST_LIMIT,
+        dict_limit=TERMINAL_JSON_STRICT_DICT_LIMIT,
+        depth_limit=TERMINAL_JSON_STRICT_DEPTH_LIMIT,
+        output_limit=output_limit,
+        full_artifact=full_artifact,
+    )
+    strict_metadata = {
+        **strict_metadata,
+        "output_truncated": True,
+        "first_pass_chars": len(rendered),
+    }
+    strict_rendered = json.dumps(
+        _attach_terminal_metadata(strict_compacted, strict_metadata),
+        indent=2,
+    )
+    if len(strict_rendered) <= output_limit:
+        return strict_rendered
+
+    return _bounded_fallback(
+        rendered,
+        strict_rendered=strict_rendered,
+        output_limit=output_limit,
+        metadata=metadata,
+    )

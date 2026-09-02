@@ -17,8 +17,10 @@ from oslab.acceptance import (
     GATE_L_BLOCKER_REPORT_PATH,
     REQUIREMENTS_TRACE_PATH,
     audit_acceptance,
+    build_artifact_index_snapshot,
     build_gate_l_blocker_report,
     build_requirements_trace,
+    write_artifact_index_snapshot,
 )
 from oslab.artifacts import ArtifactStore
 from oslab.campaign import prove_recovery
@@ -761,6 +763,22 @@ def acceptance_trace(
     _emit(result, json_output)
 
 
+@acceptance_app.command("artifact-index")
+def acceptance_artifact_index(
+    write: Annotated[
+        bool,
+        typer.Option("--write/--no-write", help="Write the artifact index snapshot"),
+    ] = False,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    config = load_config()
+    result = build_artifact_index_snapshot(config.project_root)
+    if write:
+        path = write_artifact_index_snapshot(config.project_root)
+        result = {**result, "saved": str(path)}
+    _emit(result, json_output)
+
+
 @acceptance_app.command("audit")
 def acceptance_audit(
     save: Annotated[
@@ -1017,6 +1035,7 @@ def selftest(
         [sys.executable, "-m", "oslab.cli", "target", "manifest-template", "--json"],
         [sys.executable, "-m", "oslab.cli", "target", "blocker-report", "--json"],
         [sys.executable, "-m", "oslab.cli", "acceptance", "trace", "--json"],
+        [sys.executable, "-m", "oslab.cli", "acceptance", "artifact-index", "--json"],
         [sys.executable, "-m", "oslab.cli", "training", "dry-run", "--json"],
         [sys.executable, "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
     ]

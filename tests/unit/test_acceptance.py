@@ -12,7 +12,6 @@ from oslab.acceptance import (
     EXPECTED_GATE_SUMMARY,
     EXPECTED_QWEN_CODE_TOOLS,
     GATE_L_BLOCKER_REPORT_PATH,
-    REQUIRED_ARTIFACTS,
     REQUIRED_DOCS,
     REQUIRED_KEY_EVIDENCE_ARTIFACTS,
     REQUIRED_SUPPORT_FILES,
@@ -20,6 +19,7 @@ from oslab.acceptance import (
     audit_acceptance,
     build_gate_l_blocker_report,
     build_requirements_trace,
+    write_artifact_index_snapshot,
 )
 from oslab.artifacts import ArtifactStore
 
@@ -73,22 +73,7 @@ def test_placeholder_scan_rejects_unrelated_skip(tmp_path: Path) -> None:
 
 
 def _write_artifact_index(root: Path) -> None:
-    entries = []
-    for relative in (*REQUIRED_DOCS, *REQUIRED_ARTIFACTS, *REQUIRED_SUPPORT_FILES):
-        path = root / relative
-        if relative == "artifacts/ARTIFACT_INDEX.snapshot.json":
-            continue
-        data = path.read_bytes()
-        entries.append(
-            {
-                "bytes": len(data),
-                "path": relative,
-                "sha256": hashlib.sha256(data).hexdigest(),
-            }
-        )
-    payload = {"generated_at": "2026-08-31T00:00:00Z", "entries": entries}
-    index = root / "artifacts" / "ARTIFACT_INDEX.snapshot.json"
-    _write(index, json.dumps(payload, indent=2) + "\n")
+    write_artifact_index_snapshot(root)
 
 
 def _sha(label: str) -> str:
@@ -567,6 +552,7 @@ def _write_selftest_proof_artifact(
         ["python", "-m", "oslab.cli", "target", "manifest-template", "--json"],
         ["python", "-m", "oslab.cli", "target", "blocker-report", "--json"],
         ["python", "-m", "oslab.cli", "acceptance", "trace", "--json"],
+        ["python", "-m", "oslab.cli", "acceptance", "artifact-index", "--json"],
         ["python", "-m", "oslab.cli", "training", "dry-run", "--json"],
         ["python", "-m", "oslab.cli", "cleanup", "--dry-run", "--json"],
         ["python", "-m", "oslab.cli", "model", "probe", "--live", "--json"],

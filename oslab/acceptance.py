@@ -6,6 +6,7 @@ import json
 import shutil
 import subprocess
 from collections.abc import Iterable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -104,6 +105,7 @@ SELFTEST_EXPECTED_ARGV_TAILS = (
     ("-m", "oslab.cli", "target", "manifest-template", "--json"),
     ("-m", "oslab.cli", "target", "blocker-report", "--json"),
     ("-m", "oslab.cli", "acceptance", "trace", "--json"),
+    ("-m", "oslab.cli", "acceptance", "artifact-index", "--json"),
     ("-m", "oslab.cli", "training", "dry-run", "--json"),
     ("-m", "oslab.cli", "cleanup", "--dry-run", "--json"),
     ("-m", "oslab.cli", "model", "probe", "--live", "--json"),
@@ -475,6 +477,38 @@ def build_requirements_trace(root: Path) -> dict[str, Any]:
             "note": "Completion remains unclaimed until the supplied real OS target is actually built, cold-booted, and smoke-tested.",
         },
     }
+
+
+def build_artifact_index_snapshot(root: Path) -> dict[str, Any]:
+    project_root = root.resolve()
+    entries: list[dict[str, Any]] = []
+    for relative in (*REQUIRED_DOCS, *REQUIRED_ARTIFACTS, *REQUIRED_SUPPORT_FILES):
+        if relative == "artifacts/ARTIFACT_INDEX.snapshot.json":
+            continue
+        path = project_root / relative
+        if not path.is_file():
+            raise FileNotFoundError(f"Required artifact-index path is missing: {relative}")
+        data = path.read_bytes()
+        entries.append(
+            {
+                "path": relative,
+                "bytes": len(data),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+        )
+    return {
+        "generated_at": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "entries": entries,
+    }
+
+
+def write_artifact_index_snapshot(root: Path) -> Path:
+    project_root = root.resolve()
+    snapshot = build_artifact_index_snapshot(project_root)
+    path = project_root / "artifacts" / "ARTIFACT_INDEX.snapshot.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(snapshot, indent=2) + "\n", encoding="utf-8")
+    return path
 
 
 def _trace_row(
