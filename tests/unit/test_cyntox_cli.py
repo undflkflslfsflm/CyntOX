@@ -30,6 +30,20 @@ def write_doctor_fixture(root: Path, *, max_tokens: int = 8192, num_ctx: int = 3
                     },
                 },
                 "ui": {"mouseTracking": False, "useTerminalBuffer": False},
+                "permissions": {"deny": ["display_image", "web_fetch", "web_search"]},
+                "hooks": {
+                    "PreToolUse": [
+                        {
+                            "matcher": "^run_shell_command$",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "& python scripts\\cyntox_qwen_hook.py",
+                                }
+                            ],
+                        }
+                    ]
+                },
             }
         ),
         encoding="utf-8",
@@ -88,6 +102,16 @@ def test_safe_text_capture_kwargs_uses_utf8_replacement() -> None:
     assert kwargs["timeout"] == 3
 
 
+def test_terminal_json_compacts_long_strings_and_lists() -> None:
+    payload = {"long": "A" * 2000, "items": list(range(40))}
+
+    parsed = json.loads(cyntox_cli.terminal_json(payload))
+
+    assert parsed["_cyntox_terminal"]["compacted"] is True
+    assert "terminal JSON truncated" in parsed["long"]
+    assert parsed["items"][-1] == {"_truncated_items": 15}
+
+
 def test_doctor_report_is_ok_with_daily_output_limits(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     root = tmp_path / "repo"
     root.mkdir()
@@ -113,6 +137,43 @@ def test_doctor_report_fails_when_output_limit_regresses(tmp_path: Path, monkeyp
     qwen_settings = next(check for check in report["checks"] if check["name"] == "qwen settings")
     assert qwen_settings["status"] == "fail"
     assert "max_tokens=1024" in qwen_settings["details"]["problems"]
+
+
+def test_doctor_report_surfaces_docker_desktop_stale_socket(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    local_app_data = tmp_path / "LocalAppData"
+    log = local_app_data / "Docker" / "log" / "host" / "com.docker.backend.exe.log"
+    log.parent.mkdir(parents=True)
+    log.write_text(
+        "backend crashed, dumping error to file and reporting to user: "
+        "starting services: initializing Ingest server: listening on "
+        "unix://C:/Users/vikto/AppData/Local/Docker/run/sailor-ingest.sock: "
+        "remove C:/Users/vikto/AppData/Local/Docker/run/sailor-ingest.sock: "
+        "The file cannot be accessed by the system.\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(cyntox_cli.os, "name", "nt")
+    monkeypatch.setenv("LOCALAPPDATA", str(local_app_data))
+
+    diagnostic = cyntox_cli.docker_desktop_recent_error()
+    report = {
+        "status": "warn",
+        "root": str(tmp_path),
+        "checks": [
+            {
+                "name": "docker/qemu stress",
+                "status": "warn",
+                "message": "Docker unavailable.",
+                "details": diagnostic,
+            }
+        ],
+    }
+    rendered = cyntox_cli.render_doctor_report(report)
+
+    assert diagnostic is not None
+    assert "sailor-ingest.sock" in diagnostic["diagnostic"]
+    assert str(log) == diagnostic["log"]
+    assert "Diagnostic: Docker Desktop backend is crashing" in rendered
+    assert "Fix: Quit Docker Desktop" in rendered
 
 
 def test_stress_command_writes_report(tmp_path: Path, monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
@@ -318,6 +379,10 @@ def test_next_report_turns_current_warnings_into_actions(tmp_path: Path, monkeyp
                     "name": "docker/qemu stress",
                     "status": "warn",
                     "message": "Docker daemon is not reachable.",
+                    "details": {
+                        "diagnostic": "Docker backend stale socket sailor-ingest.sock.",
+                        "remediation": "Clear sailor-ingest.sock and restart Docker Desktop.",
+                    },
                 },
                 {
                     "name": "git remote",
@@ -351,6 +416,7 @@ def test_next_report_turns_current_warnings_into_actions(tmp_path: Path, monkeyp
     assert report["status"] == "needs_action"
     assert report["actions"][0]["priority"] == "blocker"
     assert "Docker Desktop Linux engine" in rendered
+    assert "Clear sailor-ingest.sock and restart Docker Desktop." in rendered
     assert "git remote add origin" in rendered
     assert "Run required QEMU proof after Docker is available" not in rendered
     assert ".\\cyntox.cmd stress history --limit 5" in rendered
@@ -553,7 +619,14 @@ def test_stress_report_renders_warning_diagnostics() -> None:
                 "status": "warn",
                 "checks": [
                     {"name": "qwen settings", "status": "ok"},
-                    {"name": "docker/qemu stress", "status": "warn"},
+                    {
+                        "name": "docker/qemu stress",
+                        "status": "warn",
+                        "details": {
+                            "diagnostic": "Docker backend stale socket sailor-ingest.sock.",
+                            "remediation": "Clear sailor-ingest.sock and restart Docker Desktop.",
+                        },
+                    },
                 ],
             },
             "commands": [
@@ -570,6 +643,8 @@ def test_stress_report_renders_warning_diagnostics() -> None:
     )
 
     assert "Doctor warnings: docker/qemu stress" in rendered
+    assert "Doctor diagnostic (docker/qemu stress): Docker backend stale socket" in rendered
+    assert "Doctor fix (docker/qemu stress): Clear sailor-ingest.sock" in rendered
     assert "require reachable Docker daemon" in rendered
 
 
@@ -700,16 +775,16 @@ def test_jobs_show_uses_compact_human_summary(tmp_path: Path, capsys) -> None:  
     assert "{\n" not in output
     assert "--- task preview ---" in output
     assert "--- output.md preview ---" in output
-    assert "Use --json for full job metadata." in output
+    assert "--json --full for full job metadata" in output
     assert output.count("taskword") < 200
     assert output.count("outword") < 300
     assert " ..." in output
 
 
-def test_jobs_show_json_keeps_full_metadata(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+def test_jobs_show_json_is_compact_but_valid(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
     root = tmp_path / "repo"
     root.mkdir()
-    long_task = "taskword " * 80
+    long_task = "taskword " * 500
     job_id, _job_dir, _job = cyntox_cli.create_job(root, long_task, dry_run=True)
 
     code = cyntox_cli.cmd_jobs(root, ["show", job_id, "--json"])
@@ -717,7 +792,24 @@ def test_jobs_show_json_keeps_full_metadata(tmp_path: Path, capsys) -> None:  # 
     parsed = json.loads(capsys.readouterr().out)
     assert code == 0
     assert parsed["id"] == job_id
+    assert parsed["task"] != long_task
+    assert "terminal JSON truncated" in parsed["task"]
+    assert parsed["_cyntox_terminal"]["compacted"] is True
+
+
+def test_jobs_show_json_full_keeps_full_metadata(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    root = tmp_path / "repo"
+    root.mkdir()
+    long_task = "taskword " * 500
+    job_id, _job_dir, _job = cyntox_cli.create_job(root, long_task, dry_run=True)
+
+    code = cyntox_cli.cmd_jobs(root, ["show", job_id, "--json", "--full"])
+
+    parsed = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert parsed["id"] == job_id
     assert parsed["task"] == long_task
+    assert "_cyntox_terminal" not in parsed
 
 
 def test_infer_skills_does_not_match_pi_inside_ping() -> None:
@@ -805,13 +897,13 @@ def test_devices_show_uses_compact_human_summary(tmp_path: Path, capsys) -> None
     assert "Allowed Commands: uptime, df -h" in output
     assert "Denied Commands: format, mkfs" in output
     assert output.count("note") < 200
-    assert "Use --json for full device metadata." in output
+    assert "--json --full for full device metadata" in output
 
 
-def test_devices_show_json_keeps_full_metadata(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+def test_devices_show_json_is_compact_but_valid(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
     root = tmp_path / "repo"
     root.mkdir()
-    notes = "note " * 40
+    notes = "note " * 400
     (root / "devices.toml").write_text(
         f"""
         [devices.raspberry-pi]
@@ -831,7 +923,36 @@ def test_devices_show_json_keeps_full_metadata(tmp_path: Path, capsys) -> None: 
     parsed = json.loads(capsys.readouterr().out)
     assert code == 0
     assert parsed["name"] == "raspberry-pi"
+    assert parsed["device"]["notes"] != notes
+    assert "terminal JSON truncated" in parsed["device"]["notes"]
+    assert parsed["_cyntox_terminal"]["compacted"] is True
+
+
+def test_devices_show_json_full_keeps_full_metadata(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    root = tmp_path / "repo"
+    root.mkdir()
+    notes = "note " * 400
+    (root / "devices.toml").write_text(
+        f"""
+        [devices.raspberry-pi]
+        name = "Raspberry Pi"
+        type = "raspberry-pi"
+        host = "raspberrypi.local"
+        connection = "ssh"
+        configured = false
+        approved_writes = false
+        notes = "{notes}"
+        """,
+        encoding="utf-8",
+    )
+
+    code = cyntox_cli.cmd_devices(root, ["show", "raspberry-pi", "--json", "--full"])
+
+    parsed = json.loads(capsys.readouterr().out)
+    assert code == 0
+    assert parsed["name"] == "raspberry-pi"
     assert parsed["device"]["notes"] == notes
+    assert "_cyntox_terminal" not in parsed
 
 
 def test_device_executor_skips_denied_commands(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]

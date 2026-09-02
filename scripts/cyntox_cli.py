@@ -36,6 +36,10 @@ MAX_STRESS_REPEAT = 25
 MAX_STRESS_RERUN_FAILURES = 5
 DEFAULT_FOREGROUND_OUTPUT_LIMIT = 4_000
 MAX_FOREGROUND_OUTPUT_LIMIT = 50_000
+TERMINAL_JSON_STRING_LIMIT = 1_200
+TERMINAL_JSON_LIST_LIMIT = 25
+TERMINAL_JSON_DICT_LIMIT = 80
+TERMINAL_JSON_DEPTH_LIMIT = 6
 JOB_LIST_TASK_PREVIEW_LIMIT = 160
 JOB_SHOW_TASK_PREVIEW_LIMIT = 800
 JOB_SHOW_OUTPUT_PREVIEW_LIMIT = 1_600
@@ -411,7 +415,9 @@ def render_device_summary(
     for field in ("allowed_services", "allowed_commands", "denied_commands", "paths", "notes"):
         if field in device:
             lines.append(f"{field.replace('_', ' ').title()}: {render_device_value(device[field])}")
-    lines.append("Use --json for full device metadata.")
+    lines.append(
+        "Use --json for compact parseable metadata or --json --full for full device metadata."
+    )
     return "\n".join(lines)
 
 
@@ -1093,6 +1099,8 @@ def inspect_generated_qwen_settings(root: Path, checks: list[dict[str, Any]]) ->
     )
     ui_mouse_tracking = nested_value(settings, ("ui", "mouseTracking"))
     ui_terminal_buffer = nested_value(settings, ("ui", "useTerminalBuffer"))
+    denied_tools = nested_value(settings, ("permissions", "deny"))
+    hook_config = nested_value(settings, ("hooks", "PreToolUse"))
 
     problems: list[str] = []
     if model_name.lower() != "cyntox":
@@ -1109,12 +1117,21 @@ def inspect_generated_qwen_settings(root: Path, checks: list[dict[str, Any]]) ->
         problems.append(f"ui.mouseTracking={ui_mouse_tracking!r}")
     if ui_terminal_buffer is not False:
         problems.append(f"ui.useTerminalBuffer={ui_terminal_buffer!r}")
+    denied_tool_names = (
+        {str(item) for item in denied_tools} if isinstance(denied_tools, list) else set()
+    )
+    missing_denied_tools = sorted({"display_image", "web_fetch", "web_search"} - denied_tool_names)
+    if missing_denied_tools:
+        problems.append(f"permissions.deny missing {missing_denied_tools!r}")
+    hook_blob = json.dumps(hook_config, sort_keys=True) if hook_config is not None else ""
+    if "cyntox_qwen_hook.py" not in hook_blob:
+        problems.append("hooks.PreToolUse missing cyntox_qwen_hook.py")
 
     add_doctor_check(
         checks,
         "qwen settings",
         "fail" if problems else "ok",
-        "Generated Qwen settings protect against short output caps and mouse-tracking junk."
+        "Generated Qwen settings protect against short output caps, mouse-tracking junk, and terminal floods."
         if not problems
         else "Generated Qwen settings need regeneration; run cyntox chat once.",
         path=str(settings_path),
@@ -1124,6 +1141,8 @@ def inspect_generated_qwen_settings(root: Path, checks: list[dict[str, Any]]) ->
         context_window=model_context_window,
         mouse_tracking=ui_mouse_tracking,
         terminal_buffer=ui_terminal_buffer,
+        denied_tools=sorted(denied_tool_names),
+        terminal_flood_hook="cyntox_qwen_hook.py" in hook_blob,
     )
 
 
@@ -1164,6 +1183,53 @@ def inspect_proxy_health(checks: list[dict[str, Any]]) -> None:
     )
 
 
+def docker_desktop_recent_error() -> dict[str, str] | None:
+    if os.name != "nt":
+        return None
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if not local_app_data:
+        return None
+    log_path = Path(local_app_data) / "Docker" / "log" / "host" / "com.docker.backend.exe.log"
+    if not log_path.is_file():
+        return None
+    try:
+        text = tail_text(log_path.read_text(encoding="utf-8", errors="replace"), 24_000)
+    except OSError:
+        return None
+    lowered = text.lower()
+    if "sailor-ingest.sock" in lowered and "file cannot be accessed by the system" in lowered:
+        return {
+            "diagnostic": (
+                "Docker Desktop backend is crashing on stale socket "
+                "sailor-ingest.sock: The file cannot be accessed by the system."
+            ),
+            "remediation": (
+                "Quit Docker Desktop, clear the stale socket/reparse artifact under "
+                "%LOCALAPPDATA%\\Docker\\run\\sailor-ingest.sock, then start Docker Desktop "
+                "again before running `cyntox stress --require-qemu --fix`."
+            ),
+            "log": str(log_path),
+        }
+    for marker in (
+        "backend crashed, dumping error",
+        "docker desktop encountered an unexpected error",
+    ):
+        if marker in lowered:
+            line = next(
+                (line.strip() for line in reversed(text.splitlines()) if marker in line.lower()),
+                "",
+            )
+            return {
+                "diagnostic": concise_line(line or "Docker Desktop backend crash detected."),
+                "remediation": (
+                    "Open Docker Desktop's troubleshooting view or inspect the backend log, then "
+                    "restart Docker before running `cyntox stress --require-qemu --fix`."
+                ),
+                "log": str(log_path),
+            }
+    return None
+
+
 def inspect_docker_qemu(checks: list[dict[str, Any]]) -> None:
     docker = shutil.which("docker.exe") or shutil.which("docker")
     if not docker:
@@ -1198,12 +1264,15 @@ def inspect_docker_qemu(checks: list[dict[str, Any]]) -> None:
             server_version=server_version,
         )
         return
+    docker_error = docker_desktop_recent_error()
+    details = docker_error or {}
     add_doctor_check(
         checks,
         "docker/qemu stress",
         "warn",
         "Docker CLI exists, but the daemon/Linux engine is not reachable; QEMU stress tests will skip.",
         stderr=completed.stderr.strip(),
+        **details,
     )
 
 
@@ -1279,6 +1348,12 @@ def render_doctor_report(report: dict[str, Any]) -> str:
             error = details.get("error")
             if error:
                 lines.append(f"      Detail: {error}")
+            diagnostic = details.get("diagnostic")
+            if diagnostic:
+                lines.append(f"      Diagnostic: {diagnostic}")
+            remediation = details.get("remediation")
+            if remediation:
+                lines.append(f"      Fix: {remediation}")
     if report.get("status") != "ok":
         lines.extend(
             [
@@ -1303,6 +1378,107 @@ def concise_line(text: str, limit: int = 240) -> str:
     if len(stripped) <= limit:
         return stripped
     return stripped[: max(0, limit - 3)].rstrip() + "..."
+
+
+def middle_truncated_text(text: str, limit: int) -> str:
+    if limit <= 0:
+        return f"[truncated {len(text)} chars]"
+    if len(text) <= limit:
+        return text
+    marker = f"\n[... terminal JSON truncated {len(text) - limit} chars ...]\n"
+    if limit <= len(marker) + 20:
+        return text[:limit].rstrip() + marker.strip()
+    head = max(1, (limit - len(marker)) // 2)
+    tail = max(1, limit - len(marker) - head)
+    return f"{text[:head]}{marker}{text[-tail:]}"
+
+
+def compact_terminal_json_value(
+    value: Any,
+    *,
+    changed: list[bool],
+    depth: int = 0,
+    string_limit: int = TERMINAL_JSON_STRING_LIMIT,
+    list_limit: int = TERMINAL_JSON_LIST_LIMIT,
+    dict_limit: int = TERMINAL_JSON_DICT_LIMIT,
+    depth_limit: int = TERMINAL_JSON_DEPTH_LIMIT,
+) -> Any:
+    if depth >= depth_limit and isinstance(value, dict | list | tuple):
+        changed[0] = True
+        return {"_truncated": f"depth limit {depth_limit} reached"}
+    if isinstance(value, str):
+        if len(value) > string_limit:
+            changed[0] = True
+            return middle_truncated_text(value, string_limit)
+        return value
+    if isinstance(value, bool | int | float) or value is None:
+        return value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        items = list(value.items())
+        visible_items = items[:dict_limit]
+        if len(items) > len(visible_items):
+            changed[0] = True
+        compacted: dict[str, Any] = {
+            str(key): compact_terminal_json_value(
+                item_value,
+                changed=changed,
+                depth=depth + 1,
+                string_limit=string_limit,
+                list_limit=list_limit,
+                dict_limit=dict_limit,
+                depth_limit=depth_limit,
+            )
+            for key, item_value in visible_items
+        }
+        if len(items) > len(visible_items):
+            compacted["_truncated_keys"] = len(items) - len(visible_items)
+        return compacted
+    if isinstance(value, list | tuple):
+        items = list(value)
+        visible_items = items[:list_limit]
+        if len(items) > len(visible_items):
+            changed[0] = True
+        compacted_items = [
+            compact_terminal_json_value(
+                item,
+                changed=changed,
+                depth=depth + 1,
+                string_limit=string_limit,
+                list_limit=list_limit,
+                dict_limit=dict_limit,
+                depth_limit=depth_limit,
+            )
+            for item in visible_items
+        ]
+        if len(items) > len(visible_items):
+            compacted_items.append({"_truncated_items": len(items) - len(visible_items)})
+        return compacted_items
+    return str(value)
+
+
+def terminal_json(
+    payload: Any, *, full: bool = False, full_artifact: Path | str | None = None
+) -> str:
+    if full:
+        return json.dumps(payload, indent=2)
+    changed = [False]
+    compacted = compact_terminal_json_value(payload, changed=changed)
+    metadata: dict[str, Any] = {
+        "compacted": changed[0],
+        "string_limit": TERMINAL_JSON_STRING_LIMIT,
+        "list_limit": TERMINAL_JSON_LIST_LIMIT,
+        "dict_limit": TERMINAL_JSON_DICT_LIMIT,
+        "depth_limit": TERMINAL_JSON_DEPTH_LIMIT,
+    }
+    if full_artifact is not None:
+        metadata["full_artifact"] = str(full_artifact)
+    if isinstance(compacted, dict):
+        compacted = {**compacted, "_cyntox_terminal": metadata}
+    else:
+        compacted = {"data": compacted, "_cyntox_terminal": metadata}
+    return json.dumps(compacted, indent=2)
 
 
 def diagnostic_line(text: str) -> str:
@@ -1841,13 +2017,22 @@ def actions_from_doctor_report(doctor_report: dict[str, Any]) -> list[dict[str, 
             continue
         name = str(check.get("name") or "")
         message = str(check.get("message") or "")
+        details_raw = check.get("details")
+        details = details_raw if isinstance(details_raw, dict) else {}
+        diagnostic = str(details.get("diagnostic") or "")
+        remediation = str(details.get("remediation") or "")
         if name == "docker/qemu stress":
             add_next_action(
                 actions,
                 priority="blocker",
                 title="Start Docker Desktop Linux engine for real OS/QEMU stress",
                 command=".\\cyntox.cmd stress --require-qemu --fix",
-                reason=message or "QEMU stress cannot prove anything until Docker is reachable.",
+                reason=(
+                    remediation
+                    or diagnostic
+                    or message
+                    or "QEMU stress cannot prove anything until Docker is reachable."
+                ),
             )
         elif name == "git remote":
             add_next_action(
@@ -2136,6 +2321,21 @@ def render_stress_report(report: dict[str, Any]) -> str:
     ]
     if doctor_warnings:
         lines.append(f"Doctor warnings: {', '.join(doctor_warnings)}")
+        doctor_checks = nested_value(report, ("doctor", "checks"))
+        if isinstance(doctor_checks, list):
+            for check in doctor_checks:
+                if not isinstance(check, dict) or check.get("status") == "ok":
+                    continue
+                details_raw = check.get("details")
+                if not isinstance(details_raw, dict):
+                    continue
+                diagnostic = details_raw.get("diagnostic")
+                remediation = details_raw.get("remediation")
+                name = check.get("name") or "doctor"
+                if diagnostic:
+                    lines.append(f"Doctor diagnostic ({name}): {diagnostic}")
+                if remediation:
+                    lines.append(f"Doctor fix ({name}): {remediation}")
     if report.get("strict") and report.get("status") == "fail":
         lines.append("Strict mode: warnings are treated as failures.")
     for result in report.get("commands", []):
@@ -2279,7 +2479,7 @@ def render_job_summary(job_dir: Path, job: dict[str, Any]) -> str:
             f"  output: {output_path}",
             f"  verification: {job_dir / 'verification.md'}",
             f"  score: {job_dir / 'score.json'}",
-            "Use --json for full job metadata.",
+            "Use --json for compact parseable metadata or --json --full for full job metadata.",
         ]
     )
     return "\n".join(lines)
@@ -2342,9 +2542,15 @@ def cmd_jobs(root: Path, argv: list[str]) -> int:
     subparsers = parser.add_subparsers(dest="command")
     list_parser = subparsers.add_parser("list")
     list_parser.add_argument("--json", action="store_true")
+    list_parser.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     show_parser = subparsers.add_parser("show")
     show_parser.add_argument("job_id")
     show_parser.add_argument("--json", action="store_true")
+    show_parser.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     status_parser = subparsers.add_parser("status")
     status_parser.add_argument("job_id", nargs="?")
     resume_parser = subparsers.add_parser("resume")
@@ -2354,12 +2560,15 @@ def cmd_jobs(root: Path, argv: list[str]) -> int:
     subparsers.add_parser("sweep-stale")
     report_parser = subparsers.add_parser("report")
     report_parser.add_argument("--json", action="store_true")
+    report_parser.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     args = parser.parse_args(argv or ["list"])
 
     if args.command in {None, "list"}:
         jobs = list_jobs(root, args.jobs_dir)
         if getattr(args, "json", False):
-            print(json.dumps({"jobs": jobs}, indent=2))
+            print(terminal_json({"jobs": jobs}, full=getattr(args, "full", False)))
         else:
             for job in jobs:
                 score = job.get("latest_score") or "?"
@@ -2371,7 +2580,11 @@ def cmd_jobs(root: Path, argv: list[str]) -> int:
     if args.command in {"show", "status"} and getattr(args, "job_id", None):
         job_dir, job = load_job(root, args.job_id, args.jobs_dir)
         if getattr(args, "json", False):
-            print(json.dumps(job, indent=2))
+            print(
+                terminal_json(
+                    job, full=getattr(args, "full", False), full_artifact=job_dir / "job.json"
+                )
+            )
         else:
             print(render_job_summary(job_dir, job))
         return 0
@@ -2438,11 +2651,18 @@ def cmd_jobs(root: Path, argv: list[str]) -> int:
         print(f"Swept {swept} stale running job(s).")
         return 0
     if args.command == "report":
-        return write_jobs_report(root, jobs_dir=args.jobs_dir, as_json=args.json)
+        return write_jobs_report(
+            root,
+            jobs_dir=args.jobs_dir,
+            as_json=args.json,
+            full_json=getattr(args, "full", False),
+        )
     parser.error("unknown jobs command")
 
 
-def write_jobs_report(root: Path, *, jobs_dir: str, as_json: bool = False) -> int:
+def write_jobs_report(
+    root: Path, *, jobs_dir: str, as_json: bool = False, full_json: bool = False
+) -> int:
     jobs = list_jobs(root, jobs_dir)
     scores = [
         float(job["latest_score"])
@@ -2461,7 +2681,8 @@ def write_jobs_report(root: Path, *, jobs_dir: str, as_json: bool = False) -> in
         "average_score": round(sum(scores) / len(scores), 4) if scores else None,
         "recent_jobs": jobs[:10],
     }
-    (report_dir / "latest-report.json").write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    json_path = report_dir / "latest-report.json"
+    json_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     markdown = [
         "# CyntOX Jobs Report",
         "",
@@ -2475,7 +2696,7 @@ def write_jobs_report(root: Path, *, jobs_dir: str, as_json: bool = False) -> in
     ]
     (report_dir / "latest-report.md").write_text("\n".join(markdown) + "\n", encoding="utf-8")
     if as_json:
-        print(json.dumps(payload, indent=2))
+        print(terminal_json(payload, full=full_json, full_artifact=json_path))
     else:
         print(report_dir / "latest-report.md")
     return 0
@@ -2487,6 +2708,9 @@ def cmd_skills(root: Path, argv: list[str]) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     list_parser = subparsers.add_parser("list")
     list_parser.add_argument("--json", action="store_true")
+    list_parser.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     archive = subparsers.add_parser("archive-unused")
     archive.add_argument("--days", type=int, required=True)
     archive.add_argument("--dry-run", action="store_true")
@@ -2500,7 +2724,13 @@ def cmd_skills(root: Path, argv: list[str]) -> int:
     if args.command == "list":
         registry = cyntox_council.sync_skill_registry(root, args.skills_dir)
         if args.json:
-            print(json.dumps(registry, indent=2))
+            print(
+                terminal_json(
+                    registry,
+                    full=getattr(args, "full", False),
+                    full_artifact=root / args.skills_dir / ".registry.json",
+                )
+            )
         else:
             for name, entry in sorted(registry.get("skills", {}).items()):
                 if isinstance(entry, dict):
@@ -2555,18 +2785,33 @@ def cmd_devices(root: Path, argv: list[str]) -> int:
     subparsers = parser.add_subparsers(dest="command", required=True)
     list_parser = subparsers.add_parser("list")
     list_parser.add_argument("--json", action="store_true")
+    list_parser.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     show = subparsers.add_parser("show")
     show.add_argument("device")
     show.add_argument("--json", action="store_true")
+    show.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     doctor = subparsers.add_parser("doctor")
     doctor.add_argument("device")
     doctor.add_argument("--json", action="store_true")
+    doctor.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     args = parser.parse_args(argv)
 
     devices = load_devices(root, args.devices_file)
     if args.command == "list":
         if args.json:
-            print(json.dumps({"devices": devices}, indent=2))
+            print(
+                terminal_json(
+                    {"devices": devices},
+                    full=getattr(args, "full", False),
+                    full_artifact=root / args.devices_file,
+                )
+            )
         else:
             for name, device in sorted(devices.items()):
                 if not isinstance(device, dict):
@@ -2582,14 +2827,26 @@ def cmd_devices(root: Path, argv: list[str]) -> int:
     if args.command == "show":
         payload = {"name": args.device, "status": status, "issues": issues, "device": device}
         if args.json:
-            print(json.dumps(payload, indent=2))
+            print(
+                terminal_json(
+                    payload,
+                    full=getattr(args, "full", False),
+                    full_artifact=root / args.devices_file,
+                )
+            )
         else:
             print(render_device_summary(args.device, device, status=status, issues=issues))
         return 0
     if args.command == "doctor":
         payload = {"name": args.device, "status": status, "issues": issues, "device": device}
         if args.json:
-            print(json.dumps(payload, indent=2))
+            print(
+                terminal_json(
+                    payload,
+                    full=getattr(args, "full", False),
+                    full_artifact=root / args.devices_file,
+                )
+            )
         else:
             print(f"{args.device}: {status}")
             for issue in issues:
@@ -2810,10 +3067,13 @@ def cmd_benchmark(root: Path, argv: list[str]) -> int:
 def cmd_doctor(root: Path, argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="cyntox doctor")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     args = parser.parse_args(argv)
     report = build_doctor_report(root)
     if args.json:
-        print(json.dumps(report, indent=2))
+        print(terminal_json(report, full=args.full))
     else:
         print(render_doctor_report(report))
     return 0 if report["status"] != "fail" else 1
@@ -2822,13 +3082,16 @@ def cmd_doctor(root: Path, argv: list[str]) -> int:
 def cmd_next(root: Path, argv: list[str]) -> int:
     parser = argparse.ArgumentParser(prog="cyntox next")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     parser.add_argument("--history-limit", type=int, default=5)
     args = parser.parse_args(argv)
     if args.history_limit < 1:
         parser.error("--history-limit must be at least 1")
     report = build_next_report(root, history_limit=args.history_limit)
     if args.json:
-        print(json.dumps(report, indent=2))
+        print(terminal_json(report, full=args.full))
     else:
         print(render_next_report(report))
     return 0
@@ -2838,19 +3101,25 @@ def cmd_stress(root: Path, argv: list[str]) -> int:
     if argv and argv[0].lower() == "history":
         parser = argparse.ArgumentParser(prog="cyntox stress history")
         parser.add_argument("--json", action="store_true")
+        parser.add_argument(
+            "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+        )
         parser.add_argument("--limit", type=int, default=10)
         args = parser.parse_args(argv[1:])
         if args.limit < 1:
             parser.error("--limit must be at least 1")
         history = read_stress_history(root, limit=args.limit)
         if args.json:
-            print(json.dumps(history, indent=2))
+            print(terminal_json(history, full=args.full))
         else:
             print(render_stress_history(history))
         return 0
 
     parser = argparse.ArgumentParser(prog="cyntox stress")
     parser.add_argument("--json", action="store_true")
+    parser.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     parser.add_argument("--quick", action="store_true")
     parser.add_argument("--skip-qemu", action="store_true")
     parser.add_argument("--strict", action="store_true", help="fail if any stress check warns")
@@ -2933,7 +3202,12 @@ def cmd_stress(root: Path, argv: list[str]) -> int:
     }
     write_stress_artifacts(root, report)
     if args.json:
-        print(json.dumps(report, indent=2))
+        full_artifact = (
+            Path(str(report["artifacts"]["json"]))
+            if isinstance(report.get("artifacts"), dict) and report["artifacts"].get("json")
+            else None
+        )
+        print(terminal_json(report, full=args.full, full_artifact=full_artifact))
     else:
         print(render_stress_report(report))
     return 0 if report["status"] != "fail" else 1

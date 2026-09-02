@@ -27,12 +27,21 @@ SECRET_WORD_RE = re.compile(
 )
 OUTPUT_BOUND_RE = re.compile(
     r"(--stat|--shortstat|--name-only|--name-status|--numstat|--summary|--check|--quiet)"
-    r"|((?:^|[\s])(?:-n|--max-count)\s*=?\s*\d+\b)"
+    r"|(\bgit\s+log\b[^\n\r|;]*(?:^|[\s])-n\s*=?\s*\d+\b)"
+    r"|((?:^|[\s])(?:-m|--max-count)\s*=?\s*\d+\b)"
     r"|((?:^|[\s])-(?:TotalCount|Tail|First|Last)\s+\d+\b)"
     r"|(\bSelect-Object\b.{0,80}(?:^|[\s])-(?:First|Last)\s+\d+\b)"
     r"|(\b(?:Out-File|Set-Content|Add-Content|Export-Clixml|Export-Csv)\b)"
     r"|([^\d]>{1,2}\s*[A-Za-z0-9_.\\/: -]+)",
     re.IGNORECASE | re.DOTALL,
+)
+RG_COMMAND_RE = re.compile(r"\brg(?:\.exe)?\b", re.IGNORECASE)
+RG_SINGLE_FILE_SCOPE_RE = re.compile(
+    r"\brg(?:\.exe)?\b[^\n\r|;]*\s"
+    r"(?:[A-Za-z]:)?[A-Za-z0-9_.()\\/: -]+"
+    r"\.(?:py|ps1|psm1|cmd|bat|md|txt|json|jsonl|toml|ya?ml|ini|cfg|sh|ts|tsx|js|jsx|css|html)"
+    r"(?:\s|$)",
+    re.IGNORECASE,
 )
 UNBOUNDED_OUTPUT_RULES: tuple[tuple[re.Pattern[str], str], ...] = (
     (
@@ -101,6 +110,12 @@ def policy_from_env(env: Mapping[str, str] | None = None) -> cyntox_privacy.Priv
 def unbounded_output_reason(command: str) -> str | None:
     if OUTPUT_BOUND_RE.search(command):
         return None
+    if RG_COMMAND_RE.search(command) and not RG_SINGLE_FILE_SCOPE_RE.search(command):
+        return (
+            "CyntOX terminal flood guard blocked likely unbounded ripgrep output. "
+            "Use `rg -n -m 50 <pattern> <specific path>`, search one specific file, "
+            "pipe to `Select-Object -First <n>`, or redirect full results to a file."
+        )
     for pattern, hint in UNBOUNDED_OUTPUT_RULES:
         if pattern.search(command):
             return f"CyntOX terminal flood guard blocked likely unbounded output. {hint}"

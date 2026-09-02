@@ -51,10 +51,13 @@ def test_safe_text_capture_kwargs_uses_utf8_replacement() -> None:
 
 def test_terminal_preview_truncates_with_artifact_pointer(tmp_path: Path) -> None:
     artifact = tmp_path / "output.md"
-    preview = cyntox_council.terminal_preview("x" * 50, limit=10, artifact=artifact)
+    preview = cyntox_council.terminal_preview(
+        "abcdefghijABCDEFGHIJ" * 3, limit=10, artifact=artifact
+    )
 
-    assert preview.startswith("x" * 10)
-    assert "terminal preview truncated 40 chars" in preview
+    assert preview.startswith("abcde")
+    assert preview.endswith("FGHIJ")
+    assert "terminal preview truncated 50 chars" in preview
     assert str(artifact) in preview
 
 

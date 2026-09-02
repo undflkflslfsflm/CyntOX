@@ -89,6 +89,25 @@ def test_shell_hook_allows_bounded_rg_files() -> None:
     assert decision(response) == "ask"
 
 
+def test_shell_hook_denies_broad_unbounded_rg_search() -> None:
+    response = cyntox_qwen_hook.evaluate_pre_tool_use(
+        shell_payload('rg -n "output|token|json" scripts oslab tests')
+    )
+
+    assert decision(response) == "deny"
+    reason = response["hookSpecificOutput"]["permissionDecisionReason"]  # type: ignore[index]
+    assert "ripgrep" in str(reason)
+    assert "-m 50" in str(reason)
+
+
+def test_shell_hook_allows_single_file_rg_search() -> None:
+    response = cyntox_qwen_hook.evaluate_pre_tool_use(
+        shell_payload('rg -n "terminal_preview" scripts/cyntox_council.py')
+    )
+
+    assert decision(response) == "ask"
+
+
 def test_shell_hook_asks_for_allowlisted_network_command() -> None:
     response = cyntox_qwen_hook.evaluate_pre_tool_use(
         shell_payload("curl https://docs.jellyfin.org"),

@@ -243,7 +243,13 @@ def terminal_preview(text: str, *, limit: int | None, artifact: Path | None = No
     if limit <= 0:
         return f"[terminal output suppressed{artifact_hint}]"
     omitted = len(text) - limit
-    return f"{text[:limit]}\n\n[... terminal preview truncated {omitted} chars{artifact_hint} ...]"
+    head = max(1, limit // 2)
+    tail = max(1, limit - head)
+    return (
+        f"{text[:head]}\n\n"
+        f"[... terminal preview truncated {omitted} chars{artifact_hint} ...]\n\n"
+        f"{text[-tail:]}"
+    )
 
 
 def read_text_if_exists(path: Path) -> str:
