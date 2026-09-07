@@ -1232,9 +1232,74 @@ def test_main_help_lists_daily_commands(capsys) -> None:  # type: ignore[no-unty
     output = capsys.readouterr().out
     assert code == 0
     assert "CyntOX daily-use commands" in output
+    assert "cyntox run " in output
     assert "cyntox chat" in output
     assert "cyntox jobs list|show|resume|retry" in output
     assert "cyntox run-on <device>" in output
+
+
+@pytest.mark.parametrize("command", [[], ["run"], ["chat"]])
+def test_interactive_commands_launch_code_and_preserve_exit_status(
+    tmp_path: Path, monkeypatch, command: list[str]
+) -> None:
+    root = tmp_path / "install with spaces"
+    calls = []
+
+    def fake_run(argv: list[str], **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 17)
+
+    monkeypatch.setattr(cyntox_cli, "project_root", lambda: root)
+    monkeypatch.setattr(cyntox_cli, "find_powershell", lambda: "pwsh.exe")
+    monkeypatch.setattr(cyntox_cli.subprocess, "run", fake_run)
+
+    assert cyntox_cli.main(command) == 17
+    assert calls == [
+        (
+            [
+                "pwsh.exe",
+                "-NoProfile",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(root / "cyntox-code.ps1"),
+            ],
+            {"cwd": root, "check": False},
+        )
+    ]
+
+
+@pytest.mark.parametrize("command", ["run", "chat"])
+def test_interactive_command_forwards_launcher_arguments(
+    tmp_path: Path, monkeypatch, command: str
+) -> None:
+    calls = []
+    launcher_args = ["--prompt", "explain a file with spaces.py", "--help"]
+
+    def fake_chat(root: Path, argv: list[str]) -> int:
+        calls.append((root, argv))
+        return 9
+
+    monkeypatch.setattr(cyntox_cli, "project_root", lambda: tmp_path)
+    monkeypatch.setattr(cyntox_cli, "cmd_chat", fake_chat)
+
+    assert cyntox_cli.main([command, *launcher_args]) == 9
+    assert calls == [(tmp_path, launcher_args)]
+
+
+def test_bare_task_still_queues_a_job(tmp_path: Path, monkeypatch) -> None:
+    calls = []
+    task_args = ["review the local project", "--foreground"]
+
+    def fake_enqueue(root: Path, argv: list[str]) -> int:
+        calls.append((root, argv))
+        return 3
+
+    monkeypatch.setattr(cyntox_cli, "project_root", lambda: tmp_path)
+    monkeypatch.setattr(cyntox_cli, "enqueue_task", fake_enqueue)
+
+    assert cyntox_cli.main(task_args) == 3
+    assert calls == [(tmp_path, task_args)]
 
 
 def test_setup_jellyfin_is_dry_run_first(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]

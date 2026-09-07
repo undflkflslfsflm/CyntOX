@@ -1,0 +1,11 @@
+{
+  "repository": "huihui-ai/Huihui-Qwen3.8-27B-abliterated-GGUF",
+  "revision": "246becd5a88523e21c58e848e791955719e9d1c9",
+  "filename": "Huihui-Qwen3.8-27B-abliterated-UD-Q4_K_XL.gguf",
+  "size_bytes": 17378626464,
+  "sha256": "ebbc66b45cf36bf47dc052d560337ff047a8b4eef851c8919d83d623703b6aa4",
+  "architecture": "qwen35",
+  "ollama_model": "cyntox:latest",
+  "historical_local_sha256": "0351f044d3580a997c93eaeb773b677a6f56bca365d26586827cca628f5fda66",
+  "provenance": "The historical local blob differs only in the ordering of two GGUF quantization metadata entries (77 bytes). Reordering those entries to the public source order yields the pinned SHA-256 above; all weights, tokenizer and template bytes match."
+}

@@ -6,12 +6,30 @@ CyntOX is the primary daily command for the local-first AI workbench. The stack 
 
 The detected primary worker is the local Ollama model `cyntox:latest`. Guest networking is disabled, APIs bind to loopback, evaluated patches use disposable Git worktrees, and artifacts are content addressed.
 
-## Bootstrap
+## Install and run (Windows)
+
+Paste this one line into PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/undflkflslfsflm/CyntOX/main/install.ps1 | iex
+```
+
+Then start CyntOX from any folder:
+
+```text
+cyntox run
+```
+
+Setup downloads this repository's `main` branch, installs missing prerequisites, prepares the locked environment and local model, and registers the command in your user PATH. Windows App Installer (`winget`) is needed if prerequisites are missing; Windows may request approval for a prerequisite installer. The base-model download is about 17 GB and fresh model setup requires 50 GiB free disk. Setup reuses an existing `cyntox` model. Docker and the optional Qwythos/AirLLM specialist are separate setups.
+
+See [installation details](docs/INSTALL.md) for locations, reruns, and using an existing checkout.
+
+## Advanced and developer workflows
 
 One-line daily launcher from PowerShell:
 
 ```powershell
-.\cyntox.cmd "review this repo and give me the safest next engineering step"
+cyntox "review this repo and give me the safest next engineering step"
 ```
 
 One-line OS-lab launcher from PowerShell:
@@ -20,10 +38,10 @@ One-line OS-lab launcher from PowerShell:
 & "<repo>\oslab.ps1" --help
 ```
 
-One-line interactive CyntOX Code launcher:
+Interactive CyntOX Code launcher:
 
 ```powershell
-& "<repo>\cyntox-code.ps1"
+cyntox run
 ```
 
 That opens the project-local CyntOX Code 0.22.3 CLI on the local Ollama-backed `cyntox` model alias, displayed as `CyntOX` with a custom CyntOX/Mythos banner. For human use, the launcher starts CyntOX Code from an ignored `.oslab` workspace, forces the OpenAI-compatible loopback provider/model so no provider picker appears, keeps startup context lean, gives it text-file read/search/edit tools, denies `display_image` for text files, raises the default completion/context limits to reduce mid-answer truncation, tells the model to keep terminal answers compact and save/report file paths for long detail, removes the lab MCP prompt, and leaves the audited lab `.cyntox/settings.json` untouched.
@@ -39,7 +57,7 @@ The council runs CyntOX through focused roles, scores the final answer, and retr
 Useful CyntOX commands:
 
 ```powershell
-.\cyntox.cmd chat
+cyntox run
 .\cyntox.cmd next
 .\cyntox.cmd doctor
 .\cyntox.cmd stress --fix

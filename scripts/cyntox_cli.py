@@ -5726,7 +5726,8 @@ def print_main_help() -> None:
                 "",
                 "CyntOX daily-use commands:",
                 '  cyntox "task"                         queue a local-first council job',
-                "  cyntox chat                           open interactive CyntOX/CyntOX Code",
+                "  cyntox run                            open interactive CyntOX/CyntOX Code",
+                "  cyntox chat                           alias for cyntox run",
                 "  cyntox jobs list|show|resume|retry    inspect and recover jobs",
                 "  cyntox skills list|use|archive-unused track reusable skills",
                 "  cyntox memory add|search|sync|extract manage vault/RAG memory",
@@ -5780,7 +5781,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.add_argument("audit_id")
         worker_args = parser.parse_args(tail)
         return _run_audit_worker(root, worker_args.audit_id)
-    if command == "chat":
+    if command in {"run", "chat"}:
         return cmd_chat(root, tail)
     if command == "council":
         return cyntox_council.main(tail)
