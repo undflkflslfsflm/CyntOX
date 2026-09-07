@@ -35,6 +35,7 @@ from oslab.model_registry import (
 )
 from oslab.mythos_prompt import PROMPT_STATUS, PROMPT_VERSION, canonical_prompt_sha256
 from oslab.resource_lease import AirLlmAdmissionLease
+from oslab.skill_routing import restore_selection, select_skills
 
 try:
     from scripts import (
@@ -243,11 +244,6 @@ DENIED_TASK_PATTERNS = (
 )
 SSH_HOST_RE = re.compile(r"^[A-Za-z0-9_.:\[\]-]+$")
 SSH_USER_RE = re.compile(r"^[A-Za-z0-9_.-]+$")
-SERVICE_SKILLS = {
-    "jellyfin": ["media-server"],
-    "smb": ["media-server", "pc-admin"],
-    "nfs": ["media-server", "pc-admin"],
-}
 
 
 def project_root() -> Path:
@@ -481,27 +477,22 @@ def set_job_state(job_dir: Path, job: dict[str, Any], state: str, **fields: Any)
     append_jsonl(job_dir / "events.jsonl", {"event": "state", "state": state, "fields": fields})
 
 
-def infer_skills(task: str, *, service: str | None = None) -> list[str]:
-    text = task.lower()
-    tokens = set(re.findall(r"[a-z0-9_-]+", text))
-    inferred: list[str] = []
-    if service and service.lower() in SERVICE_SKILLS:
-        inferred.extend(SERVICE_SKILLS[service.lower()])
-    keyword_map = [
-        (("jellyfin", "plex", "media", "transcode", "smb", "nfs"), "media-server"),
-        (("raspberry", "pi", "disk", "service", "process", "uptime", "log"), "pc-admin"),
-        (("os lab", "qemu", "fuzz", "stress", "boot", "kernel"), "os-lab"),
-        (("summarize", "research", "notes", "checklist", "sources"), "research-notes"),
-        (("privacy", "internet", "prompt injection", "secret", "token"), "privacy-security"),
-        (("code", "debug", "fix", "test", "refactor", "repo"), "coding"),
-    ]
-    for words, skill in keyword_map:
-        matched = any(
-            word in tokens if len(word) <= 3 and " " not in word else word in text for word in words
-        )
-        if matched:
-            inferred.append(skill)
-    return list(dict.fromkeys(inferred))
+def infer_skills(task: str, *, service: str | None = None, root: Path | None = None) -> list[str]:
+    """Compatibility entry point for the installed-skill router."""
+    return select_skills(root or project_root(), task, service=service).names
+
+
+def saved_job_skill_selection(root: Path, job: dict[str, Any]) -> dict[str, Any]:
+    """Keep a queued job's routing decision stable, including legacy empty selections."""
+    saved = job.get("skill_selection")
+    if isinstance(saved, dict):
+        return restore_selection(root, saved).as_dict()
+    names = job.get("skills", [])
+    if not isinstance(names, list) or not all(isinstance(name, str) for name in names):
+        raise ValueError("Saved job skills must be a list of names")
+    selection = select_skills(root, "", explicit_names=names, enabled=False).as_dict()
+    selection["legacy_job"] = True
+    return selection
 
 
 def create_job(
@@ -512,6 +503,8 @@ def create_job(
     preset: str = cyntox_council.DEFAULT_PRESET,
     mode: str = "plan",
     skills: list[str] | None = None,
+    auto_skills: bool = True,
+    skill_selection: dict[str, Any] | None = None,
     device: str | None = None,
     service: str | None = None,
     dry_run: bool = False,
@@ -525,14 +518,14 @@ def create_job(
 ) -> tuple[str, Path, dict[str, Any]]:
     if model_profile not in MODEL_PROFILES:
         raise ValueError(f"Unknown model profile: {model_profile}")
+    selection = (
+        restore_selection(root, skill_selection)
+        if skill_selection is not None
+        else select_skills(root, task, explicit_names=skills, enabled=auto_skills, service=service)
+    )
     job_id = new_job_id()
     job_dir = jobs_root(root, jobs_dir) / job_id
     job_dir.mkdir(parents=True, exist_ok=False)
-    normalized_skills = [
-        cyntox_council.slugify_skill_name(name)
-        for name in (skills or infer_skills(task, service=service))
-    ]
-    normalized_skills = list(dict.fromkeys(normalized_skills))
     state = "needs_input" if needs_input_reason else "queued"
     job = {
         "version": 1,
@@ -550,7 +543,8 @@ def create_job(
         "degraded": False,
         "provider_results": [],
         "internet_mode": "off",
-        "skills": normalized_skills,
+        "skills": selection.names,
+        "skill_selection": selection.as_dict(),
         "device": device,
         "service": service,
         "dry_run": dry_run,
@@ -2631,6 +2625,8 @@ def copy_council_artifacts(
         "prompt_version": manifest.get("prompt_version"),
         "prompt_status": manifest.get("prompt_status"),
         "prompt_sha256": manifest.get("prompt_sha256"),
+        "skill_selection": manifest.get("skill_selection"),
+        "active_skills": manifest.get("active_skills"),
         "overall": overall,
         "scorecard": scorecard,
         "passed_threshold": bool(manifest.get("passed_threshold")),
@@ -2700,6 +2696,8 @@ def run_job(root: Path, job_id: str, jobs_dir: str = DEFAULT_JOBS_DIR) -> int:
     planned_commands: list[str] = []
     execution_output = ""
     try:
+        job["skill_selection"] = saved_job_skill_selection(root, job)
+        job["skills"] = job["skill_selection"]["names"]
         denied = task_has_denied_pattern(str(job.get("task") or ""))
         if denied and job_uses_execution_surface(job):
             raise ValueError(f"Task matches denied device/action pattern: {denied}")
@@ -2807,8 +2805,9 @@ def run_job(root: Path, job_id: str, jobs_dir: str = DEFAULT_JOBS_DIR) -> int:
             council_args.append("--dry-run")
         if bool(job.get("save_memory")) and not bool(job.get("dry_run")):
             council_args.append("--save-memory")
-        for skill_name in job.get("skills", []):
-            council_args.extend(["--use-skill", str(skill_name)])
+        council_args.extend(
+            ["--skill-selection-json", json.dumps(job["skill_selection"], separators=(",", ":"))]
+        )
         council_args.append(task)
         append_jsonl(job_dir / "commands.jsonl", {"kind": "council", "argv": council_args})
 
@@ -2827,6 +2826,10 @@ def run_job(root: Path, job_id: str, jobs_dir: str = DEFAULT_JOBS_DIR) -> int:
             run_id=council_run_id,
         )
         job["latest_score"] = score_payload.get("overall")
+        if isinstance(score_payload.get("skill_selection"), dict):
+            job["skill_selection"] = score_payload["skill_selection"]
+        if isinstance(score_payload.get("active_skills"), list):
+            job["skills"] = score_payload["active_skills"]
         job["score"] = score_payload
         job["model_profile"] = score_payload.get("model_profile") or job.get(
             "model_profile", "single"
@@ -4551,6 +4554,7 @@ def cmd_jobs(root: Path, argv: list[str]) -> int:
                 args.model_profile or compatible_job_model_profile(original.get("model_profile"))
             ),
             skills=[str(skill) for skill in original.get("skills", [])],
+            skill_selection=saved_job_skill_selection(root, original),
             device=str(original.get("device")) if original.get("device") else None,
             service=str(original.get("service")) if original.get("service") else None,
             dry_run=bool(original.get("dry_run")),
@@ -4798,21 +4802,27 @@ def enqueue_task(root: Path, argv: list[str]) -> int:
     parser.add_argument("--mode", choices=("plan", "implement"), default="plan")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--foreground", action="store_true")
+    parser.add_argument(
+        "--no-auto-skills", action="store_true", help="Disable automatic skill selection."
+    )
     parser.add_argument("--max-wall-time", default="3m")
     parser.add_argument(
         "--model-profile", choices=MODEL_PROFILES, default=configured_default_profile(root)
     )
     args = parser.parse_args(argv)
     task = " ".join(args.task).strip()
-    job_id, _, _ = create_job(
+    job_id, _, job = create_job(
         root,
         task,
         preset=args.preset,
         mode=args.mode,
+        auto_skills=not args.no_auto_skills,
         dry_run=args.dry_run,
         max_wall_time=args.max_wall_time,
         model_profile=args.model_profile,
     )
+    if job["skills"]:
+        print(f"Skills ({job['skill_selection']['mode']}): {', '.join(job['skills'])}", flush=True)
     if args.foreground:
         code = run_job(root, job_id)
         print_foreground_result(root, job_id, code)
@@ -4849,7 +4859,6 @@ def cmd_run_on(root: Path, argv: list[str]) -> int:
             task,
             kind="run-on",
             mode="plan",
-            skills=infer_skills(task) or ["pc-admin"],
             device=args.device,
             dry_run=True,
             needs_input_reason=reason,
@@ -4862,7 +4871,6 @@ def cmd_run_on(root: Path, argv: list[str]) -> int:
         task,
         kind="run-on",
         mode="plan",
-        skills=infer_skills(task) or ["pc-admin"],
         device=args.device,
         dry_run=args.dry_run,
         requires_approval=requires_write,
@@ -4915,7 +4923,6 @@ def cmd_setup(root: Path, argv: list[str]) -> int:
             task,
             kind="setup",
             mode="plan",
-            skills=SERVICE_SKILLS.get(service, ["pc-admin"]),
             device=args.target,
             service=service,
             dry_run=True,
@@ -4930,7 +4937,6 @@ def cmd_setup(root: Path, argv: list[str]) -> int:
         task,
         kind="setup",
         mode="plan",
-        skills=SERVICE_SKILLS.get(service, ["pc-admin"]),
         device=args.target,
         service=service,
         dry_run=forced_dry_run or args.dry_run,

@@ -22,6 +22,7 @@ if ($useMythosV2Candidate) {
     $mythosPromptSentinel = 'CYNTOX_MYTHOS_SYSTEM_PROMPT_V1'
 }
 $cyntoxHookScript = Join-Path $projectRoot 'scripts\cyntox_shell_hook.py'
+$cyntoxSkillHookScript = Join-Path $projectRoot 'scripts\cyntox_skill_hook.py'
 $cyntoxModel = 'cyntox'
 $cyntoxUpstreamModel = if ($env:OSLAB_CYNTOX_UPSTREAM_MODEL) { $env:OSLAB_CYNTOX_UPSTREAM_MODEL } else { 'cyntox:latest' }
 $cyntoxDeniedTools = @('display_image', 'web_fetch', 'web_search')
@@ -67,6 +68,60 @@ function Get-CyntOXOptionValue {
         }
     }
     return $value
+}
+
+function Get-CyntOXSkillOptions {
+    param([string[]]$Arguments)
+
+    $forwarded = @()
+    $explicitNames = @()
+    $enabled = $env:CYNTOX_AUTO_SKILLS -ne '0'
+    for ($index = 0; $index -lt $Arguments.Count; $index++) {
+        $argument = [string]$Arguments[$index]
+        if ($argument -eq '--') {
+            $forwarded += @($Arguments[$index..($Arguments.Count - 1)])
+            break
+        }
+        if ($argument -in @('-p', '--prompt', '-i', '--interactive', '--append-system-prompt')) {
+            $forwarded += $argument
+            if ($index + 1 -lt $Arguments.Count) {
+                $index++
+                $forwarded += [string]$Arguments[$index]
+            }
+            continue
+        }
+        if ($argument -eq '--no-auto-skills') {
+            $enabled = $false
+            continue
+        }
+        if ($argument -eq '--use-skill' -or $argument.StartsWith('--use-skill=')) {
+            if ($argument -eq '--use-skill') {
+                if ($index + 1 -ge $Arguments.Count) {
+                    throw '--use-skill requires an installed skill name. Run cyntox skills to list them.'
+                }
+                $index++
+                $name = [string]$Arguments[$index]
+            } else {
+                $name = $argument.Substring('--use-skill='.Length)
+            }
+            if ($name.Length -gt 100 -or $name -cnotmatch '^[a-z0-9]+(?:-[a-z0-9]+)*$') {
+                throw '--use-skill requires an installed skill name. Run cyntox skills to list them.'
+            }
+            if ($name -notin $explicitNames) {
+                $explicitNames += $name
+            }
+            if ($explicitNames.Count -gt 16) {
+                throw 'Choose at most 16 explicit skills.'
+            }
+            continue
+        }
+        $forwarded += $argument
+    }
+    return [pscustomobject]@{
+        Arguments = $forwarded
+        Enabled = $enabled
+        ExplicitNames = $explicitNames
+    }
 }
 
 function Ensure-SettingObject {
@@ -530,12 +585,43 @@ function Write-InteractiveSettings {
             )
         }
     )
+    $skillHookCommand = "& $(ConvertTo-PowerShellLiteral -Value $hookPythonPath) $(ConvertTo-PowerShellLiteral -Value $cyntoxSkillHookScript)"
+    $skillHooks = @()
+    if ($hooks.PSObject.Properties['UserPromptSubmit'] -and $null -ne $hooks.UserPromptSubmit) {
+        foreach ($group in @($hooks.UserPromptSubmit)) {
+            $otherHooks = @($group.hooks | Where-Object { $_.name -ne 'cyntox-auto-skills' })
+            if ($otherHooks.Count -gt 0) {
+                Set-SettingProperty -Object $group -Name 'hooks' -Value $otherHooks
+                $skillHooks += $group
+            }
+        }
+    }
+    $skillHooks += [pscustomobject]@{
+        hooks = @(
+            [pscustomobject]@{
+                type = 'command'
+                command = $skillHookCommand
+                shell = 'powershell'
+                timeout = 10000
+                name = 'cyntox-auto-skills'
+                description = 'Selects relevant installed skills locally for each user request.'
+                env = [pscustomobject]@{
+                    CYNTOX_AUTO_SKILLS = $(if ($cyntoxSkillOptions.Enabled) { '1' } else { '0' })
+                    CYNTOX_USE_SKILLS = ConvertTo-Json -InputObject @($cyntoxSkillOptions.ExplicitNames) -Compress
+                }
+            }
+        )
+    }
+    Set-SettingProperty -Object $hooks -Name 'UserPromptSubmit' -Value $skillHooks
 
     $output = Ensure-SettingObject -Parent $settings -Name 'output'
     Set-SettingProperty -Object $output -Name 'format' -Value 'text'
 
     $settings | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $DestinationPath -Encoding utf8
 }
+
+$cyntoxSkillOptions = Get-CyntOXSkillOptions -Arguments $CyntOXArgs
+$CyntOXArgs = @($cyntoxSkillOptions.Arguments)
 
 if (-not (Test-Path -LiteralPath $cyntoxCli)) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $bootstrap

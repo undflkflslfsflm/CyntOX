@@ -241,3 +241,69 @@ $endpoint = Start-CyntOXProxyIfAvailable -TargetBaseUrl 'http://127.0.0.1:11434/
 """
     )
     assert result == {"endpoint": "http://127.0.0.1:11434/v1"}
+
+
+def test_launcher_consumes_skill_options_without_forwarding_them() -> None:
+    result = run_launcher_functions(
+        """
+$env:CYNTOX_AUTO_SKILLS = ''
+$selected = Get-CyntOXSkillOptions -Arguments @('--no-auto-skills', '--use-skill', 'coding', '--use-skill=media-server', '--use-skill=coding', '-p', 'Debug code')
+$default = Get-CyntOXSkillOptions -Arguments @('-p', '--no-auto-skills')
+$literal = Get-CyntOXSkillOptions -Arguments @('--', '--no-auto-skills')
+@{ selected = $selected; default = $default; literal = $literal } | ConvertTo-Json -Depth 8 -Compress
+"""
+    )
+    assert result["selected"] == {
+        "Arguments": ["-p", "Debug code"],
+        "Enabled": False,
+        "ExplicitNames": ["coding", "media-server"],
+    }
+    assert result["default"]["Arguments"] == ["-p", "--no-auto-skills"]
+    assert result["default"]["Enabled"] is True
+    assert result["literal"]["Arguments"] == ["--", "--no-auto-skills"]
+
+
+def test_launcher_rejects_missing_or_unsafe_manual_skill_names() -> None:
+    result = run_launcher_functions(
+        """
+$failures = @()
+foreach ($arguments in @(@('--use-skill'), @('--use-skill=../coding'), @('--use-skill='))) {
+    try { $null = Get-CyntOXSkillOptions -Arguments $arguments; $failures += $false }
+    catch { $failures += $true }
+}
+@{ failures = $failures } | ConvertTo-Json -Compress
+"""
+    )
+    assert result["failures"] == [True, True, True]
+
+
+def test_launcher_generated_settings_keep_privacy_and_add_skill_hook(tmp_path: Path) -> None:
+    destination = str(tmp_path / "settings.json").replace("'", "''")
+    source = str(ROOT / ".cyntox" / "settings.json").replace("'", "''")
+    result = run_launcher_functions(
+        rf"""
+$projectRoot = '{str(ROOT).replace("'", "''")}'
+$cyntoxModel = 'cyntox'
+$cyntoxBaseUrl = 'http://127.0.0.1:11437/v1'
+$cyntoxUpstreamModel = 'cyntox:latest'
+$cyntoxDefaultMaxTokens = 8192
+$cyntoxMaxAllowedTokens = 32768
+$cyntoxDefaultNumCtx = 32768
+$cyntoxBannerPath = Join-Path $projectRoot '.cyntox/cyntox-banner.txt'
+$cyntoxDeniedTools = @('display_image', 'web_fetch', 'web_search')
+$cyntoxHookScript = Join-Path $projectRoot 'scripts/cyntox_shell_hook.py'
+$cyntoxSkillHookScript = Join-Path $projectRoot 'scripts/cyntox_skill_hook.py'
+$cyntoxSkillOptions = Get-CyntOXSkillOptions -Arguments @('--use-skill', 'coding')
+Write-InteractiveSettings -SourcePath '{source}' -DestinationPath '{destination}'
+Get-Content -Raw -LiteralPath '{destination}'
+"""
+    )
+    privacy = result["hooks"]["PreToolUse"][0]
+    assert privacy["matcher"] == "^run_shell_command$"
+    assert privacy["hooks"][0]["name"] == "cyntox-shell-privacy-guard"
+    selected = result["hooks"]["UserPromptSubmit"][0]["hooks"][0]
+    assert selected["name"] == "cyntox-auto-skills"
+    assert "cyntox_skill_hook.py" in selected["command"]
+    assert selected["env"]["CYNTOX_AUTO_SKILLS"] == "1"
+    assert json.loads(selected["env"]["CYNTOX_USE_SKILLS"]) == ["coding"]
+    assert result["memory"]["enableAutoSkill"] is False

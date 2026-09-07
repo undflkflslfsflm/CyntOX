@@ -50,6 +50,12 @@ More simple commands are `cyntox history`, `cyntox report`, `cyntox skills`, `cy
 
 The original forms, including `cyntox doctor`, `cyntox stress`, and `cyntox jobs show JOB_ID`, remain compatible. Unregistered checkouts can still use `.\cyntox.cmd` and the existing script launchers.
 
+## Skills are automatic
+
+Just describe the task. `cyntox run`, `cyntox ask`, and `cyntox council` automatically select relevant installed skills and load their instructions. For example, debugging Python selects coding guidance; planning Jellyfin selects media-server guidance. Selection is local, needs no extra model call, and shows a short notice when skills are chosen.
+
+You do not need to use `cyntox use`. That command remains an optional manual override. Add `--no-auto-skills` to a chat session, task, or council command to turn selection off. Automatic selection never creates or installs skills, enables internet access, or changes tool permissions. See [skill selection](docs/SKILLS.md) for details.
+
 ## Advanced and developer workflows
 
 Run a foreground council review:

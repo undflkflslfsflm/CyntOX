@@ -37,7 +37,7 @@ Detached jobs keep the terminal short by returning a job id. `cyntox show JOB_ID
 | `cyntox forget MEMORY_ID` | Archive a memory and remove it from search |
 | `cyntox memory` | Show the memory vault path |
 | `cyntox skills` | List available skills |
-| `cyntox use SKILL "TASK"` | Use a selected skill for a task |
+| `cyntox use SKILL "TASK"` | Optionally override automatic skill selection |
 | `cyntox devices` | List registered devices |
 | `cyntox privacy` | Show the privacy policy |
 | `cyntox audit` | List saved audits |
@@ -48,6 +48,20 @@ Detached jobs keep the terminal short by returning a job id. `cyntox show JOB_ID
 Replace `JOB_ID`, `MEMORY_ID`, and `SKILL` with real identifiers. Job and device operations never choose a target for you. Ordinary task text and search phrases need no quotes; quote paths containing spaces and text containing shell punctuation. Bare `audit` only lists existing audits; `cyntox audit start --repo "C:\path\to\repo"` explicitly starts one.
 
 Shortcuts accept the same options as their original commands. For example, `cyntox fix --quick` means `cyntox stress --fix --quick`; `cyntox show JOB_ID --json` means `cyntox jobs show JOB_ID --json`; and `cyntox airllm setup` means `cyntox model airllm setup`. Legacy commands and script launchers remain available.
+
+## Automatic skills
+
+Skills are selected automatically for each new interactive prompt and for queued or direct council tasks. Just describe what you need; CyntOX loads up to three relevant installed skills and reports the selection. General conversation can use no skills. New skills become discoverable through their `SKILL.md` name, description, and trigger metadata; archived or invalid files are excluded.
+
+```text
+cyntox run
+cyntox ask debug this Python function
+cyntox council plan my Jellyfin media server
+```
+
+Manual selection is optional: `cyntox use coding debug this function` chooses only `coding`. For interactive sessions or direct councils, use `--use-skill coding`. `--no-auto-skills` disables automatic selection, while an explicit manual selection still takes precedence. Jobs preserve their selected skill names and content hashes through retry/resume; changed or removed skill files fail visibly instead of silently changing a saved task's guidance. Start a fresh task to select against an updated library.
+
+Selection is deterministic and offline. It loads advisory instructions, not new permissions, and does not create or install skills. The shell privacy guard and existing skill-creation opt-in are unchanged. See [skill selection details](SKILLS.md).
 
 ## Advanced launcher and setup options
 

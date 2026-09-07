@@ -1307,6 +1307,12 @@ def test_bare_task_still_queues_a_job(tmp_path: Path, monkeypatch) -> None:
 def test_setup_jellyfin_is_dry_run_first(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     root = tmp_path / "repo"
     root.mkdir()
+    skill_dir = root / "skills" / "media-server"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: media-server\ndescription: Jellyfin media server setup.\n---\n\nVerify the media server.\n",
+        encoding="utf-8",
+    )
     (root / "devices.toml").write_text(
         """
         [devices.local-4090-pc]
@@ -1576,6 +1582,12 @@ def test_copy_council_artifacts_legacy_call_requires_one_unambiguous_run(
 def test_jobs_retry_clones_metadata(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
     root = tmp_path / "repo"
     root.mkdir()
+    skill_dir = root / "skills" / "research-notes"
+    skill_dir.mkdir(parents=True)
+    (skill_dir / "SKILL.md").write_text(
+        "---\nname: research-notes\ndescription: Research notes and summaries.\n---\n\nVerify sources.\n",
+        encoding="utf-8",
+    )
     monkeypatch.setattr(cyntox_cli, "start_worker", lambda *_args, **_kwargs: 1234)
     job_id, _, _ = cyntox_cli.create_job(
         root,

@@ -52,6 +52,12 @@ from oslab.resource_lease import (
     ResourceLeaseConflictError,
     active_resource_kind,
 )
+from oslab.skill_routing import (
+    SkillSelection,
+    render_selected_skills,
+    restore_selection,
+    select_skills,
+)
 
 try:
     from scripts import cyntox_memory, cyntox_privacy
@@ -384,6 +390,9 @@ def discover_skill_names(root: Path, skills_dir: str) -> list[str]:
         skill_md.parent.name
         for skill_md in base.glob("*/SKILL.md")
         if skill_md.parent.name != ARCHIVE_DIRNAME
+        and not skill_md.is_symlink()
+        and not skill_md.parent.is_symlink()
+        and skill_md.resolve().is_relative_to(base)
     )
 
 
@@ -549,18 +558,34 @@ def mirror_skill_archive_notes(
     return notes
 
 
-def load_repo_skills(root: Path, skills_dir: str, *, active_names: list[str] | None = None) -> str:
+def load_repo_skills(
+    root: Path,
+    skills_dir: str,
+    *,
+    active_names: list[str] | None = None,
+    selection: SkillSelection | None = None,
+) -> str:
+    if selection is not None:
+        return (
+            render_selected_skills(root, selection, skills_dir=skills_dir)
+            or "No repo-local skills selected for this task."
+        )
     base = ensure_project_child(root, root / skills_dir)
     if not base.exists() or not base.is_dir():
         return "No repo-local skills found."
 
     active_set = {slugify_skill_name(name) for name in (active_names or [])}
+    existing = set(discover_skill_names(root, skills_dir))
+    registry_entries = load_registry(root, skills_dir).get("skills", {})
     entries: list[str] = []
     active_blocks: list[str] = []
     for skill_md in sorted(base.glob("*/SKILL.md")):
-        if skill_md.parent.name == ARCHIVE_DIRNAME:
+        if skill_md.parent.name not in existing:
             continue
         skill_name = skill_md.parent.name
+        registry_entry = registry_entries.get(skill_name, {})
+        if isinstance(registry_entry, dict) and registry_entry.get("archived_at"):
+            continue
         try:
             text = skill_md.read_text(encoding="utf-8", errors="replace")
         except OSError:
@@ -2287,8 +2312,12 @@ def build_parser(default_model_profile: str = "single") -> argparse.ArgumentPars
         "--use-skill",
         action="append",
         default=[],
-        help="Mark and expose a repo-local skill as used; repeatable.",
+        help="Use only these installed skills, overriding automatic selection; repeatable.",
     )
+    parser.add_argument(
+        "--no-auto-skills", action="store_true", help="Disable automatic skill selection."
+    )
+    parser.add_argument("--skill-selection-json", help=argparse.SUPPRESS)
     parser.add_argument(
         "--archive-unused-days", type=int, help="Archive repo-local skills not used for N days."
     )
@@ -2487,6 +2516,10 @@ def _main_impl(argv: list[str] | None = None) -> int:
             child_args.insert(0, "--use-memory" if args.use_memory else "--no-memory")
             for skill_name in args.use_skill:
                 child_args[:0] = ["--use-skill", skill_name]
+            if args.no_auto_skills:
+                child_args.insert(0, "--no-auto-skills")
+            if args.skill_selection_json:
+                child_args[:0] = ["--skill-selection-json", args.skill_selection_json]
             if args.roles:
                 child_args[:0] = ["--roles", args.roles]
             else:
@@ -2558,6 +2591,30 @@ def _main_impl(argv: list[str] | None = None) -> int:
     if not task:
         parser.error('Provide a task, for example: cyntox council "review my Jellyfin plan"')
 
+    try:
+        if args.skill_selection_json:
+            if args.use_skill or args.no_auto_skills:
+                raise ValueError("Saved skill selection cannot be combined with skill overrides")
+            recorded_selection = json.loads(args.skill_selection_json)
+            if not isinstance(recorded_selection, dict):
+                raise ValueError("Saved skill selection must be an object")
+            selection = restore_selection(root, recorded_selection, skills_dir=args.skills_dir)
+        else:
+            selection = select_skills(
+                root,
+                task,
+                skills_dir=args.skills_dir,
+                explicit_names=args.use_skill or None,
+                enabled=not args.no_auto_skills,
+            )
+    except ValueError as error:
+        parser.error(str(error))
+    active_skill_names = selection.names
+    try:
+        repo_skills = load_repo_skills(root, args.skills_dir, selection=selection)
+    except ValueError as error:
+        parser.error(str(error))
+
     timestamp = args.run_id or dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", timestamp):
         parser.error("--run-id must be a safe 1-128 character identifier")
@@ -2590,6 +2647,8 @@ def _main_impl(argv: list[str] | None = None) -> int:
         "max_retries": args.max_retries,
         "allow_skill_create": args.allow_skill_create,
         "skills_dir": args.skills_dir,
+        "active_skills": active_skill_names,
+        "skill_selection": selection.as_dict(),
         "use_memory": args.use_memory,
         "memory_query": args.memory_query,
         "memory_limit": args.memory_limit,
@@ -2609,20 +2668,11 @@ def _main_impl(argv: list[str] | None = None) -> int:
     final_output = ""
     latest_score: float | None = None
     latest_scorecard: dict[str, object] | None = None
-    active_skill_names = [slugify_skill_name(name) for name in args.use_skill]
     try:
-        sync_skill_registry(root, args.skills_dir, save=not args.dry_run)
-        if active_skill_names:
-            if args.dry_run:
-                existing_names = set(discover_skill_names(root, args.skills_dir))
-                missing = [name for name in active_skill_names if name not in existing_names]
-                if missing:
-                    raise ValueError(f"Unknown repo-local skill(s): {', '.join(missing)}")
-            else:
-                mark_skills_used(root, args.skills_dir, active_skill_names)
+        if active_skill_names and not args.dry_run:
+            mark_skills_used(root, args.skills_dir, active_skill_names)
     except ValueError as error:
         parser.error(str(error))
-    repo_skills = load_repo_skills(root, args.skills_dir, active_names=active_skill_names)
     created_skills: list[str] = []
     if args.use_memory:
         query = args.memory_query or task
@@ -2658,6 +2708,7 @@ def _main_impl(argv: list[str] | None = None) -> int:
     print(f"Mode: {args.mode}", flush=True)
     print(f"Preset: {args.preset}", flush=True)
     print(f"Roles: {', '.join(roles)}", flush=True)
+    print(f"Skills ({selection.mode}): {', '.join(active_skill_names) or 'none'}", flush=True)
 
     for index, role_name in enumerate(roles, start=1):
         requested_provider = provider_for_role(args.model_profile, role_name)
@@ -3169,9 +3220,7 @@ def _main_impl(argv: list[str] | None = None) -> int:
                     prior_outputs.append(("skill_create_error", str(error)))
                 if created:
                     created_skills.append(str(created))
-                    repo_skills = load_repo_skills(
-                        root, args.skills_dir, active_names=active_skill_names
-                    )
+                    repo_skills = load_repo_skills(root, args.skills_dir, selection=selection)
                     privacy_scan = cyntox_privacy.scan_text("\n\n".join([task, rag_context]))
                     privacy_context = cyntox_privacy.render_policy_prompt(
                         privacy_policy, scan=privacy_scan
@@ -3402,7 +3451,7 @@ def _main_impl(argv: list[str] | None = None) -> int:
         final_output=final_output,
     )
     manifest["created_skills"] = created_skills
-    if active_skill_names:
+    if active_skill_names and not args.dry_run:
         record_skill_score(root, args.skills_dir, active_skill_names, latest_score)
     if args.save_memory and not args.dry_run and final_output:
         try:
