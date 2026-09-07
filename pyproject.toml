@@ -35,10 +35,10 @@ oslab = "oslab.cli:app"
 packages = ["oslab"]
 
 [tool.pytest.ini_options]
-addopts = "-ra --strict-config --strict-markers --basetemp=.oslab/pytest"
+addopts = "-ra --strict-config --strict-markers"
 testpaths = ["tests"]
 markers = [
-  "live: requires the local Ollama CyntOX endpoint",
+  "live: requires an explicitly enabled and prepared local model runtime",
   "qemu: requires --run-qemu, Docker, and the qemu fixture image",
 ]
 

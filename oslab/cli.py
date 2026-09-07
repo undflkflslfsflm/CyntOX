@@ -136,6 +136,7 @@ def build(
                     ArtifactStore(config.artifacts_root),
                     worktrees_root=config.runtime_root / "worktrees",
                     timeout=config.budget.wall_seconds,
+                    activity_root=config.project_root,
                 )
             )
         except Exception as exc:

@@ -7,7 +7,7 @@ CyntOX OS Lab is a local-only reliability-testing supervisor for owned OS target
 - `oslab/cli.py`: user-facing workflows for discovery, model probes, build/boot/test, reproduction, fuzzing, evaluation, training export, reporting, cleanup, and selftest.
 - `oslab/config.py`: loopback-only model/API configuration, local runtime paths, resource budgets, and guest-network policy.
 - `oslab/doctor.py`: bounded hardware, runtime, model, CyntOX Code, Docker/WSL/QEMU, disk, and target discovery.
-- `oslab/model/`: provider-neutral model interface, Ollama worker, CyntOX Code worker, fake provider, and runtime router.
+- `oslab/model/`: provider-neutral model interface, Ollama worker, CyntOX Code worker, isolated AirLLM worker client, fake provider, and runtime router.
 - `oslab/tools/broker.py`: capability-scoped typed tool broker. It owns path validation, worktree mutation, build/VM/test/fuzz/debug/report/memory/code tools, receipts, and denials.
 - `oslab/qemu/`: Docker-backed QEMU fixture runner with QMP, serial capture, timeouts, snapshots, and `-nic none`.
 - `oslab/fuzz/`: seedable fixture mutator, checkpointed campaigns, deduplication, replay, minimization, and protocol-state coverage.
@@ -33,7 +33,7 @@ The model never receives a generic host shell. CyntOX Code is configured project
 
 ## Runtime Strategy
 
-The measured resident Ollama CyntOX model is the normal worker. The router exposes `fast`, `deep`, `long`, and disabled `oracle` profiles; all enabled profiles currently use the same resident model to avoid duplicate loads. Optional AirLLM, KTransformers, vLLM, SGLang, llama.cpp, and LM Studio paths are documented but not enabled without local installation and benchmarks.
+The measured resident Ollama CyntOX model is the normal worker. The lab router exposes `fast`, `deep`, `long`, and disabled `oracle` profiles; all enabled lab profiles use the same resident model. Separately, council routing supports the tracked `single` profile and the explicit opt-in `hybrid-airllm` profile. The latter sends only `fact-checker` and `critic` to an authenticated, loopback-only child process for the pinned full-BF16 Qwythos checkpoint, serializes all GPU generation, and falls back visibly to CyntOX. It is not the default and cannot be promoted by the guided council smoke test. KTransformers, vLLM, SGLang, llama.cpp, and LM Studio remain unselected optional paths.
 
 ## Persistence
 
@@ -41,4 +41,4 @@ SQLite stores experiments, runs, transitions, events, tool calls, entities, mode
 
 ## Target Model
 
-The included fixture is the complete verified target. Real OS integration is through a target plugin/manifest that must describe source root, immutable base commit, build profiles, boot method, QEMU settings, readiness patterns, serial smoke success patterns, test transport, symbols, instrumentation, and cleanup. Manifest-backed real-target builds validate the manifest, create a detached disposable Git worktree at `source.base_commit`, run only the declared argv-vector build commands with the declared environment allowlist, and hash the declared build artifacts. Manifest-backed real-target smoke runs then boot those disposable-worktree artifacts through Docker-backed QEMU with `-nic none`, loopback QMP, serial readiness/success pattern checks, and content-addressed serial/stderr artifacts. Gate L remains blocked until an authorized real OS source path and existing build entry point are provided.
+The included fixtures and the pinned MIT-licensed `cyntox-open-os-target` are the verified targets. Real OS integration is through a target plugin/manifest that must describe source root, immutable base commit, build profiles, boot method, QEMU settings, readiness patterns, serial smoke success patterns, test transport, symbols, instrumentation, and cleanup. Manifest-backed real-target builds validate the manifest, create a detached disposable Git worktree at `source.base_commit`, run only the declared argv-vector build commands with the declared environment allowlist, and hash the declared build artifacts. Manifest-backed real-target smoke runs then boot those disposable-worktree artifacts through Docker-backed QEMU with `-nic none`, loopback QMP, serial readiness/success pattern checks, and content-addressed serial/stderr artifacts. Gate L is complete for the pinned open-source target; every additional target requires separate authorization, manifest validation, and evidence.

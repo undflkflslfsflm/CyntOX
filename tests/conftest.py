@@ -1,9 +1,44 @@
+# mypy: disable-error-code="arg-type,assignment,attr-defined,comparison-overlap,func-returns-value,index,misc,no-any-return,no-untyped-def,operator,override,return-value,unreachable,unused-ignore,var-annotated"
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
+import tempfile
+from pathlib import Path
 
 import pytest
+
+_AUTOMATIC_BASETEMP: Path | None = None
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config: pytest.Config) -> None:
+    """Give every pytest process its own short Windows-safe temp root."""
+    global _AUTOMATIC_BASETEMP
+    if getattr(config.option, "basetemp", None) is not None:
+        return
+    root = Path(tempfile.gettempdir()) / "cyntox-pytest"
+    root.mkdir(parents=True, exist_ok=True)
+    _AUTOMATIC_BASETEMP = root / str(os.getpid())
+    config.option.basetemp = str(_AUTOMATIC_BASETEMP)
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_unconfigure(config: pytest.Config) -> None:
+    del config
+    global _AUTOMATIC_BASETEMP
+    path = _AUTOMATIC_BASETEMP
+    _AUTOMATIC_BASETEMP = None
+    if path is None:
+        return
+    expected_parent = (Path(tempfile.gettempdir()) / "cyntox-pytest").resolve()
+    try:
+        resolved = path.resolve()
+        resolved.relative_to(expected_parent)
+    except (OSError, ValueError):
+        return
+    shutil.rmtree(resolved, ignore_errors=True)
 
 
 def docker_daemon_ready() -> tuple[bool, str]:

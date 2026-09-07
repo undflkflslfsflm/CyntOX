@@ -10,17 +10,23 @@ import httpx
 from jsonschema import ValidationError, validate
 
 from oslab.config import ModelConfig
+from oslab.generation_lease import gpu_generation_lease
 from oslab.model.base import ModelProvider
 from oslab.schemas import ModelIdentity, ModelResponse, ModelUsage, utc_now
 
 
 class OllamaProvider(ModelProvider):
     def __init__(
-        self, config: ModelConfig, transport: httpx.AsyncBaseTransport | None = None
+        self,
+        config: ModelConfig,
+        transport: httpx.AsyncBaseTransport | None = None,
+        *,
+        manage_gpu_lease: bool = True,
     ) -> None:
         self.config = config
         self._transport = transport
         self._identity: ModelIdentity | None = None
+        self.manage_gpu_lease = manage_gpu_lease
 
     async def probe(self) -> ModelIdentity:
         async with httpx.AsyncClient(
@@ -86,10 +92,17 @@ class OllamaProvider(ModelProvider):
         if schema is not None:
             request["format"] = schema
             request["think"] = False
+        effective_timeout = self.config.timeout_seconds if timeout is None else timeout
+        if effective_timeout <= 0:
+            raise TimeoutError("Ollama completion deadline already expired")
         started = utc_now()
-        async with httpx.AsyncClient(
-            timeout=timeout or self.config.timeout_seconds, transport=self._transport
-        ) as client:
+        async with (
+            gpu_generation_lease(
+                enabled=self.manage_gpu_lease,
+                timeout=min(60.0, effective_timeout),
+            ),
+            httpx.AsyncClient(timeout=effective_timeout, transport=self._transport) as client,
+        ):
             response = await self._request_with_retries(
                 client, "POST", f"{self.config.endpoint}/api/chat", json=request
             )
@@ -141,6 +154,10 @@ class OllamaProvider(ModelProvider):
             "options": options,
         }
         async with (
+            gpu_generation_lease(
+                enabled=self.manage_gpu_lease,
+                timeout=min(60.0, self.config.timeout_seconds),
+            ),
             httpx.AsyncClient(
                 timeout=self.config.timeout_seconds, transport=self._transport
             ) as client,

@@ -1,4 +1,4 @@
-# Scorer v1
+# Scorer v2
 
 Score the final answer against the user's task.
 
@@ -9,6 +9,6 @@ Rubric:
 - specificity: avoids vague claims and states mechanism, assumptions, and limits
 - honesty: separates verified facts from assumptions and unknowns
 
-Return:
-1. A compact scorecard JSON object on its own line with keys `correctness`, `usefulness`, `safety`, `specificity`, `honesty`, `overall`, and `must_fix`.
-2. Three concise bullets explaining the biggest fixes needed.
+Evidence focus: score only the supplied candidate and bind the verdict to its supplied SHA-256. A score of 9 or higher requires no known defect; any contradiction, invented action, or non-empty `must_fix` is below passing.
+
+The enclosing role prompt defines the exact machine-readable output contract.

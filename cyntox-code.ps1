@@ -11,7 +11,16 @@ $cyntoxHome = Join-Path $projectRoot '.oslab\cyntox-code-home'
 $interactiveWorkspace = Join-Path $projectRoot '.oslab\cyntox-code-workspace'
 $interactiveCyntOXConfigDir = Join-Path $interactiveWorkspace $upstreamConfigDirName
 $interactiveSettingsPath = Join-Path $interactiveCyntOXConfigDir 'settings.json'
-$mythosPromptPath = Join-Path $projectRoot 'prompts\mythos-system.md'
+$useMythosV2Candidate = $env:CYNTOX_MYTHOS_V2_CANDIDATE -eq '1'
+if ($useMythosV2Candidate) {
+    $mythosPromptPath = Join-Path $projectRoot 'prompts\mythos-system.md'
+    $mythosPromptVersion = 'v2'
+    $mythosPromptSentinel = 'CYNTOX_MYTHOS_SYSTEM_PROMPT_V2'
+} else {
+    $mythosPromptPath = Join-Path $projectRoot 'prompts\archive\mythos-system-v1.md'
+    $mythosPromptVersion = 'v1'
+    $mythosPromptSentinel = 'CYNTOX_MYTHOS_SYSTEM_PROMPT_V1'
+}
 $cyntoxHookScript = Join-Path $projectRoot 'scripts\cyntox_shell_hook.py'
 $cyntoxModel = 'cyntox'
 $cyntoxUpstreamModel = if ($env:OSLAB_CYNTOX_UPSTREAM_MODEL) { $env:OSLAB_CYNTOX_UPSTREAM_MODEL } else { 'cyntox:latest' }
@@ -39,6 +48,25 @@ function Test-CyntOXFlag {
         }
     }
     return $false
+}
+
+function Get-CyntOXOptionValue {
+    param(
+        [string[]]$Arguments,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $value = $null
+    for ($index = 0; $index -lt $Arguments.Count; $index++) {
+        $argument = [string]$Arguments[$index]
+        if ($argument -eq $Name -and $index + 1 -lt $Arguments.Count) {
+            $value = [string]$Arguments[$index + 1]
+            $index++
+        } elseif ($argument.StartsWith("$Name=")) {
+            $value = $argument.Substring($Name.Length + 1)
+        }
+    }
+    return $value
 }
 
 function Ensure-SettingObject {
@@ -101,6 +129,77 @@ function Get-CyntOXNumCtx {
     return Get-BoundedInteger -Raw $env:CYNTOX_PROXY_NUM_CTX -Default $cyntoxDefaultNumCtx -Minimum 1024 -Maximum 262144
 }
 
+function Get-CyntOXTextSha256 {
+    param([Parameter(Mandatory = $true)][string]$Value)
+
+    $algorithm = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $bytes = [System.Text.Encoding]::UTF8.GetBytes($Value)
+        $digest = $algorithm.ComputeHash($bytes)
+        return (($digest | ForEach-Object { $_.ToString('x2') }) -join '')
+    } finally {
+        $algorithm.Dispose()
+    }
+}
+
+function Get-CyntOXCanonicalPrompt {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "Canonical Mythos prompt is missing: $Path"
+    }
+    $prompt = (Get-Content -LiteralPath $Path -Raw -Encoding UTF8).Trim()
+    if ([string]::IsNullOrWhiteSpace($prompt)) {
+        throw "Canonical Mythos prompt is empty: $Path"
+    }
+    return $prompt
+}
+
+function Merge-CyntOXSystemPromptArguments {
+    param(
+        [string[]]$Arguments,
+        [Parameter(Mandatory = $true)][string]$RequiredPrompt,
+        [Parameter(Mandatory = $true)][string]$Sentinel
+    )
+
+    $remaining = [System.Collections.Generic.List[string]]::new()
+    $userPrompts = [System.Collections.Generic.List[string]]::new()
+    $escapedSentinel = [Regex]::Escape($Sentinel)
+    $blockPattern = "(?s)(?:/no_think\s*)?\[$escapedSentinel\]\s*.*?\s*\[/$escapedSentinel\]"
+
+    for ($index = 0; $index -lt $Arguments.Count; $index++) {
+        $argument = [string]$Arguments[$index]
+        $value = $null
+        if ($argument -eq '--append-system-prompt') {
+            if ($index + 1 -lt $Arguments.Count) {
+                $value = [string]$Arguments[$index + 1]
+                $index++
+            } else {
+                $value = ''
+            }
+        } elseif ($argument.StartsWith('--append-system-prompt=')) {
+            $value = $argument.Substring('--append-system-prompt='.Length)
+        } else {
+            $remaining.Add($argument)
+            continue
+        }
+
+        $cleaned = [Regex]::Replace([string]$value, $blockPattern, '')
+        $cleaned = $cleaned.Replace("[$Sentinel]", '').Replace("[/$Sentinel]", '').Trim()
+        if ($cleaned) {
+            $userPrompts.Add($cleaned)
+        }
+    }
+
+    $combinedPrompt = $RequiredPrompt.Trim()
+    if ($userPrompts.Count -gt 0) {
+        $combinedPrompt += "`n`n" + ($userPrompts -join "`n`n")
+    }
+    $remaining.Add('--append-system-prompt')
+    $remaining.Add($combinedPrompt)
+    return $remaining.ToArray()
+}
+
 function Reset-TerminalInputModes {
     try {
         $esc = [char]27
@@ -130,7 +229,9 @@ function Test-CyntOXProxyHealth {
 function Test-CyntOXProxyConfigCurrent {
     param(
         [Parameter(Mandatory = $true)]$Health,
-        [Parameter(Mandatory = $true)][string]$TargetBaseUrl
+        [Parameter(Mandatory = $true)][string]$TargetBaseUrl,
+        [Parameter(Mandatory = $true)][string]$ExpectedPromptVersion,
+        [Parameter(Mandatory = $true)][string]$ExpectedPromptSha256
     )
 
     $expectedMaxTokens = Get-CyntOXMaxTokens
@@ -143,7 +244,9 @@ function Test-CyntOXProxyConfigCurrent {
         [int]$Health.max_tokens -eq $expectedMaxTokens -and
         [int]$Health.num_ctx -eq $expectedNumCtx -and
         [string]$Health.upstream_model -eq [string]$cyntoxUpstreamModel -and
-        ([string]$Health.target_base).TrimEnd('/') -eq $expectedTarget
+        ([string]$Health.target_base).TrimEnd('/') -eq $expectedTarget -and
+        [string]$Health.prompt_version -eq $ExpectedPromptVersion -and
+        ([string]$Health.prompt_sha256).ToLowerInvariant() -eq $ExpectedPromptSha256.ToLowerInvariant()
     )
 }
 
@@ -250,7 +353,7 @@ function Start-CyntOXProxyIfAvailable {
     $healthUrl = "http://127.0.0.1:$cyntoxProxyPort/__cyntox_proxy_health"
     $health = Get-CyntOXProxyHealth -HealthUrl $healthUrl
     if ($null -ne $health -and $health.ok -eq $true) {
-        if (Test-CyntOXProxyConfigCurrent -Health $health -TargetBaseUrl $TargetBaseUrl) {
+        if (Test-CyntOXProxyConfigCurrent -Health $health -TargetBaseUrl $TargetBaseUrl -ExpectedPromptVersion $mythosPromptVersion -ExpectedPromptSha256 $mythosPromptHash) {
             return $cyntoxProxyBaseUrl
         }
         Stop-StaleCyntOXProxyOnPort -Port $cyntoxProxyPort
@@ -288,8 +391,13 @@ function Start-CyntOXProxyIfAvailable {
     ) -WindowStyle Hidden -RedirectStandardOutput $proxyLogPath -RedirectStandardError $proxyErrPath | Out-Null
 
     for ($attempt = 0; $attempt -lt 50; $attempt++) {
-        if (Test-CyntOXProxyHealth -HealthUrl $healthUrl) {
-            return $cyntoxProxyBaseUrl
+        $startedHealth = Get-CyntOXProxyHealth -HealthUrl $healthUrl
+        if ($null -ne $startedHealth -and $startedHealth.ok -eq $true) {
+            if (Test-CyntOXProxyConfigCurrent -Health $startedHealth -TargetBaseUrl $TargetBaseUrl -ExpectedPromptVersion $mythosPromptVersion -ExpectedPromptSha256 $mythosPromptHash) {
+                return $cyntoxProxyBaseUrl
+            }
+            Stop-StaleCyntOXProxyOnPort -Port $cyntoxProxyPort
+            break
         }
         Start-Sleep -Milliseconds 100
     }
@@ -456,10 +564,6 @@ if (-not $nodePath) {
 $nodeDir = Split-Path -Parent $nodePath
 $env:PATH = "$nodeDir;$env:PATH"
 $isMetadataOnly = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-v', '--version', '-h', '--help')
-if ($isMetadataOnly) {
-    & $nodePath $cyntoxCli @CyntOXArgs
-    exit $LASTEXITCODE
-}
 
 if (-not $env:OSLAB_OLLAMA_API_KEY) {
     $env:OSLAB_OLLAMA_API_KEY = 'ollama-local-no-auth'
@@ -476,7 +580,24 @@ if (-not $env:CYNTOX_PROXY_MAX_TOKENS) {
 if (-not $env:CYNTOX_PROXY_NUM_CTX) {
     $env:CYNTOX_PROXY_NUM_CTX = [string]$cyntoxDefaultNumCtx
 }
+
+if ($isMetadataOnly) {
+    $cyntoxBaseUrl = $cyntoxProxyBaseUrl
+    New-Item -ItemType Directory -Force -Path $runtimeDir | Out-Null
+    New-Item -ItemType Directory -Force -Path $cyntoxHome | Out-Null
+    New-Item -ItemType Directory -Force -Path $interactiveCyntOXConfigDir | Out-Null
+    $userSettingsPath = Join-Path $cyntoxHome 'settings.json'
+    if (-not (Test-Path -LiteralPath $userSettingsPath)) {
+        '{ "$version": 4 }' | Set-Content -LiteralPath $userSettingsPath -Encoding utf8
+    }
+    Write-InteractiveSettings -SourcePath (Join-Path $projectRoot '.cyntox\settings.json') -DestinationPath $interactiveSettingsPath
+    & $nodePath $cyntoxCli @CyntOXArgs
+    exit $LASTEXITCODE
+}
+
 $env:OPENAI_API_KEY = $env:OSLAB_OLLAMA_API_KEY
+$mythosSystemPrompt = Get-CyntOXCanonicalPrompt -Path $mythosPromptPath
+$mythosPromptHash = Get-CyntOXTextSha256 -Value $mythosSystemPrompt
 Start-LocalOllamaIfNeeded -TargetBaseUrl $upstreamOllamaBaseUrl
 $cyntoxBaseUrl = Start-CyntOXProxyIfAvailable -TargetBaseUrl $upstreamOllamaBaseUrl
 $env:OPENAI_BASE_URL = $cyntoxBaseUrl
@@ -501,7 +622,6 @@ $hasMaxToolCalls = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--max-tool-c
 $hasApprovalMode = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--approval-mode')
 $hasYolo = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-y', '--yolo')
 $hasExcludeTools = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--exclude-tools')
-$hasAppendSystemPrompt = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--append-system-prompt')
 $hasIncludeDirectories = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--include-directories', '--add-dir')
 $hasAuthType = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--auth-type')
 $hasModel = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-m', '--model')
@@ -510,14 +630,22 @@ $hasOpenAiBaseUrl = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('--openai-ba
 $hasPrompt = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-p', '--prompt')
 $hasInteractive = Test-CyntOXFlag -Arguments $CyntOXArgs -Names @('-i', '--interactive')
 $shouldResetTerminalModes = (-not $hasPrompt) -or $hasInteractive
-
-$mythosSystemPrompt = if (Test-Path -LiteralPath $mythosPromptPath) {
-    (Get-Content -LiteralPath $mythosPromptPath -Raw).Trim()
+$effectiveOpenAiBaseUrl = if ($hasOpenAiBaseUrl) {
+    Get-CyntOXOptionValue -Arguments $CyntOXArgs -Name '--openai-base-url'
 } else {
-    'You are Mythos, the CyntOX operating persona on the local CyntOX model. Be direct, factual, and engineering-rigorous.'
+    $cyntoxBaseUrl
 }
+$useDirectGpuLease = (
+    $effectiveOpenAiBaseUrl -and
+    (ConvertTo-OpenAIOrigin -BaseUrl $effectiveOpenAiBaseUrl) -eq
+        (ConvertTo-OpenAIOrigin -BaseUrl $upstreamOllamaBaseUrl)
+)
+
 $launcherSystemPrompt = @"
+/no_think
+[$mythosPromptSentinel]
 $mythosSystemPrompt
+[/$mythosPromptSentinel]
 
 Launcher context:
 - You are running from the repo-local cyntox-code.ps1 human-use launcher on the local cyntox model.
@@ -534,6 +662,7 @@ Launcher context:
 - If blocked by privacy, give the safest offline answer and state the exact extra authorization/domain needed.
 "@
 $launcherSystemPrompt = $launcherSystemPrompt.Trim()
+$CyntOXArgs = @(Merge-CyntOXSystemPromptArguments -Arguments $CyntOXArgs -RequiredPrompt $launcherSystemPrompt -Sentinel $mythosPromptSentinel)
 
 $finalArgs = @()
 if (-not $hasAuthType) {
@@ -566,12 +695,6 @@ if (-not $hasExcludeTools) {
 if (-not $hasIncludeDirectories) {
     $finalArgs += @('--include-directories', $projectRoot)
 }
-if (-not $hasAppendSystemPrompt) {
-    $finalArgs += @(
-        '--append-system-prompt',
-        $launcherSystemPrompt
-    )
-}
 $finalArgs += $CyntOXArgs
 
 if ($shouldResetTerminalModes) {
@@ -579,8 +702,18 @@ if ($shouldResetTerminalModes) {
 }
 Push-Location -LiteralPath $interactiveWorkspace
 try {
-    & $nodePath $cyntoxCli @finalArgs
-    $exitCode = $LASTEXITCODE
+    if ($useDirectGpuLease) {
+        $leasePython = Get-CyntOXProxyPython
+        $leaseWrapper = Join-Path $projectRoot 'scripts\cyntox_gpu_lease_exec.py'
+        if (-not $leasePython -or -not (Test-Path -LiteralPath $leaseWrapper -PathType Leaf)) {
+            throw 'Direct Ollama fallback requires the CyntOX GPU lease helper.'
+        }
+        & $leasePython $leaseWrapper -- $nodePath $cyntoxCli @finalArgs
+        $exitCode = $LASTEXITCODE
+    } else {
+        & $nodePath $cyntoxCli @finalArgs
+        $exitCode = $LASTEXITCODE
+    }
 } finally {
     if ($shouldResetTerminalModes) {
         Reset-TerminalInputModes

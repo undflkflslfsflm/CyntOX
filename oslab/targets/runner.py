@@ -15,6 +15,7 @@ from oslab.policy import validate_qemu_network
 from oslab.process_runner import ProcessResult, SafeProcessRunner
 from oslab.qemu.backend import IMAGE, DockerQemuBackend
 from oslab.qemu.qmp import QmpClient, QmpError
+from oslab.resource_lease import ResourceActivityLease
 from oslab.schemas import Outcome, utc_now
 from oslab.targets.manifest import LoadedTargetManifest, load_target_manifest
 
@@ -47,6 +48,28 @@ async def run_manifest_build(
     *,
     worktrees_root: Path,
     timeout: float = 180.0,
+    activity_root: Path | None = None,
+) -> dict[str, Any]:
+    root = activity_root or artifacts.root.parent
+    with ResourceActivityLease(root, "build"):
+        return await _run_manifest_build(
+            repo,
+            profile_name,
+            runner,
+            artifacts,
+            worktrees_root=worktrees_root,
+            timeout=timeout,
+        )
+
+
+async def _run_manifest_build(
+    repo: Path,
+    profile_name: str,
+    runner: SafeProcessRunner,
+    artifacts: ArtifactStore,
+    *,
+    worktrees_root: Path,
+    timeout: float,
 ) -> dict[str, Any]:
     loaded = load_target_manifest(repo)
     profile = loaded.manifest.build.profiles.get(profile_name)
@@ -213,6 +236,7 @@ async def run_manifest_smoke(
         artifacts,
         worktrees_root=worktrees_root,
         timeout=timeout,
+        activity_root=lab_root,
     )
     if not build["ok"]:
         return {
@@ -246,6 +270,29 @@ async def run_manifest_smoke(
 
 
 async def _run_manifest_qemu_smoke(
+    loaded: LoadedTargetManifest,
+    qemu_args: list[str],
+    build_worktree: Path,
+    serial_input: str,
+    success_patterns: list[str],
+    artifacts: ArtifactStore,
+    lab_root: Path,
+    timeout: float,
+) -> dict[str, Any]:
+    with ResourceActivityLease(lab_root, "qemu"):
+        return await _run_manifest_qemu_smoke_inner(
+            loaded,
+            qemu_args,
+            build_worktree,
+            serial_input,
+            success_patterns,
+            artifacts,
+            lab_root,
+            timeout,
+        )
+
+
+async def _run_manifest_qemu_smoke_inner(
     loaded: LoadedTargetManifest,
     qemu_args: list[str],
     build_worktree: Path,

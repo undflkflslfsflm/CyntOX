@@ -36,12 +36,12 @@ Overall status: complete. The local framework, fixture proof, model integration,
 
 - Native Windows QEMU is not installed. Verified QEMU uses Docker/WSL2 and TCG.
 - A real open-source OS target is available in the bounded discovery scope: `C:\Users\vikto\Documents\ChatGPT\cyntox-open-os-target`.
-- `oracle` routing is disabled because no compatible larger/offloaded model files and runtime were detected.
+- `oracle` routing remains disabled because no backend has been qualified for that lab profile.
 
-## Optional and Not Installed
+## Optional Runtimes
 
-- AirLLM, KTransformers, llama.cpp, vLLM, SGLang, and LM Studio are not installed as local commands or Python packages.
-- Current upstream docs were checked and summarized in `docs/MODEL_RUNTIME_REPORT.md`; none of these optional runtimes were used as proof because no local installation was available to benchmark.
+- AirLLM is now prepared in a separately locked Python 3.12 environment with the pinned full-BF16 Qwythos checkpoint. It was not part of the historical OS-lab proof, and its current implementation binding still requires post-freeze live requalification before it can be relied upon.
+- KTransformers, llama.cpp, vLLM, SGLang, and LM Studio remain unselected. Current status and evidence boundaries are summarized in `docs/MODEL_RUNTIME_REPORT.md` and `docs/AIRLLM_QWYTHOS.md`.
 
 ## Gate L Completed With Open-Source Target
 

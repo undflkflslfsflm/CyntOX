@@ -80,6 +80,40 @@ SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
     ("github-fine-grained-token", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b")),
     ("private-key", re.compile(r"-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----")),
 )
+SECRET_ASSIGNMENT_RE = re.compile(
+    r"\b(password|api[_-]?key|secret|token)\s*[:=]\s*"
+    r"(?:\"[^\"\r\n]*\"|'[^'\r\n]*'|[^\s,;]+)",
+    re.IGNORECASE,
+)
+PRIVATE_KEY_BLOCK_RE = re.compile(
+    r"-----BEGIN (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----.*?"
+    r"-----END (?:RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----",
+    re.DOTALL,
+)
+
+# Specialist roles must be able to negate a hostile action or identify it as
+# untrusted evidence without the boundary mistaking that advice for an action.
+# These expressions are anchored at the dangerous phrase so an unrelated early
+# disclaimer cannot make later operative wording safe.
+SPECIALIST_NEGATION_PREFIX_RE = re.compile(
+    r"\b(?:do not|don't|never|must not|should not|cannot|can't)\b(?P<scope>.{0,120})\Z",
+    re.IGNORECASE | re.DOTALL,
+)
+SPECIALIST_REFUSAL_PREFIX_RE = re.compile(
+    r"\b(?:refuse(?:s|d)?|decline(?:s|d)?|reject(?:s|ed)?|block(?:s|ed)?)\b"
+    r"(?P<scope>.{0,120})\Z",
+    re.IGNORECASE | re.DOTALL,
+)
+SPECIALIST_REPORTING_PREFIX_RE = re.compile(
+    r"\b(?:document|file|prompt|text|input|message|request|instruction)\b"
+    r".{0,64}\b(?:attempts?|tries?|contains?\s+(?:an?\s+)?(?:request|instruction))\b"
+    r".{0,80}\Z",
+    re.IGNORECASE | re.DOTALL,
+)
+SPECIALIST_SCOPE_REVERSAL_RE = re.compile(
+    r"\b(?:but|however|instead|then|yet|hesitate|fail|forget|avoid|stop)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -121,6 +155,32 @@ def extract_urls(text: str) -> list[str]:
     return list(dict.fromkeys(match.group(0).rstrip(".,;") for match in URL_RE.finditer(text)))
 
 
+def sanitize_url_for_telemetry(url: str) -> str:
+    parsed = urlparse(url)
+    host = parsed.hostname or "invalid-host"
+    if ":" in host and not host.startswith("["):
+        host = f"[{host}]"
+    try:
+        port = f":{parsed.port}" if parsed.port is not None else ""
+    except ValueError:
+        port = ""
+    return f"{parsed.scheme.casefold()}://{host.casefold()}{port}"
+
+
+def redact_sensitive_text(text: str) -> str:
+    """Return an artifact-safe copy while leaving the in-memory model input untouched."""
+    redacted = PRIVATE_KEY_BLOCK_RE.sub("[REDACTED:private-key]", text)
+    redacted = SECRET_ASSIGNMENT_RE.sub(
+        lambda match: f"{match.group(1)}=[REDACTED]",
+        redacted,
+    )
+    for name, pattern in SECRET_PATTERNS:
+        if name in {"password-assignment", "token-assignment", "private-key"}:
+            continue
+        redacted = pattern.sub(f"[REDACTED:{name}]", redacted)
+    return URL_RE.sub(lambda match: sanitize_url_for_telemetry(match.group(0)), redacted)
+
+
 def url_domain(url: str) -> str:
     parsed = urlparse(url)
     return canonical_domain(parsed.hostname or url)
@@ -160,8 +220,39 @@ def secret_signals(text: str) -> list[str]:
     return [name for name, pattern in SECRET_PATTERNS if pattern.search(text)]
 
 
+def _specialist_match_is_advisory(prefix: str) -> bool:
+    for pattern in (SPECIALIST_NEGATION_PREFIX_RE, SPECIALIST_REFUSAL_PREFIX_RE):
+        match = pattern.search(prefix)
+        if match is not None and SPECIALIST_SCOPE_REVERSAL_RE.search(match.group("scope")) is None:
+            return True
+    return SPECIALIST_REPORTING_PREFIX_RE.search(prefix) is not None
+
+
+def unsafe_specialist_output_signals(text: str) -> dict[str, list[str]]:
+    """Classify unsafe specialist output without rejecting defensive reporting.
+
+    Concrete secret shapes always fail closed. Injection-like phrases are safe
+    only when the same clause directly negates/refuses them or identifies them
+    as an attempted/requested hostile action. This deliberately does not weaken
+    the general-purpose input scanner used for warnings and policy rendering.
+    """
+
+    unsafe_injection: list[str] = []
+    for name, pattern in PROMPT_INJECTION_PATTERNS:
+        for match in pattern.finditer(text):
+            clause_start = max(text.rfind(mark, 0, match.start()) for mark in "\n.!?;") + 1
+            prefix = text[clause_start : match.start()][-160:]
+            if not _specialist_match_is_advisory(prefix):
+                unsafe_injection.append(name)
+                break
+    return {
+        "prompt_injection_signals": list(dict.fromkeys(unsafe_injection)),
+        "secret_signals": secret_signals(text),
+    }
+
+
 def scan_text(text: str) -> dict[str, Any]:
-    urls = extract_urls(text)
+    urls = list(dict.fromkeys(sanitize_url_for_telemetry(url) for url in extract_urls(text)))
     public_urls = [url for url in urls if not is_local_domain(url_domain(url))]
     return {
         "prompt_injection_signals": prompt_injection_signals(text),

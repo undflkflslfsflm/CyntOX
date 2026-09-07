@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from oslab.generation_lease import gpu_generation_lease
 from oslab.model.base import ModelProvider
 from oslab.process_runner import ProcessResult, SafeProcessRunner
 from oslab.schemas import ModelIdentity, ModelResponse, ModelUsage, utc_now
@@ -30,6 +31,7 @@ class CyntoxCodeWorker(ModelProvider):
         *,
         retry_attempts: int = 3,
         retry_backoff_seconds: float = 1.0,
+        manage_gpu_lease: bool = True,
     ) -> None:
         self.project_root = project_root.resolve()
         suffix = ".cmd" if os.name == "nt" else ""
@@ -53,6 +55,7 @@ class CyntoxCodeWorker(ModelProvider):
         self.runner = runner or SafeProcessRunner()
         self.retry_attempts = retry_attempts
         self.retry_backoff_seconds = retry_backoff_seconds
+        self.manage_gpu_lease = manage_gpu_lease
         self._identity: ModelIdentity | None = None
         self.last_events: list[dict[str, Any]] = []
         self.worker_workspace = self.project_root / ".oslab" / "cyntox-code-smoke-workspace"
@@ -114,22 +117,29 @@ class CyntoxCodeWorker(ModelProvider):
         ]
         if schema is not None:
             argv.extend(["--json-schema", json.dumps(schema, separators=(",", ":"))])
+        effective_timeout = 120.0 if timeout is None else timeout
+        if effective_timeout <= 0:
+            raise TimeoutError("CyntOX Code completion deadline already expired")
         started = utc_now()
-        result = await self._run_with_retries(
-            argv,
-            cwd=self.worker_workspace,
-            timeout=timeout or 120,
-            env={
-                "OPENAI_API_KEY": api_key,
-                "OPENAI_BASE_URL": base_url,
-                "OSLAB_PYTHON": sys.executable,
-                "PATH": self._path_env(),
-                "Q" + "WEN_HOME": str(self.project_root / ".oslab" / "cyntox-code-home"),
-                "Q" + "WEN_RUNTIME_DIR": str(self.project_root / ".oslab" / "cyntox-code"),
-                "Q" + "WEN_CODE_SUPPRESS_YOLO_WARNING": "1",
-                "OSLAB_SEED": str(seed) if seed is not None else "",
-            },
-        )
+        async with gpu_generation_lease(
+            enabled=self.manage_gpu_lease,
+            timeout=min(60.0, effective_timeout),
+        ):
+            result = await self._run_with_retries(
+                argv,
+                cwd=self.worker_workspace,
+                timeout=effective_timeout,
+                env={
+                    "OPENAI_API_KEY": api_key,
+                    "OPENAI_BASE_URL": base_url,
+                    "OSLAB_PYTHON": sys.executable,
+                    "PATH": self._path_env(),
+                    "Q" + "WEN_HOME": str(self.project_root / ".oslab" / "cyntox-code-home"),
+                    "Q" + "WEN_RUNTIME_DIR": str(self.project_root / ".oslab" / "cyntox-code"),
+                    "Q" + "WEN_CODE_SUPPRESS_YOLO_WARNING": "1",
+                    "OSLAB_SEED": str(seed) if seed is not None else "",
+                },
+            )
         ended = utc_now()
         if result.timed_out:
             raise TimeoutError("CyntOX Code worker exceeded the external wall-clock budget")

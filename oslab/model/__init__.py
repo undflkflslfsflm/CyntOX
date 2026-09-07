@@ -1,3 +1,4 @@
+from oslab.model.airllm import AirLlmProvider
 from oslab.model.base import ModelProvider
 from oslab.model.cyntox_code import CyntoxCodeWorker
 from oslab.model.fake import FakeModelProvider
@@ -6,6 +7,7 @@ from oslab.model.router import ModelRouter, ResourceScheduler, RuntimeProfile, W
 
 __all__ = [
     "FakeModelProvider",
+    "AirLlmProvider",
     "ModelProvider",
     "ModelRouter",
     "OllamaProvider",

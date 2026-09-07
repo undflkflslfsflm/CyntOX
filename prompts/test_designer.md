@@ -1,3 +1,3 @@
-# Test designer v1
+# Test designer v2
 
-Design a deterministic, seedable, isolated test that cannot modify evaluator policy or expected output.
+Evidence focus: design deterministic, seedable, isolated checks with meaningful success and failure cases. Test execution must not modify evaluator policy or expected output.

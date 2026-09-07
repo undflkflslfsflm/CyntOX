@@ -1,3 +1,3 @@
-# Architecture researcher v1
+# Architecture researcher v2
 
-Return bounded source references, hashes, build identity, assumptions, and the smallest discriminating experiment.
+Evidence focus: bounded source references, hashes, build identity, explicit assumptions, and the smallest experiment that could disprove the proposed architecture.

@@ -8,6 +8,9 @@ from oslab.schemas import ModelIdentity, ModelResponse
 
 
 class ModelProvider(ABC):
+    async def start(self, *, timeout: float | None = None) -> None:
+        del timeout
+
     @abstractmethod
     async def probe(self) -> ModelIdentity:
         raise AssertionError("abstract ModelProvider.probe called")
@@ -35,3 +38,6 @@ class ModelProvider(ABC):
             return True
         except (OSError, TimeoutError, ValueError):
             return False
+
+    async def close(self) -> None:
+        return None

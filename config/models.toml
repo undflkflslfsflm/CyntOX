@@ -1,0 +1,24 @@
+[defaults]
+model_profile = "single"
+
+[models.cyntox]
+provider = "ollama"
+model_id = "cyntox:latest"
+
+[models.qwythos-airllm]
+provider = "airllm"
+model_id = "huihui-ai/Huihui-Qwythos-9B-Claude-Mythos-5-1M-abliterated"
+revision = "efcc73cac15ff8fc5d46b8d41b53c22d571cf97d"
+precision = "bf16"
+expected_snapshot_bytes = 19333096957
+context_limit = 32768
+trust_remote_code = false
+
+[profiles.single]
+default_provider = "cyntox"
+
+[profiles.hybrid-airllm]
+default_provider = "cyntox"
+fact-checker = "qwythos-airllm"
+critic = "qwythos-airllm"
+specialist_backend = "airllm"

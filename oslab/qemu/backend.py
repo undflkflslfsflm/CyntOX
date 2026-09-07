@@ -15,6 +15,7 @@ from uuid import uuid4
 from oslab.artifacts import ArtifactStore
 from oslab.policy import validate_qemu_network
 from oslab.qemu.qmp import QmpClient, QmpError
+from oslab.resource_lease import ResourceActivityLease
 from oslab.schemas import Outcome, utc_now
 
 IMAGE = "cyntox-os-lab-qemu:bookworm"
@@ -51,8 +52,13 @@ class DockerQemuBackend:
         self._container_name: str | None = None
         self._run_id: str | None = None
         self._event_context: dict[str, Any] = {}
+        self._activity_lease: ResourceActivityLease | None = None
 
     async def ensure_toolchain(self) -> dict[str, Any]:
+        with ResourceActivityLease(self.project_root, "build"):
+            return await self._ensure_toolchain()
+
+    async def _ensure_toolchain(self) -> dict[str, Any]:
         inspect = await self._command([self.docker, "image", "inspect", IMAGE], 30)
         if inspect[0] != 0:
             code, stdout, stderr = await self._command(
@@ -86,6 +92,10 @@ class DockerQemuBackend:
         return {"image": IMAGE, "versions": stdout}
 
     async def build_fixture(self) -> dict[str, Any]:
+        with ResourceActivityLease(self.project_root, "build"):
+            return await self._build_fixture()
+
+    async def _build_fixture(self) -> dict[str, Any]:
         await self.ensure_toolchain()
         code, stdout, stderr = await self._command(
             [
@@ -110,6 +120,20 @@ class DockerQemuBackend:
         return {"stdout": stdout, "hashes": records}
 
     async def boot(
+        self, *, run_id: str | None = None, seed: int = 1, test_id: str = "boot"
+    ) -> dict[str, Any]:
+        if self.process is not None or self._activity_lease is not None:
+            raise RuntimeError("VM is already running")
+        lease = ResourceActivityLease(self.project_root, "qemu")
+        lease.acquire()
+        self._activity_lease = lease
+        try:
+            return await self._boot(run_id=run_id, seed=seed, test_id=test_id)
+        except BaseException:
+            await self.stop()
+            raise
+
+    async def _boot(
         self, *, run_id: str | None = None, seed: int = 1, test_id: str = "boot"
     ) -> dict[str, Any]:
         if self.process is not None:
@@ -226,6 +250,23 @@ class DockerQemuBackend:
         await self.qmp.execute("system_reset")
 
     async def stop(self) -> None:
+        completed = False
+        try:
+            await self._stop()
+            completed = True
+        finally:
+            process_stopped = (
+                completed
+                or self.process is None
+                or (self.process is not None and self.process.returncode is not None)
+            )
+            if process_stopped:
+                lease = self._activity_lease
+                self._activity_lease = None
+                if lease is not None:
+                    lease.release()
+
+    async def _stop(self) -> None:
         if self.process is None:
             return
         if self.qmp is not None:

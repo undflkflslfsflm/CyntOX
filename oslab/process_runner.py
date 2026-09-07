@@ -11,6 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import cast
 
+import psutil
+
 from oslab.config import safe_subprocess_env
 from oslab.policy import redact
 from oslab.schemas import utc_now
@@ -31,18 +33,18 @@ $stack = New-Object System.Collections.Stack
 $stack.Push($rootPid)
 $ids = New-Object System.Collections.Generic.List[int]
 while ($stack.Count -gt 0) {
-    $pid = [int]$stack.Pop()
-    $ids.Add($pid)
-    if ($childrenByParent.ContainsKey($pid)) {
-        foreach ($childPid in $childrenByParent[$pid]) {
+    $currentProcessId = [int]$stack.Pop()
+    $ids.Add($currentProcessId)
+    if ($childrenByParent.ContainsKey($currentProcessId)) {
+        foreach ($childPid in $childrenByParent[$currentProcessId]) {
             $stack.Push([int]$childPid)
         }
     }
 }
 $array = $ids.ToArray()
 [array]::Reverse($array)
-foreach ($pid in $array) {
-    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+foreach ($processIdToStop in $array) {
+    Stop-Process -Id $processIdToStop -Force -ErrorAction SilentlyContinue
 }
 """
 
@@ -194,21 +196,55 @@ class SafeProcessRunner:
             creationflags=creationflags,
             start_new_session=start_new_session,
         )
+        tracked_windows_processes: dict[int, float | None] = {}
+        tracker_stop: asyncio.Event | None = None
+        tracker_task: asyncio.Task[None] | None = None
         windows_job: _WindowsKillOnCloseJob | None = None
         if os.name == "nt":
+            tracked_windows_processes[process.pid] = self._windows_process_create_time(process.pid)
+            self._refresh_windows_descendants(tracked_windows_processes)
             with contextlib.suppress(Exception):
                 windows_job = _WindowsKillOnCloseJob()
                 if not windows_job.assign(process):
                     windows_job.close()
                     windows_job = None
+            tracker_stop = asyncio.Event()
+            tracker_task = asyncio.create_task(
+                self._track_windows_descendants(
+                    tracked_windows_processes,
+                    stop=tracker_stop,
+                )
+            )
         timed_out = False
+        communication = asyncio.create_task(process.communicate(stdin))
         try:
-            stdout, stderr = await asyncio.wait_for(process.communicate(stdin), timeout)
-        except TimeoutError:
-            timed_out = True
-            await self._kill_tree(process, windows_job)
-            stdout, stderr = await process.communicate()
+            done, _pending = await asyncio.wait({communication}, timeout=timeout)
+            if communication in done:
+                stdout, stderr = communication.result()
+            else:
+                timed_out = True
+                await self._kill_tree(process, windows_job, tracked_windows_processes)
+                try:
+                    stdout, stderr = await asyncio.wait_for(asyncio.shield(communication), 5)
+                except TimeoutError:
+                    communication.cancel()
+                    with contextlib.suppress(asyncio.CancelledError):
+                        await communication
+                    with contextlib.suppress(ProcessLookupError):
+                        process.kill()
+                    with contextlib.suppress(TimeoutError):
+                        await asyncio.wait_for(process.wait(), 2)
+                    stdout, stderr = b"", b"process tree output pipes did not close after timeout"
         finally:
+            if not communication.done():
+                communication.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await communication
+            if tracker_stop is not None:
+                tracker_stop.set()
+            if tracker_task is not None:
+                with contextlib.suppress(asyncio.CancelledError):
+                    await tracker_task
             if windows_job is not None:
                 windows_job.close()
         ended = utc_now()
@@ -231,17 +267,31 @@ class SafeProcessRunner:
         )
 
     async def _kill_tree(
-        self, process: asyncio.subprocess.Process, windows_job: _WindowsKillOnCloseJob | None = None
+        self,
+        process: asyncio.subprocess.Process,
+        windows_job: _WindowsKillOnCloseJob | None = None,
+        tracked_windows_processes: dict[int, float | None] | None = None,
     ) -> None:
-        if process.returncode is not None:
-            return
         if os.name == "nt":
             root_pid = process.pid
             if windows_job is not None:
                 windows_job.close()
+                # A child can race ahead before the root is assigned to the Job Object.
+                # Reap only identities observed during this invocation; never target a
+                # bare PID after closing the job.
+                tracked = tracked_windows_processes or {}
+                self._refresh_windows_descendants(tracked)
+                await self._kill_tracked_windows_processes(tracked)
                 with contextlib.suppress(TimeoutError):
                     await asyncio.wait_for(process.wait(), 2)
-            await self._kill_windows_tree(root_pid)
+            else:
+                tracked = tracked_windows_processes or {
+                    root_pid: self._windows_process_create_time(root_pid)
+                }
+                self._refresh_windows_descendants(tracked)
+                await self._kill_tracked_windows_processes(tracked)
+                if process.returncode is None:
+                    await self._kill_windows_tree(root_pid)
         else:
             kill_process_group = cast(Callable[[int, int], None], os.__dict__.get("killpg"))
             if kill_process_group is None:
@@ -253,8 +303,100 @@ class SafeProcessRunner:
             except TimeoutError:
                 with contextlib.suppress(ProcessLookupError):
                     kill_process_group(process.pid, cast(int, signal.__dict__.get("SIGKILL", 9)))
-        with contextlib.suppress(ProcessLookupError):
-            process.kill()
+        if process.returncode is None:
+            with contextlib.suppress(ProcessLookupError):
+                process.kill()
+
+    @staticmethod
+    def _windows_process_create_time(pid: int) -> float | None:
+        try:
+            return float(psutil.Process(pid).create_time())
+        except (psutil.Error, OSError, ValueError):
+            return None
+
+    @staticmethod
+    def _refresh_windows_descendants(tracked: dict[int, float | None]) -> None:
+        """Extend a PID/create-time set without trusting a dead root PID on cleanup."""
+        processes = SafeProcessRunner._windows_process_snapshot()
+        changed = True
+        while changed:
+            changed = False
+            for pid, parent_pid in processes:
+                if pid not in tracked and parent_pid in tracked:
+                    tracked[pid] = SafeProcessRunner._windows_process_create_time(pid)
+                    changed = True
+
+    @staticmethod
+    def _windows_process_snapshot() -> list[tuple[int, int]]:
+        if os.name != "nt":
+            return []
+        from ctypes import wintypes
+
+        class ProcessEntry32W(ctypes.Structure):
+            _fields_ = [
+                ("dwSize", wintypes.DWORD),
+                ("cntUsage", wintypes.DWORD),
+                ("th32ProcessID", wintypes.DWORD),
+                ("th32DefaultHeapID", ctypes.c_size_t),
+                ("th32ModuleID", wintypes.DWORD),
+                ("cntThreads", wintypes.DWORD),
+                ("th32ParentProcessID", wintypes.DWORD),
+                ("pcPriClassBase", wintypes.LONG),
+                ("dwFlags", wintypes.DWORD),
+                ("szExeFile", wintypes.WCHAR * 260),
+            ]
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateToolhelp32Snapshot.argtypes = [wintypes.DWORD, wintypes.DWORD]
+        kernel32.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+        kernel32.Process32FirstW.argtypes = [wintypes.HANDLE, ctypes.POINTER(ProcessEntry32W)]
+        kernel32.Process32FirstW.restype = wintypes.BOOL
+        kernel32.Process32NextW.argtypes = [wintypes.HANDLE, ctypes.POINTER(ProcessEntry32W)]
+        kernel32.Process32NextW.restype = wintypes.BOOL
+        kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        handle = kernel32.CreateToolhelp32Snapshot(0x00000002, 0)
+        invalid_handle = ctypes.c_void_p(-1).value
+        if not handle or int(handle) == invalid_handle:
+            return []
+        entries: list[tuple[int, int]] = []
+        try:
+            entry = ProcessEntry32W()
+            entry.dwSize = ctypes.sizeof(ProcessEntry32W)
+            present = kernel32.Process32FirstW(handle, ctypes.byref(entry))
+            while present:
+                entries.append((int(entry.th32ProcessID), int(entry.th32ParentProcessID)))
+                present = kernel32.Process32NextW(handle, ctypes.byref(entry))
+        finally:
+            kernel32.CloseHandle(handle)
+        return entries
+
+    async def _track_windows_descendants(
+        self,
+        tracked: dict[int, float | None],
+        *,
+        stop: asyncio.Event,
+    ) -> None:
+        while not stop.is_set():
+            self._refresh_windows_descendants(tracked)
+            with contextlib.suppress(TimeoutError):
+                await asyncio.wait_for(stop.wait(), timeout=0.02)
+
+    @staticmethod
+    async def _kill_tracked_windows_processes(tracked: dict[int, float | None]) -> None:
+        processes: list[psutil.Process] = []
+        for pid, expected_created in reversed(tuple(tracked.items())):
+            try:
+                candidate = psutil.Process(pid)
+                actual_created = float(candidate.create_time())
+                if expected_created is not None and abs(actual_created - expected_created) > 0.001:
+                    continue
+                candidate.kill()
+                processes.append(candidate)
+            except (psutil.Error, OSError, ValueError):
+                continue
+        if processes:
+            await asyncio.to_thread(psutil.wait_procs, processes, timeout=2)
 
     async def _kill_windows_tree(self, root_pid: int) -> None:
         with contextlib.suppress(Exception):

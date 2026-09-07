@@ -10,6 +10,7 @@ from oslab.config import LabConfig
 from oslab.debug import normalize_log
 from oslab.fuzz.engine import FuzzCampaign
 from oslab.qemu import DockerQemuBackend, FixtureResult
+from oslab.resource_lease import ResourceActivityLease
 from oslab.schemas import Outcome, utc_now
 
 MODES = ("pass", "fail", "crash", "hang", "seeded", "induced-infra")
@@ -22,6 +23,22 @@ async def run_fixture_fuzz(
     *,
     seed: int = 101,
     total_iterations: int = 6,
+) -> dict[str, Any]:
+    with ResourceActivityLease(config.project_root, "fuzz"):
+        return await _run_fixture_fuzz(
+            config,
+            campaign_id,
+            seed=seed,
+            total_iterations=total_iterations,
+        )
+
+
+async def _run_fixture_fuzz(
+    config: LabConfig,
+    campaign_id: str,
+    *,
+    seed: int,
+    total_iterations: int,
 ) -> dict[str, Any]:
     if total_iterations < 1 or total_iterations > 64:
         raise ValueError("fixture fuzz iterations must be between 1 and 64")

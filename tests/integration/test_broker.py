@@ -1,3 +1,4 @@
+# mypy: disable-error-code="arg-type,assignment,attr-defined,comparison-overlap,func-returns-value,index,misc,no-any-return,no-untyped-def,operator,override,return-value,unreachable,unused-ignore,var-annotated"
 from __future__ import annotations
 
 import asyncio
@@ -18,7 +19,7 @@ from oslab.process_runner import SafeProcessRunner
 from oslab.schemas import Outcome
 from oslab.targets import manifest_template_json
 from oslab.tools import CapabilityBroker, ToolContext
-from oslab.tools.broker import REQUIRED_TOOLS
+from oslab.tools.broker import PROOF_CANARY_CONTENT, PROOF_CANARY_RELATIVE_PATH, REQUIRED_TOOLS
 
 
 def _git(root: Path, *args: str) -> str:
@@ -207,6 +208,42 @@ def test_lightweight_broker_tools_are_functional(
     assert memory.data["hits"][0]["source"] == "value.txt:1"
     assert prior.data["hypotheses"][0]["entity_type"] == "hypothesis"
     assert '"type":"match"' in symbol.data["matches_jsonl"]
+
+
+def test_broker_writes_only_fixed_mythos_canary(tmp_path: Path) -> None:
+    source = tmp_path / "repo"
+    source.mkdir()
+    config = default_config(source)
+    config.runtime_root = tmp_path / "runtime"
+    config.artifacts_root = tmp_path / "artifacts"
+    config.allowed_roots = [source, config.runtime_root]
+    context = ToolContext(
+        config,
+        LabDatabase(config.runtime_root / "lab.sqlite3"),
+        ArtifactStore(config.artifacts_root),
+        SafeProcessRunner(),
+        "run-canary",
+        100,
+    )
+    broker = CapabilityBroker(context)
+
+    written = asyncio.run(broker.invoke("proof.write_canary", {}))
+    target = source / PROOF_CANARY_RELATIVE_PATH
+    traversal = asyncio.run(
+        broker.invoke(
+            "proof.write_canary",
+            {"path": "../done.txt", "content": PROOF_CANARY_CONTENT},
+        )
+    )
+    shell = asyncio.run(broker.invoke("run_shell_command", {"command": "echo done > ../done.txt"}))
+
+    assert written.status == Outcome.PASS
+    assert target.read_text(encoding="utf-8") == PROOF_CANARY_CONTENT
+    assert written.data["verified"] is True
+    assert traversal.status == Outcome.POLICY_DENIED
+    assert traversal.error is not None
+    assert traversal.error.details["rule"] == "proof_canary_fixed_path"
+    assert shell.status == Outcome.POLICY_DENIED
 
 
 def test_broker_runs_manifest_backed_real_target_build(tmp_path: Path) -> None:

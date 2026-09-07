@@ -41,6 +41,45 @@ MIGRATIONS: tuple[str, ...] = (
     CREATE INDEX IF NOT EXISTS idx_events_run ON events(run_id, id);
     CREATE INDEX IF NOT EXISTS idx_entities_type ON entities(entity_type, run_id);
     """,
+    """
+    CREATE TABLE IF NOT EXISTS security_audits(
+      id TEXT PRIMARY KEY,
+      repository TEXT NOT NULL,
+      repository_hash TEXT NOT NULL,
+      base_commit TEXT NOT NULL,
+      dirty_state_hash TEXT NOT NULL,
+      profile TEXT NOT NULL,
+      state TEXT NOT NULL,
+      config_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS security_audit_stages(
+      audit_id TEXT NOT NULL,
+      stage TEXT NOT NULL,
+      state TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY(audit_id, stage),
+      FOREIGN KEY(audit_id) REFERENCES security_audits(id)
+    );
+    CREATE TABLE IF NOT EXISTS security_findings(
+      id TEXT PRIMARY KEY,
+      audit_id TEXT NOT NULL,
+      fingerprint TEXT NOT NULL,
+      status TEXT NOT NULL,
+      severity TEXT NOT NULL,
+      payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(audit_id, fingerprint),
+      FOREIGN KEY(audit_id) REFERENCES security_audits(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_security_audits_updated
+      ON security_audits(updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_security_findings_audit_status
+      ON security_findings(audit_id, status, severity);
+    """,
 )
 
 

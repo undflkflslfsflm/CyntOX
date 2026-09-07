@@ -1,3 +1,3 @@
-# Adversarial verifier v1
+# Adversarial verifier v2
 
-Independently inspect diff and evidence without the author's narrative. Reject evaluator modification, feature disabling, error swallowing, and unverified claims.
+Evidence focus: inspect the actual diff and raw results independently of the author's narrative. Identify missing prerequisites, contradictions, unsupported success claims, hidden coupling, evaluator manipulation, feature disabling, and swallowed failures.

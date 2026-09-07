@@ -1,0 +1,484 @@
+{
+  "content_sha256": "1f90a68b30fb31289c8fef179342b5abfd4fa2d39c9ce67f933b9be5e64f92ba",
+  "count": 68,
+  "entries": [
+    {
+      "checkout_present": true,
+      "commit": "d689933ff579d839c676c82b231f8e98326c5f04",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/0x4m4/hexstrike-ai"
+    },
+    {
+      "checkout_present": true,
+      "commit": "1f249de171df528ec7427787701b67a0eaeb5840",
+      "integration": "reference",
+      "license": "other",
+      "url": "https://github.com/42-b3yond-6ug/42-b3yond-6ug-crs"
+    },
+    {
+      "checkout_present": true,
+      "commit": "48a41f795dda186df66561c4fd2b58ae84e3e4f8",
+      "integration": "reference",
+      "license": "AGPL",
+      "url": "https://github.com/aielte-research/HackSynth"
+    },
+    {
+      "checkout_present": true,
+      "commit": "85b364bf093eb2ee4f3687cfe38a203fca89f23e",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/albertan017/LLM4Decompile"
+    },
+    {
+      "checkout_present": true,
+      "commit": "6dc79257777f5f1c9500b4d2319935d34a47412e",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/aliasrobotics/cai"
+    },
+    {
+      "checkout_present": true,
+      "commit": "1097a7226eb034d3821208114da38f10b8627ab1",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/andyzorigin/cybench"
+    },
+    {
+      "checkout_present": true,
+      "commit": "3d20bb2e5c11ae0acb21b9d66d224a798d34df75",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/anthropic-experimental/sandbox-runtime"
+    },
+    {
+      "checkout_present": true,
+      "commit": "d3bea6b5793b5f3d59a75ebe69a58efa88383145",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/anthropics/defending-code-reference-harness"
+    },
+    {
+      "checkout_present": true,
+      "commit": "e57c300addf7b8d9d33386268cae3b27705af9c8",
+      "integration": "reference",
+      "license": "AGPL",
+      "url": "https://github.com/Armur-Ai/Pentest-Swarm-AI"
+    },
+    {
+      "checkout_present": true,
+      "commit": "8dd6e46d82564ac5dc4c093b7d06936aee06ee2b",
+      "integration": "reference",
+      "license": "other",
+      "url": "https://github.com/berylliumsec/nebula"
+    },
+    {
+      "checkout_present": true,
+      "commit": "cd512edd037a32ddb1df3caf2672915bd555daec",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/bugbasesecurity/pentest-copilot"
+    },
+    {
+      "checkout_present": true,
+      "commit": "71ca21d77aedec9528b8df1c6b014714cdc70067",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/BUseclab/cve-genie"
+    },
+    {
+      "checkout_present": true,
+      "commit": "4042d34609ff85e0029dd55743b9c3f677cc984a",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/capitalone/VulnHunter"
+    },
+    {
+      "checkout_present": true,
+      "commit": "dcf109e18a423e9e27766b4bf8292349db05f49e",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/ChatAFLndss/ChatAFL"
+    },
+    {
+      "checkout_present": true,
+      "commit": "8bac42001ddd90a4dcd8d5a5045199283a8eba75",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/cloudflare/security-audit-skill"
+    },
+    {
+      "checkout_present": true,
+      "commit": "3cb3e65f354cda8d6125ecff654063436a3ab5ab",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/cyberkaida/reverse-engineering-assistant"
+    },
+    {
+      "checkout_present": true,
+      "commit": "336a33a3b17b56287dcd0a9bd2d6155de3c8ee45",
+      "integration": "reference",
+      "license": "AGPL",
+      "url": "https://github.com/CyberStrikeus/CyberStrike"
+    },
+    {
+      "checkout_present": true,
+      "commit": "c0650ffeef26816135015a226b3bdc44cc2d64cc",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/dreadnode/AIRTBench-Code"
+    },
+    {
+      "checkout_present": true,
+      "commit": "2dbd8e1dc26da5f50b9c14f00a75a645a64f7bff",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/e2b-dev/E2B"
+    },
+    {
+      "checkout_present": true,
+      "commit": "d6ee73035f47d9b6ff3353e6fe030395d85e6e08",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/evilsocket/audit"
+    },
+    {
+      "checkout_present": true,
+      "commit": "9384f395f5d47f05b68a657525e209f8aa9c8264",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/firecracker-microvm/firecracker"
+    },
+    {
+      "checkout_present": true,
+      "commit": "0bf42fe037c8761bdde61e1c37a0946e8103fba1",
+      "integration": "reference",
+      "license": "CC-BY-SA",
+      "url": "https://github.com/fuzz4all/fuzz4all"
+    },
+    {
+      "checkout_present": true,
+      "commit": "5f91d9a35323a10602f15155fd111d02a2abfd68",
+      "integration": "reference",
+      "license": "unknown",
+      "url": "https://github.com/FuzzAnything/PromptFuzz"
+    },
+    {
+      "checkout_present": true,
+      "commit": "2144014dba3479d2f8d75c1957101a69dbd048bb",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/fuzzingbrain/afc-crs-all-you-need-is-a-fuzzing-brain"
+    },
+    {
+      "checkout_present": true,
+      "commit": "5298277a7d141469a798a80777b9986f0732d986",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/gadievron/raptor"
+    },
+    {
+      "checkout_present": true,
+      "commit": "5fff0e3ce1a6916afaac4e658abb1b601d4076c8",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/GH05TCREW/pentestagent"
+    },
+    {
+      "checkout_present": true,
+      "commit": "80bb741691be65cedb6688ac518bef3664af0fcc",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/google/gvisor"
+    },
+    {
+      "checkout_present": true,
+      "commit": "c0982c5d40a7e93ce70fd319705804b9a29954d0",
+      "integration": "optional-adapter",
+      "license": "Apache-2.0",
+      "url": "https://github.com/google/oss-fuzz-gen"
+    },
+    {
+      "checkout_present": true,
+      "commit": "e8b1bb77d1ac00329675cec3b060aba971ec1ac8",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/GreyDGL/PentestGPT"
+    },
+    {
+      "checkout_present": true,
+      "commit": "9d3b4fc58d886873347483fed66e87d517754a84",
+      "integration": "reference",
+      "license": "unknown",
+      "url": "https://github.com/ipa-lab/benchmark-privesc-linux"
+    },
+    {
+      "checkout_present": true,
+      "commit": "acd843c36bd100882ee92f04d025258fab927f39",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/ipa-lab/hackingBuddyGPT"
+    },
+    {
+      "checkout_present": true,
+      "commit": "20e20601511894511ef1ed23b11ae191ba026a07",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/JoasASantos/NeuroSploit"
+    },
+    {
+      "checkout_present": true,
+      "commit": "f98e4c12decf86eae76ece9d6955bb6dfe472190",
+      "integration": "reference",
+      "license": "other",
+      "url": "https://github.com/JusticeRage/Gepetto"
+    },
+    {
+      "checkout_present": true,
+      "commit": "e92ee61c05ec6ee91b05fb99499869a8ec77abe1",
+      "integration": "reference",
+      "license": "AGPL",
+      "url": "https://github.com/KeygraphHQ/shannon"
+    },
+    {
+      "checkout_present": true,
+      "commit": "3d124cc0434458dcbd4a275de840e0b3d4f01664",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/Lazarus-AI/clearwing"
+    },
+    {
+      "checkout_present": true,
+      "commit": "46f5cb6b724d94428fe0c98a16b750c439c3ce79",
+      "integration": "reference",
+      "license": "other",
+      "url": "https://github.com/mahaloz/DAILA"
+    },
+    {
+      "checkout_present": true,
+      "commit": "9ced4d7ddcdf3bae5870859b10a2fb9f28e4ff63",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/Masriyan/Claude-Code-CyberSecurity-Skill"
+    },
+    {
+      "checkout_present": true,
+      "commit": "5332d3105f142765095b69e61ba325e4c8ef1042",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/microsandbox/microsandbox"
+    },
+    {
+      "checkout_present": true,
+      "commit": "3c97954d74d70063ba076411570a33118a9d691f",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/mrexodia/ida-pro-mcp"
+    },
+    {
+      "checkout_present": true,
+      "commit": "49c39c2d4427b586ce1ec3499baa86c38f980ece",
+      "integration": "reference",
+      "license": "other",
+      "url": "https://github.com/mrphrazer/binary-ninja-headless-mcp"
+    },
+    {
+      "checkout_present": true,
+      "commit": "54a798831d2266a3ca61ce68a7acb80b81160d57",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/mukul975/Anthropic-Cybersecurity-Skills"
+    },
+    {
+      "checkout_present": true,
+      "commit": "bc2a373c6b32fb3d9e7f86c516b1844885dcec51",
+      "integration": "reference",
+      "license": "other",
+      "url": "https://github.com/n132/ARVO"
+    },
+    {
+      "checkout_present": true,
+      "commit": "612190f298ae9e604f00370019beed4ba1f372f6",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/NYU-LLM-CTF/nyuctf_agents"
+    },
+    {
+      "checkout_present": true,
+      "commit": "812de0fb085801494cbe17dad4a75979d6b3c31a",
+      "integration": "optional-adapter",
+      "license": "Apache-2.0",
+      "url": "https://github.com/openai/codex-security"
+    },
+    {
+      "checkout_present": true,
+      "commit": "8fdfdddffa1f493d21e3e6dd98d911e7c531b84b",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/openhackai/OpenHack"
+    },
+    {
+      "checkout_present": true,
+      "commit": "91c5381a47a6b1d7e05b42b629a739eddfaa6f59",
+      "integration": "reference",
+      "license": "unknown",
+      "url": "https://github.com/Picrew/awesome-agent-harness"
+    },
+    {
+      "checkout_present": true,
+      "commit": "642e6fa31c63db3886a353fcd7ed62037e0ceed5",
+      "integration": "reference",
+      "license": "other",
+      "url": "https://github.com/PortSwigger/mcp-server"
+    },
+    {
+      "checkout_present": true,
+      "commit": "095654f24a743b81c0395956f90857c50c8dfadd",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/s0ld13rr/pentestcode"
+    },
+    {
+      "checkout_present": true,
+      "commit": "36b75dec93759b4921748b819837309fb70691a2",
+      "integration": "reference",
+      "license": "unknown",
+      "url": "https://github.com/samugit83/redamon"
+    },
+    {
+      "checkout_present": true,
+      "commit": "951db005027caccb279aeb20291e7da495d43781",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/shellphish/artiphishell"
+    },
+    {
+      "checkout_present": true,
+      "commit": "491c4c13bb2b2938dc74115881c543c5f9b14963",
+      "integration": "reference",
+      "license": "unknown",
+      "url": "https://github.com/siftech/afc-crs-lacrosse"
+    },
+    {
+      "checkout_present": true,
+      "commit": "db333973f3e4c99eab246d33e014af0bf35c70d2",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/stuxlabs/AWE"
+    },
+    {
+      "checkout_present": true,
+      "commit": "c6fe2027d39471375920b92cf1025e23a99ffda5",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/sunblaze-ucb/cybergym"
+    },
+    {
+      "checkout_present": true,
+      "commit": "8a2b41329515dcdbd201a106cd4f25a7569c1969",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/Team-Atlanta/aixcc-afc-atlantis"
+    },
+    {
+      "checkout_present": true,
+      "commit": "3144be4f1e524040a3451335c0463998a90f4bee",
+      "integration": "reference",
+      "license": "AGPL",
+      "url": "https://github.com/theori-io/aixcc-afc-archive"
+    },
+    {
+      "checkout_present": true,
+      "commit": "aa35b233a62acf4af1b175e72b8b1bc6b4682dc5",
+      "integration": "reference",
+      "license": "AGPL",
+      "url": "https://github.com/trailofbits/buttercup"
+    },
+    {
+      "checkout_present": true,
+      "commit": "d3323cefbcf645678b8dc481de204b02ad3d02dc",
+      "integration": "reference",
+      "license": "CC-BY-SA",
+      "url": "https://github.com/trailofbits/skills"
+    },
+    {
+      "checkout_present": true,
+      "commit": "95fdc128af4ca1ae16b3226f9430f1bad97b0656",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/transilienceai/communitytools"
+    },
+    {
+      "checkout_present": true,
+      "commit": "42b69e8a152f7ed08998e6eee18f6b2db68f4a9e",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/uber/ADR"
+    },
+    {
+      "checkout_present": true,
+      "commit": "ab4c77ce0ecd44fa9f1b9adc82779312342d9a2e",
+      "integration": "reference",
+      "license": "unknown",
+      "url": "https://github.com/uiuc-kang-lab/HPTSA"
+    },
+    {
+      "checkout_present": true,
+      "commit": "5d015df6b1b58934152f897e37d3032f0dc32e0d",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/usestrix/strix"
+    },
+    {
+      "checkout_present": true,
+      "commit": "5e33d312f064d33aeea31cc852f7a0c0b17a5467",
+      "integration": "reference",
+      "license": "AGPL",
+      "url": "https://github.com/Vasco0x4/AIDA"
+    },
+    {
+      "checkout_present": true,
+      "commit": "400a4cc4a3e4359f3b1311023073ec344d8ccb17",
+      "integration": "reference",
+      "license": "Apache-2.0",
+      "url": "https://github.com/vercel-labs/deepsec"
+    },
+    {
+      "checkout_present": true,
+      "commit": "3d972f679d8f5e3838b394edee0b5ea9c626b0fb",
+      "integration": "optional-adapter",
+      "license": "Apache-2.0",
+      "url": "https://github.com/visa/visa-vulnerability-agentic-harness"
+    },
+    {
+      "checkout_present": true,
+      "commit": "28392bf5db48e55c675b0ee6d59f61567b483227",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/vul337/FirmAgent"
+    },
+    {
+      "checkout_present": true,
+      "commit": "ea665308baaff015b226f308438a68d929d0f29b",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/vxcontrol/pentagi"
+    },
+    {
+      "checkout_present": true,
+      "commit": "8f60810766ddb0b622e8231dd547ccf08ef2fca4",
+      "integration": "reference",
+      "license": "other",
+      "url": "https://github.com/yohannesgk/blacksmith"
+    },
+    {
+      "checkout_present": true,
+      "commit": "71acc8e3115f76bad7a914c36466c1086232288c",
+      "integration": "reference",
+      "license": "MIT",
+      "url": "https://github.com/zhaoxuya520/reverse-skill"
+    }
+  ],
+  "schema_version": 1,
+  "source": "awesome-security-agent-harnesses"
+}

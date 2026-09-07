@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -31,6 +32,10 @@ from oslab.targets import (
     run_manifest_build,
     run_manifest_smoke,
 )
+
+PROOF_CANARY_RELATIVE_PATH = Path("proofs") / "mythos" / "done.txt"
+PROOF_CANARY_CONTENT = "done :)"
+PROOF_CANARY_PATH_TEXT = PROOF_CANARY_RELATIVE_PATH.as_posix()
 
 REQUIRED_TOOLS = frozenset(
     {
@@ -81,6 +86,7 @@ REQUIRED_TOOLS = frozenset(
         "report.record_patch",
         "report.attach_artifact",
         "report.finalize_run",
+        "proof.write_canary",
         "policy.explain_denial",
         "policy.remaining_budget",
         "memory.search",
@@ -189,6 +195,7 @@ class CapabilityBroker:
             "report.record_patch": self._record_patch,
             "report.attach_artifact": self._attach_artifact,
             "report.finalize_run": self._finalize_run,
+            "proof.write_canary": self._proof_write_canary,
             "memory.search": self._memory_search,
             "memory.get_experiment": self._memory_get_experiment,
             "memory.find_similar_crashes": self._memory_find_similar_crashes,
@@ -624,6 +631,7 @@ class CapabilityBroker:
                 self.context.artifacts,
                 worktrees_root=self.worktrees_root,
                 timeout=self._bounded_build_timeout(arguments, "timeout", 300),
+                activity_root=self.context.config.project_root,
             )
             if not self._target_matches_manifest(requested, str(result["target"])):
                 raise ValueError(
@@ -1144,6 +1152,61 @@ class CapabilityBroker:
             "tool_calls": self.context.remaining_tool_calls,
             "configured": self.context.config.budget.model_dump(),
         }
+
+    async def _proof_write_canary(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        proof = str(arguments.get("proof", "mythos"))
+        if proof != "mythos":
+            raise PolicyDenied(
+                "proof_canary_fixed_proof",
+                "the host canary can only write the fixed mythos proof",
+            )
+
+        requested_path = str(arguments.get("path", PROOF_CANARY_PATH_TEXT)).replace("\\", "/")
+        if requested_path != PROOF_CANARY_PATH_TEXT:
+            raise PolicyDenied(
+                "proof_canary_fixed_path",
+                f"the host canary path is fixed to {PROOF_CANARY_PATH_TEXT}",
+            )
+
+        requested_content = str(arguments.get("content", PROOF_CANARY_CONTENT))
+        if requested_content != PROOF_CANARY_CONTENT:
+            raise PolicyDenied(
+                "proof_canary_fixed_content",
+                "the host canary content is fixed to the agreed proof string",
+            )
+
+        target = self.policy.authorize(
+            self.context.config.project_root / PROOF_CANARY_RELATIVE_PATH,
+            write=True,
+        )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        data = PROOF_CANARY_CONTENT.encode("utf-8")
+        target.write_bytes(data)
+        readback = target.read_bytes()
+        file_sha256 = hashlib.sha256(readback).hexdigest()
+        verified = readback == data
+        receipt: dict[str, Any] = {
+            "proof": proof,
+            "capability": "proof.write_canary",
+            "policy": "fixed repo-local path and fixed content only",
+            "relative_path": PROOF_CANARY_PATH_TEXT,
+            "path": str(target),
+            "content_sha256": file_sha256,
+            "bytes": len(readback),
+            "verified": verified,
+            "created_at": utc_now().isoformat(),
+        }
+        artifact = self.context.artifacts.put_json(receipt, "mythos-canary-receipt.json")
+        receipt["receipt_sha256"] = artifact.sha256
+        receipt["receipt_artifact"] = artifact.blob_path
+        with contextlib.suppress(Exception):
+            self.context.database.record_entity(
+                f"proof-canary-{uuid4()}",
+                self.context.run_id,
+                "proof_canary",
+                receipt,
+            )
+        return receipt
 
     async def _record_hypothesis(self, arguments: dict[str, Any]) -> dict[str, Any]:
         return await self._record_entity({**arguments, "entity_type": "hypothesis"})
