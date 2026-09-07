@@ -1,0 +1,46 @@
+{
+  "identity": {
+    "provider": "ollama",
+    "runtime": "Ollama",
+    "runtime_version": "0.33.2",
+    "model_id": "cyntox:latest",
+    "architecture": "cyntox-27b",
+    "parameters": 27320697856,
+    "quantization": "Q4_K_M",
+    "format": "gguf",
+    "context_limit": 262144,
+    "endpoint": "http://127.0.0.1:11434",
+    "capabilities": [
+      "tools",
+      "thinking",
+      "completion"
+    ]
+  },
+  "samples": [
+    {
+      "seed": 1,
+      "prompt_tokens": 142,
+      "completion_tokens": 261,
+      "prompt_tokens_per_second": 516.0221235400571,
+      "output_tokens_per_second": 46.96090945108995,
+      "wall_seconds": 6.373825
+    },
+    {
+      "seed": 2,
+      "prompt_tokens": 142,
+      "completion_tokens": 261,
+      "prompt_tokens_per_second": 1667.2928799549127,
+      "output_tokens_per_second": 47.00119754009058,
+      "wall_seconds": 5.741683
+    },
+    {
+      "seed": 3,
+      "prompt_tokens": 142,
+      "completion_tokens": 261,
+      "prompt_tokens_per_second": 1670.9617443899224,
+      "output_tokens_per_second": 46.9766054704887,
+      "wall_seconds": 5.658227
+    }
+  ],
+  "average_output_tokens_per_second": 46.97957082055641
+}

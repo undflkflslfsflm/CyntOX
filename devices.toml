@@ -1,0 +1,58 @@
+# CyntOX device registry.
+#
+# Safety model:
+# - configured=false means CyntOX may plan/dry-run only.
+# - approved_writes=false blocks first write/install on that device.
+# - deny lists are enforced by the deterministic executor before local/SSH execution.
+# - allow lists are enforced for deterministic executor commands and guide council prompts.
+# - SSH host/user values must be plain target names, not options or whitespace-containing strings.
+
+[devices.local-4090-pc]
+name = "Local 4090 PC"
+type = "windows-pc"
+host = "localhost"
+connection = "local"
+configured = true
+approved_writes = false
+allowed_services = ["jellyfin", "smb", "nfs"]
+allowed_commands = ["read-only diagnostics", "service status", "disk inventory", "uptime"]
+denied_commands = ["format", "diskpart", "public network scan", "credential dump", "destructive delete"]
+notes = "Local workstation. Writes and installs still require explicit approval before execution."
+
+[devices.raspberry-pi]
+name = "Raspberry Pi"
+type = "raspberry-pi"
+host = "raspberrypi.local"
+user = "pi"
+connection = "ssh"
+configured = false
+approved_writes = false
+allowed_services = ["jellyfin-client-helper", "smb-client", "nfs-client"]
+allowed_commands = ["uptime", "df -h", "systemctl --failed --no-pager", "hostnamectl"]
+denied_commands = ["format", "dd", "mkfs", "public network scan", "credential dump", "destructive delete"]
+notes = "Set configured=true only after SSH works from this PC without needing secrets in the vault."
+
+[devices.nas]
+name = "NAS"
+type = "nas"
+host = "nas.local"
+connection = "smb"
+configured = false
+approved_writes = false
+allowed_services = ["smb", "nfs", "media-share-read"]
+allowed_commands = ["share inventory", "read-only free-space check"]
+denied_commands = ["format", "pool destroy", "public network scan", "credential dump", "destructive delete"]
+notes = "Configure host/share paths before use. Dry-run planning is allowed before configuration."
+
+[devices.media-folders]
+name = "Media Folders"
+type = "path-set"
+host = "localhost"
+connection = "filesystem"
+configured = false
+approved_writes = false
+paths = []
+allowed_services = ["jellyfin-library", "smb-share", "nfs-share"]
+allowed_commands = ["read-only inventory", "path existence check"]
+denied_commands = ["destructive delete", "recursive move", "format"]
+notes = "Add explicit media folder paths before CyntOX uses this target."

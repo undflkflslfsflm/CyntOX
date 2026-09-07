@@ -1,0 +1,82 @@
+{
+  "model_id": "huihui-ai/Huihui-Qwythos-9B-Claude-Mythos-5-1M-abliterated",
+  "revision": "efcc73cac15ff8fc5d46b8d41b53c22d571cf97d",
+  "precision": "bf16",
+  "expected_snapshot_bytes": 19333096957,
+  "context_limit": 32768,
+  "trust_remote_code": false,
+  "snapshot_files": [
+    {
+      "path": ".gitattributes",
+      "size": 1570,
+      "sha256": "34448b82c17d60fec9b65b1f093c115ddbaadc04beb1b0140b6bfed2e012a930"
+    },
+    {
+      "path": "README.md",
+      "size": 2526,
+      "sha256": "8fa773e099eb4ae27d2de23f799d03de0152ee5621aeaafeeb5b70588de76ffe"
+    },
+    {
+      "path": "chat_template.jinja",
+      "size": 7756,
+      "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715"
+    },
+    {
+      "path": "config.json",
+      "size": 2937,
+      "sha256": "03517ea88018f7409d4a29d648f06406402a2e200edde318582df8a1ab2aaa5f"
+    },
+    {
+      "path": "config.json.pre_yarn",
+      "size": 2906,
+      "sha256": "a3608d8f3c320dfb945561ce36875e90c552639c501fbd6c2b890a239553c693"
+    },
+    {
+      "path": "generation_config.json",
+      "size": 164,
+      "sha256": "a78aebbc7804389b2f7863eaaac64c0bbe0b8a3fceb3d7ca71d539d3a3d96a83"
+    },
+    {
+      "path": "model.safetensors",
+      "size": 19306305272,
+      "sha256": "b817fef6bd59fc655d8eace5c6d7e564b0e001975f712d32b5b370ecf48321ab"
+    },
+    {
+      "path": "model.safetensors.index.json",
+      "size": 59550,
+      "sha256": "a9a2e8e4a23eba28d588e1f3cfc61ff92599ced942d89d0cf5c49b66e4da0e0a"
+    },
+    {
+      "path": "preprocessor_config.json",
+      "size": 390,
+      "sha256": "27225450ac9c6529872ee1924fcb0962ff5634834f817040f444118116f4e516"
+    },
+    {
+      "path": "tokenizer.json",
+      "size": 19989510,
+      "sha256": "639e352c0f904c1875d448ebed6f6faac005fd3eb58393b7f1fb3ff044e5ca03"
+    },
+    {
+      "path": "tokenizer_config.json",
+      "size": 1232,
+      "sha256": "4673c090625eaa8c6a7cbbecb0396e05e9372c818cd5055d368bdb412f110243"
+    },
+    {
+      "path": "video_preprocessor_config.json",
+      "size": 385,
+      "sha256": "7768af27c1fafa9cc9011c1dc20067e03f8915e03b63504550e11d5066986d13"
+    },
+    {
+      "path": "vocab.json",
+      "size": 6722759,
+      "sha256": "ce99b4cb2983d118806ce0a8b777a35b093e2000a503ebde25853284c9dfa003"
+    }
+  ],
+  "sampling": {
+    "temperature": 0.6,
+    "top_p": 0.95,
+    "top_k": 20,
+    "repetition_penalty": 1.05,
+    "max_new_tokens": 2048
+  }
+}

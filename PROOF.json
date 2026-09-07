@@ -1,0 +1,187 @@
+{
+  "generated_at": "2026-09-02T21:33:12Z",
+  "goal_status": "complete",
+  "source_commit_verified": "9a059ca",
+  "source_commit_full": "9a059ca5d5088b7367ce493c02ddb86026faf79a",
+  "branch": "codex/cyntox-os-lab",
+  "blocked_gate": {},
+  "verified_commands": [
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m ruff format --check .",
+      "exit_code": 0,
+      "stdout": "86 files already formatted"
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m ruff check .",
+      "exit_code": 0,
+      "stdout": "All checks passed!"
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m mypy oslab scripts",
+      "exit_code": 0,
+      "stdout": "Success: no issues found in 53 source files"
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m pytest -m \"not live and not qemu\" -q",
+      "exit_code": 0,
+      "stdout_summary": "208 passed, 5 deselected, 2 warnings in 27.32s."
+    },
+    {
+      "scope": "main checkout",
+      "command": ".\\oslab.ps1 --help",
+      "exit_code": 0,
+      "stdout_summary": "Launcher forwarded to oslab CLI and printed top-level help."
+    },
+    {
+      "scope": "main checkout",
+      "command": ".\\oslab.cmd --help",
+      "exit_code": 0,
+      "stdout_summary": "CMD wrapper forwarded to oslab.ps1 and printed top-level help."
+    },
+    {
+      "scope": "external working directory",
+      "command": "& \"<repo>\\oslab.ps1\" target inspect --json",
+      "exit_code": 0,
+      "stdout_summary": "Quoted one-line launcher resolved the project root from D:\\Apps and returned fixture ready with Gate L blocked on missing real OS input."
+    },
+    {
+      "scope": "main checkout",
+      "command": ".\\cyntox-code.ps1 --version",
+      "exit_code": 0,
+      "stdout": "0.22.3"
+    },
+    {
+      "scope": "main checkout",
+      "command": ".\\cyntox-code.cmd --version",
+      "exit_code": 0,
+      "stdout": "0.22.3"
+    },
+    {
+      "scope": "main checkout",
+      "command": ".\\cyntox.cmd doctor --json",
+      "exit_code": 0,
+      "stdout_summary": "Compact JSON returned successfully with output_limit=12000; status WARN only for Docker/QEMU daemon unavailable and no git remote."
+    },
+    {
+      "scope": "main checkout",
+      "command": ".\\cyntox.cmd stress --fix --rerun-failures 1",
+      "exit_code": 0,
+      "stdout_summary": "CyntOX stress completed with local format/lint/type/full-test/process-leak checks OK; status WARN only because Docker/QEMU and git remote remain external blockers."
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
+      "exit_code": 0,
+      "proof_sha256": "1e595cdd5ee173e8728359ef993bb90f2edc7913d77d5ee3324e682eaab9ce9a",
+      "stdout_summary": "Main checkout at source commit 9a059ca passed the 16-command live proof path: uv lock, offline pnpm install, pytest, Ruff, mypy oslab scripts, target inspect, manifest-template, Gate L report, requirements trace, artifact-index, training dry-run, cleanup dry-run, live Ollama, CyntOX Code MCP smoke, and integrity."
+    },
+    {
+      "scope": "clean checkout",
+      "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\\bootstrap.ps1",
+      "exit_code": 0,
+      "worktree": ".oslab\\clean-checkouts\\9a059ca",
+      "source_commit": "9a059ca5d5088b7367ce493c02ddb86026faf79a",
+      "stdout_summary": "Clean checkout at source commit 9a059ca bootstrapped successfully from its own project root."
+    },
+    {
+      "scope": "clean checkout",
+      "command": ".venv\\Scripts\\python.exe -m oslab.cli selftest --live --json",
+      "exit_code": 0,
+      "proof_sha256": "0b54fbcb6315e7b6a89f47ee0ce55efcd93e7b2998c630e186ff78b33436f39b",
+      "stdout_summary": "Clean checkout at source commit 9a059ca passed the same 16-command live proof path."
+    },
+    {
+      "scope": "main checkout",
+      "command": ".venv\\Scripts\\python.exe -m oslab.cli acceptance audit --save --json",
+      "exit_code": 0,
+      "artifact_sha256": "3d6aed0a8eb77a5200a40d05da48a9630659ea4a9125f57933c3065bd315ff48",
+      "stdout_summary": "Acceptance audit passed after Gate L was completed with the MIT-licensed open-source OS target; all checks passed and no failed checks were recorded."
+    }
+  ],
+  "gate_summary": {
+    "A": "PASS",
+    "B": "PASS",
+    "C": "PASS",
+    "D": "PASS",
+    "E": "PASS",
+    "F": "PASS",
+    "G": "PASS",
+    "H": "PASS",
+    "I": "PASS",
+    "J": "PASS",
+    "K": "PASS",
+    "L": "PASS",
+    "M": "PASS",
+    "N": "PASS",
+    "O": "PASS"
+  },
+  "key_artifacts": {
+    "hardware_report": "artifacts/discovery/hardware-report.json",
+    "model_benchmark": "artifacts/discovery/model-benchmark.json",
+    "runtime_assessment": "artifacts/discovery/runtime-assessment.json",
+    "evaluation_json": "artifacts/evaluation/seeded-results.json",
+    "evaluation_csv": "artifacts/evaluation/seeded-results.csv",
+    "evaluation_report": "artifacts/evaluation/EVALUATION_REPORT.md",
+    "training_jsonl": "artifacts/training/dry-run/trajectories.jsonl",
+    "training_parquet": "artifacts/training/dry-run/trajectories.parquet",
+    "gate_l_blocker_report": "artifacts/reports/gate-l-blocker-report.json",
+    "requirements_trace": "artifacts/reports/requirements-trace.json",
+    "artifact_index": "artifacts/ARTIFACT_INDEX.snapshot.json",
+    "gate_l_real_target_run": "artifacts/reports/gate-l-real-target-run.json"
+  },
+  "key_evidence_artifacts": {
+    "agentic_fix_loop": "0d905d376c79cd1227a66e6d17bd63e87c940cbfb3a00af752949c2d1296b2ee",
+    "supervisor_recovery": "9dcc166333912c4ad2e5ca06597a23158c9aaa98778b41387bf3c6d74fd1f7d1",
+    "fixture_fuzz_campaign": "f49ba28548559c5086b824e07c61f2256942f8dd05bd744f4677d3410084dbb2",
+    "bounded_autonomous_campaign": "1906ac688b0eeeb023aa9a6c74da0b2588eadfbc8fc450e210ad090b83cf9e82",
+    "seeded_evaluation_cas": "f88e00dc0789d26059d863428c211b3104a9ff283f96b8337630c6518a0672aa",
+    "crash_reproduction": "6484730e8af4c425d89359366e6c6553a5cd9a119982b70434bea9282e4cf77c",
+    "crash_verification": "79fd55b24ee8f8f0af4d2f79a3334849bb84a25ba0429ccf0b846422eac1ca69",
+    "real_target_smoke": "c3f07bb6aead0a7528c12494fcc5ecc7e41d08c7449f967192c79466aadefc1b"
+  },
+  "model": {
+    "runtime": "Ollama",
+    "runtime_version": "0.33.2",
+    "model_id": "cyntox:latest",
+    "architecture": "cyntox-27b",
+    "parameters": 27320697856,
+    "format": "gguf",
+    "quantization": "Q4_K_M",
+    "average_output_tokens_per_second": 45.371011798668064
+  },
+  "cyntox_code": {
+    "version": "0.22.3",
+    "wrapper_model": "cyntox-os-lab-worker:latest",
+    "visible_tools": [
+      "mcp__oslab__policy_remaining_budget",
+      "mcp__oslab__fixture_explain"
+    ],
+    "smoke_result": "MCP_BUDGET_OK"
+  },
+  "real_target": {
+    "gate": "L",
+    "status": "PASS",
+    "target": "cyntox-open-os",
+    "source_root": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target",
+    "manifest": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target\\oslab-target.toml",
+    "base_commit": "db7b591789313d6288584c223e954e6f52880d11",
+    "manifest_sha256": "9d631f0809906a7f19c66e46afb48a9a0d0cf1e7da73bb7b029dff3138f3fa50",
+    "license": "MIT",
+    "authorization": "open_source_mit",
+    "build_command": ".\\.venv\\Scripts\\python.exe -m oslab.cli build --target real --repo C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target --profile debug --json",
+    "test_command": ".\\.venv\\Scripts\\python.exe -m oslab.cli test --target real --repo C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target --profile debug --test smoke --json",
+    "ok": true,
+    "outcome": "PASS",
+    "network": "none",
+    "qemu_argv_hash": "10e6290efe1ad72f163b26becad2f495611da1d6ff76fb559d9c8db4e74e3323",
+    "build_artifact_sha256": "b588a7a8f867c2ea9fe7f2feebde0e54529a853ba93e1929a1e7afb337dc11b5",
+    "serial_artifact_sha256": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+    "stderr_artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "run_report_sha256": "c3f07bb6aead0a7528c12494fcc5ecc7e41d08c7449f967192c79466aadefc1b",
+    "serial_excerpt": "OSLAB_EVT {\"event\":\"READY\",\"seq\":0}\r\nOSLAB_EVT {\"event\":\"PASS\",\"seq\":1}\r\n"
+  }
+}

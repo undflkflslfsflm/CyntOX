@@ -1,0 +1,176 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-09-02T21:33:12Z",
+  "goal_status": "complete",
+  "source_commit_full": "9a059ca5d5088b7367ce493c02ddb86026faf79a",
+  "main_selftest_proof_sha256": "1e595cdd5ee173e8728359ef993bb90f2edc7913d77d5ee3324e682eaab9ce9a",
+  "clean_selftest_proof_sha256": "0b54fbcb6315e7b6a89f47ee0ce55efcd93e7b2998c630e186ff78b33436f39b",
+  "trace": [
+    {
+      "gate": "A",
+      "status": "PASS",
+      "requirement": "Discovery succeeds and records hardware, RAM, disks, virtualization, QEMU/toolchains, actual local model identity/runtime, and target status.",
+      "evidence": [
+        "artifacts/discovery/hardware-report.json",
+        "docs/HARDWARE_REPORT.md",
+        "config/local.auto.toml",
+        "acceptance check required_artifact_contents_are_valid"
+      ]
+    },
+    {
+      "gate": "B",
+      "status": "PASS",
+      "requirement": "Mandatory quality checks pass from the verified source and clean checkout.",
+      "evidence": [
+        "PROOF.json verified_commands for ruff format, ruff check, mypy, pytest, uv lock, pnpm frozen offline install",
+        "main and clean selftest proof artifacts",
+        "acceptance checks proof_records_required_commands and clean_checkout_matches_verified_source"
+      ]
+    },
+    {
+      "gate": "C",
+      "status": "PASS",
+      "requirement": "A real local CyntOX call validates structured output and records model/runtime/settings.",
+      "evidence": [
+        "PROOF.json model identity",
+        "main and clean selftest live model probe stdout",
+        "acceptance checks proof_records_live_model_identity and selftest_live_outputs_match_proof"
+      ]
+    },
+    {
+      "gate": "D",
+      "status": "PASS",
+      "requirement": "CyntOX Code is detected/configured and constrained headless smoke evidence is recorded.",
+      "evidence": [
+        "PROOF.json cyntox_code wrapper model and tool surface",
+        "main and clean selftest cyntox-code-smoke stdout",
+        "acceptance checks proof_records_constrained_cyntox_code_smoke and selftest_live_outputs_match_proof"
+      ]
+    },
+    {
+      "gate": "E",
+      "status": "PASS",
+      "requirement": "A true QEMU fixture builds from source, cold-boots, emits READY, passes a test, restores a snapshot, and cleans up.",
+      "evidence": [
+        "FINAL_REPORT.md confirmed working fixture summary",
+        "PROOF.json key_evidence_artifacts.fixture_fuzz_campaign",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "F",
+      "status": "PASS",
+      "requirement": "Fixture FAIL, CRASH, HANG, and induced infrastructure error are classified with artifacts and timeouts.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.fixture_fuzz_campaign",
+        "artifacts/reports/latest-report.json",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "G",
+      "status": "PASS",
+      "requirement": "Seeded crash reproduces across fresh cold boots with a stable fingerprint and stored reproducer.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.crash_reproduction",
+        "PROOF.json key_evidence_artifacts.crash_verification",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "H",
+      "status": "PASS",
+      "requirement": "Live-model agentic loop observes a seeded failure, proposes a patch in a disposable worktree, verifies the targeted fix, and runs regressions.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.agentic_fix_loop",
+        "docs/OSLAB_PROGRESS.md agentic fix loop ledger entry",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "I",
+      "status": "PASS",
+      "requirement": "Independent verifier accepts valid evidence and rejects a deliberately invalid solution.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.agentic_fix_loop",
+        "PROOF.json key_evidence_artifacts.seeded_evaluation_cas",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "J",
+      "status": "PASS",
+      "requirement": "Supervisor restart/resume is proven without database corruption or duplicate accepted findings.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.supervisor_recovery",
+        "docs/OSLAB_PROGRESS.md supervisor recovery ledger entry",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "K",
+      "status": "PASS",
+      "requirement": "Seeded evaluation matrix runs variants A-E over seeds 1,2,3 and produces raw data plus report.",
+      "evidence": [
+        "artifacts/evaluation/seeded-results.json",
+        "artifacts/evaluation/seeded-results.csv",
+        "artifacts/evaluation/EVALUATION_REPORT.md",
+        "PROOF.json key_evidence_artifacts.seeded_evaluation_cas",
+        "acceptance check required_artifact_contents_are_valid"
+      ]
+    },
+    {
+      "gate": "L",
+      "status": "PASS",
+      "requirement": "Real OS target builds, cold-boots, and smoke-tests when the authorized source and build path are present.",
+      "evidence": [
+        "artifacts/reports/gate-l-blocker-report.json",
+        "docs/REAL_OS_INTEGRATION.md",
+        "PROOF.json real_target",
+        "acceptance checks gate_l_blocker_is_precise, gate_l_blocker_report_is_verifiable, and current_target_inspection_matches_gate_l"
+      ]
+    },
+    {
+      "gate": "M",
+      "status": "PASS",
+      "requirement": "Bounded autonomous campaign against the fixture generates hypotheses/tests, executes, handles errors, deduplicates findings, checkpoints, and reports.",
+      "evidence": [
+        "PROOF.json key_evidence_artifacts.bounded_autonomous_campaign",
+        "PROOF.json key_evidence_artifacts.fixture_fuzz_campaign",
+        "artifacts/reports/latest-report.json",
+        "acceptance check key_evidence_artifacts_are_verifiable"
+      ]
+    },
+    {
+      "gate": "N",
+      "status": "PASS",
+      "requirement": "Security boundary tests cover path restrictions, evaluator immutability, command allowlists, local-only binding, network isolation, redaction, limits, and rollback.",
+      "evidence": [
+        "docs/THREAT_MODEL.md",
+        "PROOF.json verified pytest commands",
+        "main and clean selftest proofs",
+        "acceptance checks proof_records_required_commands and mandatory_paths_have_no_unresolved_placeholders"
+      ]
+    },
+    {
+      "gate": "O",
+      "status": "PASS",
+      "requirement": "Clean setup/runbook documentation, artifact integrity, final report, proof, limitations, next experiments, and artifact hashes are present and verified.",
+      "evidence": [
+        "README.md",
+        "docs/RUNBOOK.md",
+        "FINAL_REPORT.md",
+        "PROOF.json",
+        "docs/KNOWN_LIMITATIONS.md",
+        "docs/NEXT_EXPERIMENTS.md",
+        "artifacts/ARTIFACT_INDEX.snapshot.json",
+        "acceptance checks artifact_index_matches_disk and artifact_index_covers_required_files"
+      ]
+    }
+  ],
+  "next_required_action": {
+    "gate": null,
+    "command": null,
+    "note": "All gates have passing evidence."
+  }
+}

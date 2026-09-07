@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "gate": "L",
+  "status": "PASS",
+  "proof_blocked_gate": {},
+  "real_target": {
+    "gate": "L",
+    "status": "PASS",
+    "target": "cyntox-open-os",
+    "source_root": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target",
+    "manifest": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target\\oslab-target.toml",
+    "base_commit": "db7b591789313d6288584c223e954e6f52880d11",
+    "manifest_sha256": "9d631f0809906a7f19c66e46afb48a9a0d0cf1e7da73bb7b029dff3138f3fa50",
+    "license": "MIT",
+    "authorization": "open_source_mit",
+    "build_command": ".\\.venv\\Scripts\\python.exe -m oslab.cli build --target real --repo C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target --profile debug --json",
+    "test_command": ".\\.venv\\Scripts\\python.exe -m oslab.cli test --target real --repo C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target --profile debug --test smoke --json",
+    "ok": true,
+    "outcome": "PASS",
+    "network": "none",
+    "qemu_argv_hash": "10e6290efe1ad72f163b26becad2f495611da1d6ff76fb559d9c8db4e74e3323",
+    "build_artifact_sha256": "b588a7a8f867c2ea9fe7f2feebde0e54529a853ba93e1929a1e7afb337dc11b5",
+    "serial_artifact_sha256": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+    "stderr_artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "run_report_sha256": "c3f07bb6aead0a7528c12494fcc5ecc7e41d08c7449f967192c79466aadefc1b",
+    "serial_excerpt": "OSLAB_EVT {\"event\":\"READY\",\"seq\":0}\r\nOSLAB_EVT {\"event\":\"PASS\",\"seq\":1}\r\n"
+  },
+  "what_was_attempted": [
+    "An MIT-licensed open-source OS target was added as a separate local Git repository.",
+    "The target manifest was validated against an immutable source commit and direct argv-vector build command.",
+    "The target was built from a detached disposable worktree rather than the source checkout.",
+    "The target was cold-booted through Docker-backed QEMU with networking disabled and loopback-only QMP.",
+    "The serial smoke test waited for explicit READY and PASS patterns before claiming success."
+  ],
+  "concrete_evidence": {
+    "target_inspect": {
+      "fixture_status": "ready",
+      "gate_l": "applicable",
+      "real_os_status": "ready",
+      "selected_real_os": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target"
+    },
+    "real_target": {
+      "gate": "L",
+      "status": "PASS",
+      "target": "cyntox-open-os",
+      "source_root": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target",
+      "manifest": "C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target\\oslab-target.toml",
+      "base_commit": "db7b591789313d6288584c223e954e6f52880d11",
+      "manifest_sha256": "9d631f0809906a7f19c66e46afb48a9a0d0cf1e7da73bb7b029dff3138f3fa50",
+      "license": "MIT",
+      "authorization": "open_source_mit",
+      "build_command": ".\\.venv\\Scripts\\python.exe -m oslab.cli build --target real --repo C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target --profile debug --json",
+      "test_command": ".\\.venv\\Scripts\\python.exe -m oslab.cli test --target real --repo C:\\Users\\vikto\\Documents\\ChatGPT\\cyntox-open-os-target --profile debug --test smoke --json",
+      "ok": true,
+      "outcome": "PASS",
+      "network": "none",
+      "qemu_argv_hash": "10e6290efe1ad72f163b26becad2f495611da1d6ff76fb559d9c8db4e74e3323",
+      "build_artifact_sha256": "b588a7a8f867c2ea9fe7f2feebde0e54529a853ba93e1929a1e7afb337dc11b5",
+      "serial_artifact_sha256": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+      "stderr_artifact_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "run_report_sha256": "c3f07bb6aead0a7528c12494fcc5ecc7e41d08c7449f967192c79466aadefc1b",
+      "serial_excerpt": "OSLAB_EVT {\"event\":\"READY\",\"seq\":0}\r\nOSLAB_EVT {\"event\":\"PASS\",\"seq\":1}\r\n"
+    }
+  },
+  "why_further_progress_is_impossible": [],
+  "resume_commands": []
+}

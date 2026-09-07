@@ -1,0 +1,647 @@
+[
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "5fdb9820da35c0775bb10852954b5a156bf56625e95d5e3fb2a98f44c5ffc456",
+    "candidate_hash": "1f4765229d01432da8cdbb3f0fd2f6bf970a732ba95662b6ce96ff2b3f1da309",
+    "confidence": 0.5,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 38.528898,
+    "infra_failure": 0,
+    "input_tokens": 84,
+    "minimized": 1,
+    "output_tokens": 1738,
+    "patch_accepted": 1,
+    "patch_receipt": "0b4bc93f66dbecd4d72e62237dec62f2e8a73a52472dbf9bf1c907e0586ea911",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 1,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 0,
+    "valid_unique_defects": 1,
+    "variant": "A",
+    "variant_name": "vanilla",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 47.94129950000206
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "25f67e5cabcd40cd163e678ae524c6f9a8ec90978398e62ed67b34ecf65f90e7",
+    "candidate_hash": "1f4765229d01432da8cdbb3f0fd2f6bf970a732ba95662b6ce96ff2b3f1da309",
+    "confidence": 0.5,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 38.508253,
+    "infra_failure": 0,
+    "input_tokens": 84,
+    "minimized": 1,
+    "output_tokens": 1738,
+    "patch_accepted": 1,
+    "patch_receipt": "93535e258861ede07e8a6bb6cc4aa25f21b02d5a35107116f530d443d3e3867e",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 2,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 0,
+    "valid_unique_defects": 1,
+    "variant": "A",
+    "variant_name": "vanilla",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 43.21649780000007
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "955a50dc5ec8e8334a1cd4ed08e108ce981f305f15b64d053c921d634ddb2ee6",
+    "candidate_hash": "1f4765229d01432da8cdbb3f0fd2f6bf970a732ba95662b6ce96ff2b3f1da309",
+    "confidence": 0.5,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 38.556435,
+    "infra_failure": 0,
+    "input_tokens": 84,
+    "minimized": 1,
+    "output_tokens": 1738,
+    "patch_accepted": 1,
+    "patch_receipt": "cad3e04eda04f1ffab8e01ba45643634ae775c446aa5538ad02f5ab3374092ef",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 3,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 0,
+    "valid_unique_defects": 1,
+    "variant": "A",
+    "variant_name": "vanilla",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 43.02467919999617
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "af00bcc69b8ec8d0edbb026586711741d81239d4d3f9287080e26278c7602848",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.602788,
+    "infra_failure": 0,
+    "input_tokens": 43,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "2474e7a8ad5f94503651753360b6a8c52681c190f3ae67180032b4f066300d1a",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 1,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 3,
+    "valid_unique_defects": 1,
+    "variant": "B",
+    "variant_name": "scaffold",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 5.237251699996705
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "0ca16fd5b66b8f418154e897cda6b20f7c5f869d39cfd94d4d75fcf0cb0341f9",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.598879,
+    "infra_failure": 0,
+    "input_tokens": 43,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "2ba447f3b907e261a87819e6b20b523370dad9a1283caa8623fd4e7485223c24",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 2,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 3,
+    "valid_unique_defects": 1,
+    "variant": "B",
+    "variant_name": "scaffold",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 5.210296500001277
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "9bc6c3329eca645958056eec05c7c406c8f5447d37cd4c789cb3ca1d540faf09",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.720178,
+    "infra_failure": 0,
+    "input_tokens": 43,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "8b8d3d5cce7098ab4d3c328e3fe91990317d7ecc9fd37beec134ab5dd1e71a4f",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 3,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 3,
+    "valid_unique_defects": 1,
+    "variant": "B",
+    "variant_name": "scaffold",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 5.171670099996845
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "01a5435543dffb0b2d1d1793dcc46d5c1d8f3b0f9689af2b14f42a6e2f5ae51d",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.598691,
+    "infra_failure": 0,
+    "input_tokens": 203,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "91484eb58a9214c3cb0b87d5c3f490e3eda97dd0c9fdc54a199c0885d98ead95",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 1,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 3,
+    "valid_unique_defects": 1,
+    "variant": "C",
+    "variant_name": "retrieval-memory",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 5.432711499997822
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "fd2709b76fdfcdbb49341fbdc21c6efcda77c3b459184c4ee23168f3a0f5fee0",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.59687,
+    "infra_failure": 0,
+    "input_tokens": 203,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "f0d7ba65360d02b966bd36bd86b8517ddd9b2d707efe09a4e0b071983b5cfd9c",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 2,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 3,
+    "valid_unique_defects": 1,
+    "variant": "C",
+    "variant_name": "retrieval-memory",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 5.237170200001856
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "7e3105336f1b7b076f3d2198f03184770f75136d890ca94c14297f3c47764c47",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.601181,
+    "infra_failure": 0,
+    "input_tokens": 203,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "43b3042e6b328ef165b3edb8b023aa697d1a8d5306393edcc1ab4d79f6dab1a8",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 3,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 3,
+    "valid_unique_defects": 1,
+    "variant": "C",
+    "variant_name": "retrieval-memory",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 5.330708499997854
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "64984588434398df24bb75b4ac00fb2baeff1eea042ef20692f88fb6486a99e4",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.577492,
+    "infra_failure": 0,
+    "input_tokens": 64,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "852efc5501abe576ec8b90ff3eeb06f8f5c41c2c92a9ea6726fefe3d025b9ad3",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 1,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 3,
+    "valid_unique_defects": 1,
+    "variant": "D",
+    "variant_name": "adaptive-compute",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 5.394950499998231
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "18ca3f933674fdf62967e4eafe848f80189860e207915ef05eedbe412b527d8c",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.578303,
+    "infra_failure": 0,
+    "input_tokens": 64,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "1476afd1836df1fb0e5c15798a59d86c8a529ad04e967843a393647eb99abf5f",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 2,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 3,
+    "valid_unique_defects": 1,
+    "variant": "D",
+    "variant_name": "adaptive-compute",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 5.217358100002457
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "7578109feeab486b290a258da1e2086fa1279d3645589fd9d4be7aa391bd3b68",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.701144,
+    "infra_failure": 0,
+    "input_tokens": 64,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "4432dad228c6f1954e882128ef211e9835a8a2054670538a6df48f5d978001af",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 3,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 3,
+    "valid_unique_defects": 1,
+    "variant": "D",
+    "variant_name": "adaptive-compute",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": null,
+    "wall_seconds": 5.170342699995672
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "870b4e23c655b14323b0e99f7acb4b49659c28d49e0688ce52926dac754663b4",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.594572,
+    "infra_failure": 0,
+    "input_tokens": 50,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "ca8d4c734f83d34d5237ab512ad780f04cbd8d1b425ec8e1b28f4038a8d75a04",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 1,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 4,
+    "valid_unique_defects": 1,
+    "variant": "E",
+    "variant_name": "adversarial-verifier",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": "7321e5c0151d02bd819a0dc00ad9ba66448dcb51447fb1e5344f6966cd6d4e17",
+    "wall_seconds": 6.765098099996976
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "1189ff5f8a4f97bfc229d09dfc0cba0c98174a7823a26065f0c5ba05f514449b",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.596378,
+    "infra_failure": 0,
+    "input_tokens": 50,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "54febf42124c13320a19ad6ad43351442cded5ba2f2f245b762c007c7fb96f17",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 2,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 4,
+    "valid_unique_defects": 1,
+    "variant": "E",
+    "variant_name": "adversarial-verifier",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": "06b48c8fe3b10ed5aba3a2f83fa3cd51f1891fe4c5cdb1bd66dea5834c71dcb3",
+    "wall_seconds": 6.512902199996461
+  },
+  {
+    "baseline_artifacts": {
+      "serial": "ad8022a2db602ea768a9933e75ef70e9a6c30cf57ede73e6e2a664a267debb11",
+      "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "baseline_fingerprint": "7fd97c5e444297c2dae20c527756dd37a3da8243f1e07839d568042d92c91c5c",
+    "candidate_artifact": "7b9d932a5e5e8e7347019d48e647a426b6c9ff4b0f1b44c3240a78e5d0d57197",
+    "candidate_hash": "e8977cc5dbca16d5c464fb87f262f705a6d26890ab466dfe469d57ed4fc4dfa8",
+    "confidence": 0.95,
+    "evaluator_exploit": 0,
+    "false_positive": 0,
+    "gpu_seconds": 0.594902,
+    "infra_failure": 0,
+    "input_tokens": 50,
+    "minimized": 1,
+    "output_tokens": 27,
+    "patch_accepted": 1,
+    "patch_receipt": "5d0cd7537f6f4f5312b7d9628085f6f7e52b6d55c80d48e8c898ec6a50b7f968",
+    "protocol_states_covered": 2,
+    "regression_outcome": "PASS",
+    "regression_survived": 1,
+    "reproduced": 1,
+    "seed": 3,
+    "seeded_defects_found": 1,
+    "stable_fingerprint": 1,
+    "targeted_outcome": "PASS",
+    "tool_calls": 4,
+    "valid_unique_defects": 1,
+    "variant": "E",
+    "variant_name": "adversarial-verifier",
+    "verification_artifacts": {
+      "regression": {
+        "serial": "6916cde399e692e88d72847c1f56948a396884bdbfe24225765f3f67a6ab99ad",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "targeted": {
+        "serial": "0074c30e02c63eca7b6e015c7c3d26ceba9e41326ad06a79bcb1b06f79c7e979",
+        "stderr": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "verifier_artifact": "67d274f083692df8ce0618530d2c1395698a5b7f784eba9c148bca7aa56711b4",
+    "wall_seconds": 6.434338099999877
+  }
+]

@@ -1,0 +1,44 @@
+{
+  "generated_at": "2026-09-02T17:46:30.781238Z",
+  "installed_commands": {
+    "airllm": false,
+    "ktransformers": false,
+    "llama-cli": false,
+    "llama-server": false,
+    "lmstudio": false,
+    "lms": false,
+    "ollama": true,
+    "sglang": false,
+    "vllm": false
+  },
+  "installed_python_modules": {
+    "airllm": false,
+    "ktransformers": false,
+    "llama_cpp": false,
+    "lmstudio": false,
+    "sglang": false,
+    "vllm": false
+  },
+  "selected_runtime": "ollama",
+  "selected_model": {
+    "architecture": "cyntox-27b",
+    "context_limit": 262144,
+    "format": "gguf",
+    "model_id": "cyntox:latest",
+    "parameters": 27320697856,
+    "quantization": "Q4_K_M",
+    "runtime_version": "0.33.2"
+  },
+  "measured": {
+    "average_output_tokens_per_second": 46.97957082055641,
+    "structured_json_smoke": "PASS",
+    "cyntox_code_mcp_smoke": "PASS",
+    "validated_worker_context_tokens": 16384
+  },
+  "profiles": {
+    "fast": "enabled: resident Ollama CyntOX worker",
+    "deep": "enabled: same resident model, larger budget",
+    "long": "enabled cautiously: retrieval first, larger context only when needed",
+    "oracle": "disabled: no compatible larger/offloaded local runtime and model files detected"
+  }
+}
