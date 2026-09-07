@@ -2556,7 +2556,7 @@ def _main_impl(argv: list[str] | None = None) -> int:
         task_parts.append(read_text_if_exists(Path(args.task_file)))
     task = " ".join(part for part in task_parts if part).strip()
     if not task:
-        parser.error('Provide a task, for example: .\\cyntox-council.cmd "review my Jellyfin plan"')
+        parser.error('Provide a task, for example: cyntox council "review my Jellyfin plan"')
 
     timestamp = args.run_id or dt.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}", timestamp):

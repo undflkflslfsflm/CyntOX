@@ -37,8 +37,15 @@ from oslab.mythos_prompt import PROMPT_STATUS, PROMPT_VERSION, canonical_prompt_
 from oslab.resource_lease import AirLlmAdmissionLease
 
 try:
-    from scripts import cyntox_council, cyntox_memory, cyntox_output, cyntox_privacy
+    from scripts import (
+        cyntox_commands,
+        cyntox_council,
+        cyntox_memory,
+        cyntox_output,
+        cyntox_privacy,
+    )
 except ModuleNotFoundError:  # pragma: no cover - direct script execution path
+    import cyntox_commands  # type: ignore[import-not-found,no-redef]
     import cyntox_council  # type: ignore[import-not-found,no-redef]
     import cyntox_memory  # type: ignore[import-not-found,no-redef]
     import cyntox_output  # type: ignore[import-not-found,no-redef]
@@ -1058,8 +1065,8 @@ def render_mythos_repo_evidence(root: Path, benchmark_name: str) -> str:
         [
             "Repo-grounding packet for this CyntOX Mythos benchmark:",
             f"- benchmark_name: {benchmark_name}",
-            "- exact CyntOX CLI commands: .\\cyntox.cmd proof mythos; .\\cyntox.cmd proof canary; .\\cyntox.cmd benchmark mythos; .\\cyntox.cmd jobs list",
-            "- job details command: .\\cyntox.cmd jobs show requires a concrete job id from jobs list; do not print a job-show command template when the id is unknown",
+            "- exact CyntOX CLI commands: cyntox proof; cyntox proof canary; cyntox benchmark mythos; cyntox jobs",
+            "- job details command: cyntox show requires a concrete job id from cyntox jobs; do not print a job-show command template when the id is unknown",
             "- exact broker capability for host canary: proof.write_canary",
             f"- exact canary path/content: {MYTHOS_PROOF_RELATIVE_PATH.as_posix()} contains {MYTHOS_PROOF_CONTENT!r}",
             f"- canary currently exists: {proof_exists}",
@@ -3926,7 +3933,7 @@ def actions_from_doctor_report(doctor_report: dict[str, Any]) -> list[dict[str, 
                 actions,
                 priority="blocker",
                 title="Start Docker Desktop Linux engine for real OS/QEMU stress",
-                command=".\\cyntox.cmd stress --require-qemu --fix",
+                command="cyntox fix --require-qemu",
                 reason=(
                     remediation
                     or diagnostic
@@ -3947,7 +3954,7 @@ def actions_from_doctor_report(doctor_report: dict[str, Any]) -> list[dict[str, 
                 actions,
                 priority="fix",
                 title="Regenerate CyntOX/CyntOX settings and restart the proxy",
-                command=".\\cyntox.cmd chat",
+                command="cyntox run",
                 reason=message or "Chat startup rewrites settings and refreshes the local proxy.",
             )
         elif name in {"launcher files", "cyntox code package"}:
@@ -3963,7 +3970,7 @@ def actions_from_doctor_report(doctor_report: dict[str, Any]) -> list[dict[str, 
                 actions,
                 priority="inspect",
                 title=f"Inspect doctor warning: {name}",
-                command=".\\cyntox.cmd doctor",
+                command="cyntox check",
                 reason=message or "Doctor reported a non-OK check.",
             )
     return actions
@@ -3989,7 +3996,7 @@ def actions_from_stress_report(
             actions,
             priority="verify",
             title="Create the first stress report",
-            command=".\\cyntox.cmd stress --fix --rerun-failures 1",
+            command="cyntox fix --rerun-failures 1",
             reason="No latest stress report exists yet.",
         )
         return actions
@@ -4013,7 +4020,7 @@ def actions_from_stress_report(
             actions,
             priority="fix",
             title="Fix failing stress gates",
-            command=".\\cyntox.cmd stress --fix --rerun-failures 1",
+            command="cyntox fix --rerun-failures 1",
             reason=f"Latest stress failed: {', '.join(failed)}.",
         )
     if isinstance(recovered, list) and recovered:
@@ -4021,7 +4028,7 @@ def actions_from_stress_report(
             actions,
             priority="verify",
             title="Prove recovered failures are no longer flaky",
-            command=".\\cyntox.cmd stress --quick --repeat 5 --skip-qemu --fix",
+            command="cyntox fix --quick --repeat 5 --skip-qemu",
             reason=f"Recovered on rerun: {', '.join(str(item) for item in recovered)}.",
         )
     if isinstance(flaky, list) and flaky:
@@ -4029,7 +4036,7 @@ def actions_from_stress_report(
             actions,
             priority="verify",
             title="Chase flaky stress commands",
-            command=".\\cyntox.cmd stress --quick --repeat 5 --skip-qemu --fix",
+            command="cyntox fix --quick --repeat 5 --skip-qemu",
             reason=f"Status changed across repeats: {', '.join(str(item) for item in flaky)}.",
         )
     if (
@@ -4041,7 +4048,7 @@ def actions_from_stress_report(
             actions,
             priority="blocker",
             title="Run required QEMU proof after Docker is available",
-            command=".\\cyntox.cmd stress --require-qemu --fix",
+            command="cyntox fix --require-qemu",
             reason="Latest stress only warned on QEMU, so OS stress remains unproven.",
         )
     if not failed and not warned:
@@ -4049,7 +4056,7 @@ def actions_from_stress_report(
             actions,
             priority="verify",
             title="Run repeated daily stress",
-            command=".\\cyntox.cmd stress --quick --repeat 3 --skip-qemu --fix",
+            command="cyntox fix --quick --repeat 3 --skip-qemu",
             reason="Latest stress had no failing or warning gates.",
         )
     return actions
@@ -4071,7 +4078,7 @@ def build_next_report(root: Path, *, history_limit: int = 5) -> dict[str, Any]:
         actions,
         priority="inspect",
         title="Review recent stress trend",
-        command=f".\\cyntox.cmd stress history --limit {history_limit}",
+        command=f"cyntox history --limit {history_limit}",
         reason="Shows whether recent failures are new, repeated, or already fixed.",
     )
     priority_order = {"blocker": 0, "fix": 1, "verify": 2, "inspect": 3}
@@ -4096,7 +4103,7 @@ def render_next_report(report: dict[str, Any]) -> str:
     actions = report.get("actions")
     if not isinstance(actions, list) or not actions:
         lines.append(
-            "No next actions found. Run .\\cyntox.cmd stress --strict --require-qemu --fix for a proof gate."
+            "No next actions found. Run cyntox fix --strict --require-qemu for a proof gate."
         )
         return "\n".join(lines)
     for index, action in enumerate(actions, start=1):
@@ -4437,7 +4444,7 @@ def record_stale_worker_evidence(job_dir: Path, pid: int) -> dict[str, Any]:
         output_path.write_text(
             (
                 "CyntOX job worker stopped unexpectedly. "
-                "Use `cyntox jobs retry <job-id>` to rerun from saved metadata.\n"
+                "Use `cyntox retry JOB` with this job's id to rerun from saved metadata.\n"
             ),
             encoding="utf-8",
         )
@@ -4463,6 +4470,10 @@ def cmd_jobs(root: Path, argv: list[str]) -> int:
     )
     status_parser = subparsers.add_parser("status")
     status_parser.add_argument("job_id", nargs="?")
+    status_parser.add_argument("--json", action="store_true")
+    status_parser.add_argument(
+        "--full", action="store_true", help="print full JSON instead of compact terminal JSON"
+    )
     resume_parser = subparsers.add_parser("resume")
     resume_parser.add_argument("job_id")
     resume_parser.add_argument("--model-profile", choices=MODEL_PROFILES)
@@ -4502,6 +4513,9 @@ def cmd_jobs(root: Path, argv: list[str]) -> int:
         return 0
     if args.command == "status":
         jobs = list_jobs(root, args.jobs_dir)
+        if args.json:
+            print(cyntox_output.terminal_json({"jobs": jobs}, full=args.full))
+            return 0
         for job in jobs:
             score = job.get("latest_score") or "?"
             task = cyntox_memory.excerpt(str(job.get("task") or ""), JOB_LIST_TASK_PREVIEW_LIMIT)
@@ -4694,7 +4708,7 @@ def cmd_skills(root: Path, argv: list[str]) -> int:
             return code
         pid = start_worker(root, job_id)
         print(f"Queued cyntox job {job_id} as PID {pid}.")
-        print(f"Inspect with: .\\cyntox.cmd jobs show {job_id}")
+        print(f"Inspect with: cyntox show {job_id}")
         return 0
     return 2
 
@@ -4805,7 +4819,7 @@ def enqueue_task(root: Path, argv: list[str]) -> int:
         return code
     pid = start_worker(root, job_id)
     print(f"Queued cyntox job {job_id} as PID {pid}.")
-    print(f"Inspect with: .\\cyntox.cmd jobs show {job_id}")
+    print(f"Inspect with: cyntox show {job_id}")
     return 0
 
 
@@ -4867,7 +4881,7 @@ def cmd_run_on(root: Path, argv: list[str]) -> int:
         return code
     pid = start_worker(root, job_id)
     print(f"Queued cyntox device job {job_id} as PID {pid}.")
-    print(f"Inspect with: .\\cyntox.cmd jobs show {job_id}")
+    print(f"Inspect with: cyntox show {job_id}")
     return 0
 
 
@@ -4929,7 +4943,7 @@ def cmd_setup(root: Path, argv: list[str]) -> int:
         return code
     pid = start_worker(root, job_id)
     print(f"Queued cyntox setup dry-run job {job_id} as PID {pid}.")
-    print(f"Inspect with: .\\cyntox.cmd jobs show {job_id}")
+    print(f"Inspect with: cyntox show {job_id}")
     return 0
 
 
@@ -4960,6 +4974,15 @@ def cmd_chat(root: Path, argv: list[str]) -> int:
             str(launcher),
             *argv,
         ],
+        cwd=root,
+        check=False,
+    )
+    return completed.returncode
+
+
+def cmd_lab(root: Path, argv: list[str]) -> int:
+    completed = subprocess.run(  # noqa: S603 - fixed local CLI, separate argv preserves boundaries
+        [sys.executable, "-m", "oslab.cli", *(argv or ["--help"])],
         cwd=root,
         check=False,
     )
@@ -5530,7 +5553,7 @@ def cmd_audit(root: Path, argv: list[str]) -> int:
             return returncode
         pid = _start_audit_worker(root, audit.id)
         print(
-            f"Audit queued: {audit.id}\nWorker PID: {pid}\nInspect with: .\\cyntox.cmd audit status {audit.id}"
+            f"Audit queued: {audit.id}\nWorker PID: {pid}\nInspect with: cyntox audit status {audit.id}"
         )
         return 0
     if args.command == "list":
@@ -5718,13 +5741,52 @@ def cmd_stress(root: Path, argv: list[str]) -> int:
     return 0 if report["status"] != "fail" else 1
 
 
-def print_main_help() -> None:
+def print_main_help(*, advanced: bool = False) -> None:
+    if not advanced:
+        print(
+            "\n".join(
+                [
+                    "CyntOX daily-use commands:",
+                    "",
+                    "  cyntox run                 open the assistant",
+                    "  cyntox ask TASK            queue a task",
+                    "  cyntox check               check your setup",
+                    "  cyntox test                run the quality checks",
+                    "  cyntox fix                 run checks and apply supported fixes",
+                    "  cyntox jobs                list your jobs",
+                    "  cyntox status JOB          check a job (omit JOB to list jobs)",
+                    "  cyntox show JOB            read a job's result",
+                    "  cyntox resume JOB          continue an unfinished job",
+                    "  cyntox retry JOB           retry a saved job",
+                    "  cyntox report              save a jobs summary",
+                    "  cyntox history             show recent test results",
+                    "  cyntox next                show suggested next steps",
+                    "  cyntox skills              list skills",
+                    "  cyntox use SKILL TASK      queue a task using a skill",
+                    "  cyntox devices             list devices",
+                    "  cyntox memory              show your memory folder",
+                    "  cyntox remember TEXT       save a memory",
+                    "  cyntox recall TEXT         search memories",
+                    "  cyntox forget ID           archive a memory",
+                    "  cyntox privacy             show the privacy policy",
+                    "  cyntox audit               list repository audits",
+                    "  cyntox airllm              check the optional specialist",
+                    "  cyntox council TASK        run a council review",
+                    "  cyntox lab                 show OS-lab commands",
+                    "",
+                    "Replace TASK, JOB, SKILL, TEXT, and ID with your own values.",
+                    "Use cyntox help COMMAND for options, or cyntox help all for advanced commands.",
+                    "Existing commands still work. Default: local-first, internet off.",
+                ]
+            )
+        )
+        return
     print(
         "\n".join(
             [
                 "usage: cyntox [command] [args]",
                 "",
-                "CyntOX daily-use commands:",
+                "CyntOX advanced and compatibility commands:",
                 '  cyntox "task"                         queue a local-first council job',
                 "  cyntox run                            open interactive CyntOX/CyntOX Code",
                 "  cyntox chat                           alias for cyntox run",
@@ -5752,6 +5814,8 @@ def print_main_help() -> None:
                 "  cyntox benchmark mythos               run the 10-task council smoke test",
                 "  cyntox benchmark prompt-ab            compare locked Mythos prompts blindly",
                 "  cyntox model airllm setup|status|smoke manage the locked Qwythos runtime",
+                "  cyntox airllm setup|status|smoke       shorter specialist commands",
+                "  cyntox lab                           access every OS-lab command",
                 "",
                 "Defaults: local-first, internet off, remote writes blocked until approved.",
             ]
@@ -5765,11 +5829,57 @@ def main(argv: list[str] | None = None) -> int:
     if not args:
         return cmd_chat(root, [])
 
+    args = cyntox_commands.normalize_command_args(args)
     command = args[0].lower()
     tail = args[1:]
     if command in {"-h", "--help", "help"}:
-        print_main_help()
-        return 0
+        if not tail:
+            print_main_help()
+            return 0
+        if tail == ["all"]:
+            print_main_help(advanced=True)
+            return 0
+        if "--" in tail:
+            print("Use cyntox help COMMAND without task text or the -- separator.", file=sys.stderr)
+            return 2
+        help_target = tail[0].lower()
+        help_commands = {
+            "run",
+            "chat",
+            "ask",
+            "council",
+            "jobs",
+            "skills",
+            "memory",
+            "vault",
+            "devices",
+            "run-on",
+            "setup",
+            "privacy",
+            "security",
+            "audit",
+            "proof",
+            "doctor",
+            "next",
+            "stress",
+            "benchmark",
+            "model",
+            "lab",
+            *cyntox_commands.COMMAND_ALIASES,
+        }
+        if help_target not in help_commands:
+            print(
+                f"Unknown command: {tail[0]}. Use cyntox help to see available commands.",
+                file=sys.stderr,
+            )
+            return 2
+        return main([*tail, "--help"])
+    if command == "ask":
+        return enqueue_task(root, tail)
+    if command == "lab":
+        return cmd_lab(root, tail)
+    if command == "model" and not tail:
+        return cmd_model(root, ["--help"])
     if command == "_worker":
         parser = argparse.ArgumentParser(prog="cyntox _worker")
         parser.add_argument("job_id")

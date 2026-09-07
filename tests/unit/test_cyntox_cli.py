@@ -238,8 +238,8 @@ def test_doctor_fast_fixes_only_include_current_non_ok_checks() -> None:
 
     rendered = cyntox_cli.render_doctor_report(report)
 
-    assert ".\\cyntox.cmd chat" not in rendered
-    assert ".\\cyntox.cmd stress --require-qemu --fix" in rendered
+    assert "cyntox run" not in rendered
+    assert "cyntox fix --require-qemu" in rendered
 
 
 def test_stress_command_writes_report(tmp_path: Path, monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
@@ -485,7 +485,7 @@ def test_next_report_turns_current_warnings_into_actions(tmp_path: Path, monkeyp
     assert "Clear sailor-ingest.sock and restart Docker Desktop." in rendered
     assert "git remote add origin" in rendered
     assert "Run required QEMU proof after Docker is available" not in rendered
-    assert ".\\cyntox.cmd stress history --limit 5" in rendered
+    assert "cyntox history --limit 5" in rendered
 
 
 def test_next_report_shows_qemu_proof_after_docker_is_ready(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
@@ -1233,9 +1233,11 @@ def test_main_help_lists_daily_commands(capsys) -> None:  # type: ignore[no-unty
     assert code == 0
     assert "CyntOX daily-use commands" in output
     assert "cyntox run " in output
-    assert "cyntox chat" in output
-    assert "cyntox jobs list|show|resume|retry" in output
-    assert "cyntox run-on <device>" in output
+    assert "cyntox check" in output
+    assert "cyntox jobs" in output
+    assert "cyntox resume JOB" in output
+    assert "cyntox help COMMAND" in output
+    assert "cyntox help all" in output
 
 
 @pytest.mark.parametrize("command", [[], ["run"], ["chat"]])
@@ -1656,7 +1658,7 @@ def test_jobs_sweep_stale_preserves_worker_log_tails(tmp_path: Path, monkeypatch
     assert "worker.stdout.log tail" in verification
     assert "worker.stderr.log tail" in verification
     assert "[stale worker stderr tail]" in errors
-    assert "cyntox jobs retry" in output
+    assert "cyntox retry" in output
 
 
 def seed_mythos_proof_fixture(root: Path) -> None:
@@ -2133,9 +2135,9 @@ def test_mythos_benchmark_task_includes_repo_grounding(tmp_path: Path) -> None:
 
     assert "proof.write_canary" in task
     assert "proofs/mythos/done.txt" in task
-    assert ".\\cyntox.cmd benchmark mythos" in task
-    assert ".\\cyntox.cmd jobs list" in task
-    assert ".\\cyntox.cmd jobs show <job-id>" not in task
+    assert "cyntox benchmark mythos" in task
+    assert "cyntox jobs" in task
+    assert "cyntox show <job-id>" not in task
     assert "do not print a job-show command template" in task
     assert "Do not invent REST endpoints" in task
 

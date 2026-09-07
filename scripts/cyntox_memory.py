@@ -664,7 +664,9 @@ def forget_memory(
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="CyntOX vault and RAG memory.")
+    parser = argparse.ArgumentParser(
+        prog="cyntox memory", description="CyntOX vault and RAG memory."
+    )
     parser.add_argument("--vault-dir", default=DEFAULT_VAULT_DIR)
     parser.add_argument("--memory-db", default=DEFAULT_MEMORY_DB)
     subparsers = parser.add_subparsers(dest="command", required=True)

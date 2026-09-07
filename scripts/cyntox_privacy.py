@@ -329,7 +329,7 @@ def render_policy_prompt(policy: PrivacyPolicy, *, scan: dict[str, Any] | None =
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="CyntOX privacy and prompt-injection guard utilities."
+        prog="cyntox privacy", description="CyntOX privacy and prompt-injection guard utilities."
     )
     parser.add_argument("--internet-mode", choices=("off", "allowlist", "open"), default="off")
     parser.add_argument("--allow-domain", action="append", default=[])

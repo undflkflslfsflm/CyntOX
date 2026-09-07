@@ -12,7 +12,9 @@ Start an interactive session from any folder with:
 cyntox run
 ```
 
-`cyntox chat` remains a supported alias. Launch options pass through, for example `cyntox run --version`. Existing council, jobs, and task commands keep their behavior.
+Use the same simple form for other tasks: `cyntox check`, `cyntox test`, `cyntox fix`, `cyntox jobs`, and `cyntox help`. Queue work with `cyntox ask "review this repo"`; inspect it with `cyntox show JOB_ID`. Quote task text and paths when they contain spaces. See the [command shortcuts](RUNBOOK.md#command-shortcuts) for the complete list.
+
+`cyntox chat` and the original command forms remain supported. Launch options pass through, for example `cyntox run --version`.
 
 ## What setup does
 

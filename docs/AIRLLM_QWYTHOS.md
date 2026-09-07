@@ -4,19 +4,21 @@ CyntOX can route the `fact-checker` and `critic` council roles to the locked ful
 
 ## Locked runtime
 
+`cyntox airllm` shows status. Use `cyntox airllm setup` for explicit preparation; the original `cyntox model airllm` commands remain supported.
+
 The only permitted specialist model is `huihui-ai/Huihui-Qwythos-9B-Claude-Mythos-5-1M-abliterated` at revision `efcc73cac15ff8fc5d46b8d41b53c22d571cf97d`. Its expected snapshot size is `19,333,096,957` bytes, precision is BF16, and context is capped at 32,768 tokens. The tracked registry is `config/models.toml`; arbitrary Hugging Face IDs are not accepted.
 
 The heavy Python environment, Hugging Face snapshot, layer shards, file manifest, and measured VRAM data live outside Git at `%LOCALAPPDATA%\CyntOX\airllm`. Set `CYNTOX_AIRLLM_HOME` to override that location. Setup requires Python 3.12, CUDA with BF16 support, and at least 50 GiB free disk.
 
 ```powershell
-.\cyntox.cmd model airllm setup --dry-run
-.\cyntox.cmd model airllm setup
-.\cyntox.cmd model airllm status --json --verify
-.\cyntox.cmd model airllm status --require-qualified
-.\cyntox.cmd model airllm smoke --backend resident
-.\cyntox.cmd model airllm smoke --backend airllm
-.\cyntox.cmd model airllm qualify --backend resident
-.\cyntox.cmd model airllm qualify --backend airllm
+cyntox airllm setup --dry-run
+cyntox airllm setup
+cyntox airllm status --json --verify
+cyntox airllm status --require-qualified
+cyntox airllm smoke --backend resident
+cyntox airllm smoke --backend airllm
+cyntox airllm qualify --backend resident
+cyntox airllm qualify --backend airllm
 ```
 
 Setup is serialized across processes. It installs the separately pinned and wheel-hashed Windows/Python 3.12 runtime, downloads only the locked revision, verifies every local file and the exact aggregate size, checks the native Qwen3.5 architecture, pre-splits the model with complete tensor accounting, builds the resident index, and proves a second reload with Hugging Face offline mode enabled. Optional FLA and causal-convolution native kernels are intentionally absent in v1.
@@ -24,9 +26,9 @@ Setup is serialized across processes. It installs the separately pinned and whee
 ## Running councils and jobs
 
 ```powershell
-.\cyntox.cmd council --model-profile hybrid-airllm "review this plan"
-.\cyntox.cmd jobs resume JOB_ID --model-profile hybrid-airllm
-.\cyntox.cmd jobs retry JOB_ID --model-profile hybrid-airllm
+cyntox council --model-profile hybrid-airllm "review this plan"
+cyntox resume JOB_ID --model-profile hybrid-airllm
+cyntox retry JOB_ID --model-profile hybrid-airllm
 ```
 
 The worker has no broker tools and accepts only authenticated loopback health, generation, and shutdown requests. It runs with Hugging Face offline mode after setup. Python-level outbound networking and post-start subprocess creation are denied, inherited credentials are removed, and an OS job/process group reaps descendants. This is a strong application boundary, but not a claim of kernel-enforced egress containment for arbitrary native code; use an OS sandbox or outbound firewall policy when that threat model applies.
@@ -61,8 +63,8 @@ Qualification binding schema 3 SHA-256 binds the worker, provider, council orche
 Run the existing ten-task council smoke suite in each profile:
 
 ```powershell
-.\cyntox.cmd benchmark mythos --model-profile single
-.\cyntox.cmd benchmark mythos --model-profile hybrid-airllm
+cyntox benchmark mythos --model-profile single
+cyntox benchmark mythos --model-profile hybrid-airllm
 ```
 
 These reports are explicitly `benchmark_kind=council_smoke`, `promotion_eligible=false`. They exercise topology, provider attestations, deadlines, VRAM handling, boundaries, and scoring, but their tasks guide the answer and the council scorer is not independent. They are therefore operational smoke evidence only, never capability, model-parity, or routing-promotion evidence.
@@ -70,7 +72,7 @@ These reports are explicitly `benchmark_kind=council_smoke`, `promotion_eligible
 Prompt adoption has a separate held-out evaluation:
 
 ```powershell
-.\cyntox.cmd benchmark prompt-ab
+cyntox benchmark prompt-ab
 ```
 
 It uses 20 evaluator-only cases across six fixed categories, three fixed seeds, the same Ollama model digest/configuration for v1 and v2, deterministic hard/soft validators, incremental checkpoints, and a separately bound anonymized human A/B review of all 60 pairs. Passing requires all hard gates, no candidate material defects, no category regression, at least a five-point score gain or an exact 1.0/1.0 ceiling tie, no more than ten percent median-length growth, and at least sixty percent candidate preference across the declared subjective pairs excluding ties. This validates prompt adoption only; it does not compare `single` with `hybrid-airllm` and cannot establish routing parity.
